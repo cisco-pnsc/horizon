@@ -99,6 +99,7 @@ def get_service_from_catalog(catalog, service_type):
 
 def url_for(request, service_type, admin=False, endpoint_type='internalURL'):
     catalog = request.user.service_catalog
+    LOG.debug("\n\n\n\n %s \n\n\n" % catalog)
     service = get_service_from_catalog(catalog, service_type)
     if service:
         try:
