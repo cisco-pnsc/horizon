@@ -137,6 +137,10 @@ def quantum_port_attach(request, network_id, port_id, attachment):
 def quantum_port_detach(request, network_id, port_id):
     return quantumclient(request).detach_resource(network_id, port_id)
 
+def quantum_ports_toggle(request, network_id, port_id, state):
+    data = {'port': {'state':state}}
+    quantumclient(request).update_port(network_id, port_id, data)
+
 def get_free_interfaces(request):
     instance_interfaces = []
     attached_interfaces = []
@@ -166,6 +170,6 @@ def get_interface_server(request, interface):
     for instance in instances:
         vifs = nova.virtual_interfaces_list(request, instance.id)
         for vif in vifs:
-            if vid.id == interface:
+            if vif.id == interface:
                 return instance
     return None

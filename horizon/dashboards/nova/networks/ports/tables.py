@@ -109,6 +109,75 @@ class DetachPort(tables.LinkAction):
             'horizon:nova:networks:ports:detach_port',
             args=[network_id, datum.id])
 
+class TurnPortUp(tables.Action):
+    name = "turn_port_up"
+    verbose_name = _("Turn port up")
+    verbose_name_plural = _("Turn ports up")
+    classes = ("btn-success", "btn-danger")
+
+    def get_network_id(self, request):
+        uri = request.META['REQUEST_URI']
+        match = re.search('/nova/networks/([^/]+)/ports', uri)
+        network_id = match.group(1)
+
+        return network_id
+
+    def handle(self, table, request, object_ids):
+        network_id = self.get_network_id(request)
+        activated = []
+        for obj_id in object_ids:
+            try:
+                api.quantum_ports_toggle(request, network_id, obj_id, 'ACTIVE')
+                activated.append(obj_id)
+            except:
+                LOG.exception('Unable to activate ports "%s".' % obj_id)
+                messages.error(request,
+                               _('Unable to activate port: %s') %
+                               obj_id)
+                raise
+        if activated:
+            messages.success(request,
+                             _('Successfully activated ports: %s')
+                              % ", ".join(activated))
+        return shortcuts.redirect(
+            'horizon:nova:networks:ports:ports',
+            network_id=network_id)
+
+class TurnPortDown(tables.Action):
+    name = "turn_port_down"
+    verbose_name = _("Turn port down")
+    verbose_name_plural = _("Turn ports down")
+    classes = ("btn-danger", "btn-delete")
+
+    def get_network_id(self, request):
+        uri = request.META['REQUEST_URI']
+        match = re.search('/nova/networks/([^/]+)/ports', uri)
+        network_id = match.group(1)
+
+        return network_id
+
+    def handle(self, table, request, object_ids):
+        network_id = self.get_network_id(request)
+        deactivated = []
+        for obj_id in object_ids:
+            try:
+                api.quantum_ports_toggle(request, network_id, obj_id, 'DOWN')
+                deactivated.append(obj_id)
+            except:
+                LOG.exception('Unable to deactivate ports "%s".' % obj_id)
+                messages.error(request,
+                               _('Unable to deactivate port: %s') %
+                               obj_id)
+                raise
+        if deactivated:
+            messages.success(request,
+                             _('Successfully deactivated ports: %s')
+                              % ", ".join(deactivated))
+        return shortcuts.redirect(
+            'horizon:nova:networks:ports:ports',
+            network_id=network_id)
+
+
 class PortsTable(tables.DataTable):
     id = tables.Column("id", verbose_name=_("Port id"))
     state = tables.Column("state", verbose_name=_("State"))
@@ -130,4 +199,4 @@ class PortsTable(tables.DataTable):
         name = "ports"
         verbose_name = _("Ports")
         row_actions = (AttachPort,DetachPort,)
-        table_actions = (CreatePorts, DeletePorts,)
+        table_actions = (CreatePorts, DeletePorts,TurnPortUp,TurnPortDown)
