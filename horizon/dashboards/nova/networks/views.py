@@ -44,22 +44,17 @@ class IndexView(tables.DataTableView):
     table_class = NetworksTable
     template_name = 'nova/networks/index.html'
 
-    def has_more_data(self, table):
-        return self._more
-
     def get_data(self):
-        networks = []
-        self._more = None
         try:
-            networks, self._more = api.network_list(
-                                        self.request)
+            networks = api.quantum_network_list(self.request)
         except:
+            networks = []
             msg = _('Unable to retrieve network list.')
             exceptions.handle(self.request, msg)
         return networks
 
 
-class CreateView(forms.ModalFormView):
+class CreateNetworkView(forms.ModalFormView):
     form_class = CreateNetwork
     template_name = 'nova/networks/create.html'
 
@@ -67,7 +62,7 @@ class CreateView(forms.ModalFormView):
 class GenerateView(View):
     def get(self, request, network_name=None):
         try:
-            keypair = api.network_create(request, network_name)
+            network = api.quantum_network_create(request, network_name)
         except:
             redirect = reverse('horizon:nova:networks:index')
             exceptions.handle(self.request,

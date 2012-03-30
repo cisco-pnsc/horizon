@@ -4,7 +4,7 @@
 # Administrator of the National Aeronautics and Space Administration.
 # All Rights Reserved.
 #
-# Copyright 2012 Nebula, Inc.
+# Copyright 2012 Cisco Systems, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -18,15 +18,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls.defaults import *
 
-from .views import IndexView, CreateView
+from .ports import urls as port_urls
+from .views import IndexView, CreateNetworkView
 
+NETWORKS = r'^(?P<network_id>[^/]+)/%s$'
 
-OBJECTS = r'^(?P<network_id>[^/]+)/%s$'
-
-
-# Swift containers and objects.
+# Quantum Networks and Ports
 urlpatterns = patterns('horizon.dashboards.nova.networks.views',
     url(r'^$', IndexView.as_view(), name='index'),
-    url(r'^create/$', CreateView.as_view(), name='create'))
+    url(r'^create/$', CreateNetworkView.as_view(), name='create'),
+    url(r'', include(port_urls, namespace='ports'))
+)

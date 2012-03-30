@@ -27,6 +27,6 @@ from horizon.dashboards.nova import dashboard
 class Networks(horizon.Panel):
     name = _("Networks")
     slug = 'networks'
-    #services = ('quantum',)
+    services = ('network',)
 
 dashboard.Nova.register(Networks)

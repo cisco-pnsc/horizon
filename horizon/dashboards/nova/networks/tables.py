@@ -36,7 +36,7 @@ class DeleteNetworks(tables.DeleteAction):
     data_type_plural = _("Networks")
 
     def delete(self, request, obj_id):
-        api.quantum_delete_network(request, obj_id)
+        api.quantum_network_delete(request, obj_id)
 
     def handle(self, table, request, object_ids):
         # Overriden to show clearer error messages instead of generic message
@@ -66,15 +66,15 @@ class CreateNetwork(tables.LinkAction):
 
 
 class NetworksTable(tables.DataTable):
-    name = tables.Column("name", link='horizon:nova:networks:detail',
+    name = tables.Column("name", link='horizon:nova:networks:ports:ports',
                          verbose_name=_("Network Name"))
-    id = tables.Column("uuid", link='horizon:nova:networks:detail',
+    id = tables.Column("id", link='horizon:nova:networks:ports:ports',
 					   verbose_name=_("Network id"))
-    ports = tables.Column("port_count", verbose_name=_('Ports'),
+    port_count = tables.Column("port_count", verbose_name=_('Ports'),
 						  empty_value="0")
 
     def get_object_id(self, network):
-        return network.name
+        return network.id
 
     class Meta:
         name = "networks"

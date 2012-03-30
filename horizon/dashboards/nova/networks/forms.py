@@ -27,6 +27,7 @@ from django.utils.translation import ugettext as _
 from novaclient import exceptions as novaclient_exceptions
 
 from horizon import api
+from horizon import exceptions
 from horizon import forms
 
 
@@ -43,7 +44,7 @@ class CreateNetwork(forms.SelfHandlingForm):
 
     def handle(self, request, data):
         try:
-            api.quantum_create_network(request, data['name'])
+            api.quantum_network_create(request, data['name'])
             messages.success(request, _("Network created successfully."))
         except:
             exceptions.handle(request, _('Unable to create network.'))
