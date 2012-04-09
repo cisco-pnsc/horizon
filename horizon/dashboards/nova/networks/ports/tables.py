@@ -44,7 +44,7 @@ class CreatePorts(tables.LinkAction):
     def get_link_url(self, datum=None):
         network_id = self.table.kwargs['network_id']
         return urlresolvers.reverse(
-            'horizon:nova:networks:ports:create_ports', 
+            'horizon:nova:networks:ports:create_ports',
             args=[network_id])
 
 
@@ -52,15 +52,8 @@ class DeletePorts(tables.DeleteAction):
     data_type_singular = _("Port")
     data_type_plural = _("Ports")
 
-    def get_network_id(self, request):
-        uri = request.META['REQUEST_URI']
-        match = re.search('/nova/networks/([^/]+)/ports', uri)
-        network_id = match.group(1)
-
-        return network_id
-
     def delete(self, request, obj_id):
-        network_id = self.get_network_id(request)
+        network_id = self.table.kwargs['network_id']
         api.quantum_port_delete(request, network_id, obj_id)
 
     def handle(self, table, request, object_ids):
@@ -81,9 +74,9 @@ class DeletePorts(tables.DeleteAction):
             messages.success(request,
                              _('Successfully deleted port: %s')
                                % ", ".join([obj.id for obj in deleted]))
-        network_id = self.get_network_id(request)
+        network_id = self.table.kwargs['network_id']
         return shortcuts.redirect(
-            'horizon:nova:networks:ports:ports', 
+            'horizon:nova:networks:ports:ports',
             network_id=network_id)
 
 
@@ -98,32 +91,27 @@ class AttachPort(tables.LinkAction):
             'horizon:nova:networks:ports:attach_port',
             args=[network_id, datum.id])
 
+
 class DetachPort(tables.LinkAction):
     name = "detach_port"
     verbose_name = _("Detach Port")
     classes = ("ajax-modal", "btn-danger", "btn-delete")
-    
+
     def get_link_url(self, datum=None):
         network_id = self.table.kwargs['network_id']
         return urlresolvers.reverse(
             'horizon:nova:networks:ports:detach_port',
             args=[network_id, datum.id])
 
+
 class TurnPortUp(tables.Action):
     name = "turn_port_up"
     verbose_name = _("Turn port up")
     verbose_name_plural = _("Turn ports up")
-    classes = ("btn-success", "btn-danger")
-
-    def get_network_id(self, request):
-        uri = request.META['REQUEST_URI']
-        match = re.search('/nova/networks/([^/]+)/ports', uri)
-        network_id = match.group(1)
-
-        return network_id
+    classes = ("btn-success", "btn-warning", "btn-info")
 
     def handle(self, table, request, object_ids):
-        network_id = self.get_network_id(request)
+        network_id = table.kwargs['network_id']
         activated = []
         for obj_id in object_ids:
             try:
@@ -143,21 +131,15 @@ class TurnPortUp(tables.Action):
             'horizon:nova:networks:ports:ports',
             network_id=network_id)
 
+
 class TurnPortDown(tables.Action):
     name = "turn_port_down"
     verbose_name = _("Turn port down")
     verbose_name_plural = _("Turn ports down")
-    classes = ("btn-danger", "btn-delete")
-
-    def get_network_id(self, request):
-        uri = request.META['REQUEST_URI']
-        match = re.search('/nova/networks/([^/]+)/ports', uri)
-        network_id = match.group(1)
-
-        return network_id
+    classes = ("btn-delete", "btn-warning")
 
     def handle(self, table, request, object_ids):
-        network_id = self.get_network_id(request)
+        network_id = table.kwargs['network_id']
         deactivated = []
         for obj_id in object_ids:
             try:
@@ -179,14 +161,18 @@ class TurnPortDown(tables.Action):
 
 
 class PortsTable(tables.DataTable):
-    id = tables.Column("id", verbose_name=_("Port id"))
-    state = tables.Column("state", verbose_name=_("State"))
-    op_status = tables.Column("op-status", verbose_name=_("Operational status"))
-    attachment_server = tables.Column("attachment_server", verbose_name=_("Attachment"))
+    id = tables.Column("id", verbose_name=_("Port id"), sortable=True)
+    state = tables.Column("state", verbose_name=_("State"), sortable=True)
+    op_status = tables.Column("op-status",
+                              verbose_name=_("Operational status"),
+                              sortable=True)
+    attachment_server = tables.Column("attachment_server",
+                                      verbose_name=_("Attachment"),
+                                      sortable=True)
 
     def get_object_id(self, port):
         return port.id
-    
+
     def get_row_actions(self, datum):
         self._meta.row_actions = []
         if datum.attachment_id:
@@ -198,5 +184,5 @@ class PortsTable(tables.DataTable):
     class Meta:
         name = "ports"
         verbose_name = _("Ports")
-        row_actions = (AttachPort,DetachPort,)
-        table_actions = (CreatePorts, DeletePorts,TurnPortUp,TurnPortDown)
+        row_actions = (AttachPort, DetachPort,)
+        table_actions = (CreatePorts, DeletePorts, TurnPortUp, TurnPortDown)

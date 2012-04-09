@@ -56,17 +56,18 @@ class CreatePorts(forms.SelfHandlingForm):
             "horizon:nova:networks:ports:ports",
             network_id=network_id)
 
+
 class AttachPort(forms.SelfHandlingForm):
     instance = forms.ChoiceField(label=("Select instance"),
                                  widget=forms.Select(
-                                 attrs={'class':'switchable'}))
+                                 attrs={'class': 'switchable'}))
 
     def __init__(self, *args, **kwargs):
         super(AttachPort, self).__init__(*args, **kwargs)
         initials = kwargs.get("initial", {})
         interfaces = initials.get('interfaces', [])
         interface_choices = []
-        
+
         for interface in interfaces:
             interface_choices.append((interface['vif'], interface['instance']))
 
@@ -79,7 +80,10 @@ class AttachPort(forms.SelfHandlingForm):
         port_id = match.group(2)
 
         try:
-            api.quantum_port_attach(request, network_id, port_id, data['instance'])
+            api.quantum_port_attach(request,
+                                    network_id,
+                                    port_id,
+                                    data['instance'])
             messages.success(request, _("Port attached successfully."))
         except:
             exceptions.handle(request, _('Unable to attach Port.'))
@@ -87,8 +91,9 @@ class AttachPort(forms.SelfHandlingForm):
             "horizon:nova:networks:ports:ports",
             network_id=network_id)
 
+
 class DetachPort(forms.SelfHandlingForm):
-    
+
     def handle(self, request, data):
         uri = request.META['REQUEST_URI']
         match = re.search('/nova/networks/([^/]+)/([^/]+)/detach', uri)

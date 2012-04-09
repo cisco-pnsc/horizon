@@ -46,7 +46,7 @@ class DeleteNetworks(tables.DeleteAction):
             try:
                 self.delete(request, obj_id)
                 deleted.append(obj)
-            except NetworkHasPorts:
+            except:
                 LOG.exception('Unable to delete network "%s".' % obj.name)
                 messages.error(request,
                                _('Unable to delete network with ports: %s') %
@@ -69,9 +69,9 @@ class NetworksTable(tables.DataTable):
     name = tables.Column("name", link='horizon:nova:networks:ports:ports',
                          verbose_name=_("Network Name"))
     id = tables.Column("id", link='horizon:nova:networks:ports:ports',
-					   verbose_name=_("Network id"))
+                       verbose_name=_("Network id"))
     port_count = tables.Column("port_count", verbose_name=_('Ports'),
-						  empty_value="0")
+                               empty_value="0")
 
     def get_object_id(self, network):
         return network.id

@@ -38,6 +38,7 @@ LOG = logging.getLogger(__name__)
 class Network(APIDictWrapper):
     _attrs = ['id', 'name', 'port_count']
 
+
 class Port(APIDictWrapper):
     _attrs = ['id', 'attachment_server', 'attachment_id', 'state', 'op-status']
 
@@ -45,10 +46,10 @@ class Port(APIDictWrapper):
 def quantumclient(request):
     o = urlparse.urlparse(url_for(request, 'network'))
     LOG.debug('quantum client connection created for host "%s:%d"' %
-                     (o.hostname, o.port))
+              (o.hostname, o.port))
     return quantum_client(o.hostname,
                           o.port,
-			  tenant=request.user.tenant_id,
+                          tenant=request.user.tenant_id,
                           auth_token=request.user.token)
 
 
@@ -61,7 +62,7 @@ def quantum_network_list(request):
         # Get ports for this network
         ports = quantumclient(request).list_ports(network['id'])
         det['network']['port_count'] = len(ports['ports'])
-        networks.append(Network(det['network'])) 
+        networks.append(Network(det['network']))
     return networks
 
 
@@ -81,12 +82,14 @@ def quantum_network_update(request, *args):
         k, v = kv.split("=")
         data['network'][k] = v
     data['network']['id'] = network_id
-    
+
     return quantumclient(request).update_network(network_id, data)
+
 
 def quantum_network_details(request, n_uuid):
     details = quantumclient(request).show_network_details(n_uuid)
     return details
+
 
 def quantum_port_list(request, n_uuid):
     q_ports = quantumclient(request).list_ports(n_uuid)
@@ -96,16 +99,16 @@ def quantum_port_list(request, n_uuid):
         det = quantumclient(request).show_port_details(n_uuid, port['id'])
         att = quantumclient(request).show_port_attachment(n_uuid, port['id'])
         # Get server name from id
-        if att['attachment'].has_key('id'):
-            LOG.debug("\n\n\n\n %s \n\n\n\n\n" % att['attachment']['id'])
+        if 'id' in att['attachment']:
             server = get_interface_server(request, att['attachment']['id'])
             det['port']['attachment_server'] = server.name
             det['port']['attachment_id'] = att['attachment']['id']
         else:
-             det['port']['attachment_id'] = None
-             det['port']['attachment_server'] = None
+            det['port']['attachment_id'] = None
+            det['port']['attachment_server'] = None
         ports.append(Port(det['port']))
     return ports
+
 
 def quantum_port_create(request, num, uuid):
     for i in range(int(num)):
@@ -124,22 +127,24 @@ def quantum_port_update(request, *args):
         data['port'][k] = v
     data['network_id'] = network_id
     data['port']['id'] = port_id
-    
+
     return quantumclient(request).update_port(network_id, port_id, data)
 
 
 def quantum_port_attach(request, network_id, port_id, attachment):
     data = {'attachment': {'id': '%s' % attachment}}
-    
+
     return quantumclient(request).attach_resource(network_id, port_id, data)
 
 
 def quantum_port_detach(request, network_id, port_id):
     return quantumclient(request).detach_resource(network_id, port_id)
 
+
 def quantum_ports_toggle(request, network_id, port_id, state):
-    data = {'port': {'state':state}}
+    data = {'port': {'state': state}}
     quantumclient(request).update_port(network_id, port_id, data)
+
 
 def get_free_interfaces(request):
     instance_interfaces = []
@@ -163,6 +168,7 @@ def get_free_interfaces(request):
                 instance_interfaces.append(
                 {'instance': instance.name, 'vif': vif.id})
     return instance_interfaces
+
 
 def get_interface_server(request, interface):
     # Get all instances

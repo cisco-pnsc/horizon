@@ -58,13 +58,15 @@ class PortsView(tables.DataTableView):
             exceptions.handle(self.request, msg)
         return ports
 
+
 class AttachPortView(forms.ModalFormView):
     form_class = AttachPort
     template_name = 'nova/networks/ports/attach.html'
 
     def get_initial(self):
         interfaces = api.get_free_interfaces(self.request)
-        return {"interfaces" : interfaces}
+        return {"interfaces": interfaces}
+
 
 class DetachPortView(forms.ModalFormView):
     form_class = DetachPort
