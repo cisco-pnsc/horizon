@@ -18,15 +18,27 @@
 import logging
 
 from django.template.defaultfilters import title
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
+from horizon import api
 from horizon import tables
-from horizon.dashboards.nova.instances_and_volumes.instances.tables import \
-         (LaunchLink, TerminateInstance, EditInstance, ConsoleLink, LogLink,
-          SnapshotLink, TogglePause, ToggleSuspend, RebootInstance, get_size,
-          TerminateInstance, UpdateRow, get_ips, get_power_state)
+from horizon.dashboards.nova.instances_and_volumes.instances.tables import (
+        TerminateInstance, EditInstance, ConsoleLink, LogLink, SnapshotLink,
+        TogglePause, ToggleSuspend, RebootInstance, get_size, UpdateRow,
+        get_ips, get_power_state)
+
 
 LOG = logging.getLogger(__name__)
+
+
+class AdminUpdateRow(UpdateRow):
+    def get_data(self, request, instance_id):
+        instance = super(AdminUpdateRow, self).get_data(request, instance_id)
+        tenant = api.keystone.tenant_get(request,
+                                         instance.tenant_id,
+                                         admin=True)
+        instance.tenant_name = getattr(tenant, "name", None)
+        return instance
 
 
 class SyspanelInstancesTable(tables.DataTable):
@@ -39,9 +51,11 @@ class SyspanelInstancesTable(tables.DataTable):
         ("error", False),
     )
     tenant = tables.Column("tenant_name", verbose_name=_("Tenant"))
-    user = tables.Column("user_id", verbose_name=_("User"))
-    internal_id = tables.Column("internal_identifier",
-                                  verbose_name=_("Instance ID"))
+    # NOTE(gabriel): Commenting out the user column because all we have
+    # is an ID, and correlating that at production scale using our current
+    # techniques isn't practical. It can be added back in when we have names
+    # returned in a practical manner by the API.
+    #user = tables.Column("user_id", verbose_name=_("User"))
     host = tables.Column("OS-EXT-SRV-ATTR:host", verbose_name=_("Host"))
     name = tables.Column("name", link="horizon:nova:instances_and_volumes:" \
                                       "instances:detail",
@@ -67,7 +81,7 @@ class SyspanelInstancesTable(tables.DataTable):
         verbose_name = _("Instances")
         status_columns = ["status", "task"]
         table_actions = (TerminateInstance,)
-        row_class = UpdateRow
+        row_class = AdminUpdateRow
         row_actions = (EditInstance, ConsoleLink, LogLink, SnapshotLink,
                        TogglePause, ToggleSuspend, RebootInstance,
                        TerminateInstance)

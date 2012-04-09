@@ -21,16 +21,15 @@
 import os
 import socket
 
+from django.utils.translation import ugettext_lazy as _
+
 socket.setdefaulttimeout(1)
 
 ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 DEBUG = True
 TESTSERVER = 'http://testserver'
-DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': '/tmp/horizon.db',
-            'TEST_NAME': '/tmp/test_horizon.db'}}
+
+DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3'}}
 
 INSTALLED_APPS = (
     'django.contrib.sessions',
@@ -67,17 +66,10 @@ TEMPLATE_DIRS = (os.path.join(ROOT_PATH, 'tests', 'templates'))
 SITE_ID = 1
 SITE_BRANDING = 'OpenStack'
 SITE_NAME = 'openstack'
-ENABLE_VNC = True
-NOVA_DEFAULT_ENDPOINT = None
-NOVA_DEFAULT_REGION = 'test'
-NOVA_ACCESS_KEY = 'test'
-NOVA_SECRET_KEY = 'test'
-
-CREDENTIAL_AUTHORIZATION_DAYS = 2
-CREDENTIAL_DOWNLOAD_URL = TESTSERVER + '/credentials/'
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = ['--nocapture',
+             '--nologcapture',
              '--cover-package=horizon',
              '--cover-inclusive']
 # For nose-selenium integration
@@ -90,8 +82,8 @@ HORIZON_CONFIG = {
     'dashboards': ('nova', 'syspanel', 'settings',),
     'default_dashboard': 'nova',
     "password_validator": {
-        "regex": '.{6,}',
-        "help_text": "Your password must be at least 6 characters long."
+        "regex": '^.{8,18}$',
+        "help_text": _("Password must be between 8 and 18 characters.")
     },
 }
 

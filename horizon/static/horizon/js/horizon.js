@@ -24,7 +24,7 @@ var Horizon = function() {
     horizon.templates.compile_templates();
 
     // Bind event handlers to confirm dangerous actions.
-    $("body").on("click", "form .btn-danger", function (evt) {
+    $("body").on("click", "form button.btn-danger", function (evt) {
       horizon.datatables.confirm(this);
       evt.preventDefault();
     });
@@ -40,6 +40,30 @@ var Horizon = function() {
     initFunctions = [];
   };
 
+  /* Convenience functions for dealing with namespaced Horizon cookies. */
+  horizon.cookies = {
+    read: function (cookie_name) {
+      // Read in a cookie which contains JSON, and return a parsed object.
+      var cookie = $.cookie("horizon." + cookie_name);
+      if (cookie === null) {
+        return {};
+      }
+      return $.parseJSON(cookie);
+    },
+    write: function (cookie_name, data) {
+      // Overwrites a cookie.
+      $.cookie("horizon." + cookie_name, JSON.stringify(data), {path: "/"});
+    },
+    update: function (cookie_name, key, value) {
+      var data = horizon.cookies.read("horizon." + cookie_name);
+      data[key] = value;
+      horizon.cookies.write(cookie_name, data);
+    },
+    delete: function (cookie_name) {
+      $.cookie("horizon." + cookie_name, null);
+    }
+  };
+
   /* Namespace for core functionality related to Forms. */
   horizon.forms = {
     handle_source_group: function() {
@@ -47,7 +71,7 @@ var Horizon = function() {
       $("form").live("change", "#id_source_group", function(evt) {
         var $sourceGroup = $(this).find('#id_source_group');
         var $cidrContainer = $(this).find('#id_cidr').parent().parent();
-        if($sourceGroup.val() == "") {
+        if($sourceGroup.val() === "") {
           $cidrContainer.removeClass("hide");
         } else {
           $cidrContainer.addClass("hide");
@@ -75,11 +99,52 @@ var Horizon = function() {
         }
         // Trigger the update handlers.
         $rows_to_update.each(function(index, row) {
-          var $row = $(this);
-          $.ajax($row.attr('data-update-url'), {
-            complete: function (jqXHR, status) {
-              var $new_row = $(jqXHR.responseText);
-              $new_row.find("td.status_unknown").prepend('<i class="icon-updating ajax-updating"></i>');
+          var $row = $(this),
+              $table = $row.closest('table');
+          horizon.ajax.queue({
+            url: $row.attr('data-update-url'),
+            error: function (jqXHR, textStatus, errorThrown) {
+              switch (jqXHR.status) {
+                // A 404 indicates the object is gone, and should be removed from the table
+                case 404:
+                  // Update the footer count and reset to default empty row if needed
+                  var $footer = $table.find('tr:last'),
+                      row_count, footer_text, colspan, template, params, $empty_row;
+
+                  // existing count minus one for the row we're removing
+                  row_count = $table.find('tbody tr').length - 1;
+                  footer_text = "Displaying " + row_count + " item";
+                  if(row_count !== 1) {
+                      footer_text += 's';
+                  }
+                  $footer.find('span').text(footer_text);
+
+                  if(row_count === 0) {
+                    colspan = $footer.find('td').attr('colspan');
+                    template = horizon.templates.compiled_templates["#empty_row_template"];
+                    params = {"colspan": colspan};
+                    empty_row = template.render(params);
+                    $row.replaceWith(empty_row);
+                  } else {
+                    $row.remove();
+                  }
+                  break;
+                default:
+                  if (horizon.conf.debug) {
+                    horizon.alert("error", "An error occurred while updating.");
+                  }
+                  $row.removeClass("ajax-update");
+                  $row.find("i.ajax-updating").remove();
+                  break;
+              }
+            },
+            success: function (data, textStatus, jqXHR) {
+              var $new_row = $(data);
+              if($new_row.hasClass('status_unknown')) {
+                // only add spinning animation if row needs update
+                var spinner = '<i class="icon-updating ajax-updating"></i>';
+                $new_row.find("td.status_unknown").prepend(spinner);
+              }
               // Only replace row if the html content has changed
               if($new_row.html() != $row.html()) {
                 if($row.find(':checkbox').is(':checked')) {
@@ -87,9 +152,12 @@ var Horizon = function() {
                   $new_row.find(':checkbox').prop('checked', true);
                 }
                 $row.replaceWith($new_row);
+                // Reset decay constant.
                 $table.removeAttr('decay_constant');
               }
-              // Revalidate the button check for updated table
+            },
+            complete: function (jqXHR, textStatus) {
+              // Revalidate the button check for the updated table
               horizon.datatables.validate_button();
             }
           });
@@ -109,6 +177,7 @@ var Horizon = function() {
         setTimeout(horizon.datatables.update, next_poll);
       }
     },
+
     validate_button: function () {
       // Disable form button if checkbox are not checked
       $("form").each(function (i) {
@@ -124,7 +193,7 @@ var Horizon = function() {
 
       $("form :checkbox").on("click", function (evt) {
         var $form = $(this).closest("form");
-        var any_checked = $form.find(":checkbox").is(":checked");
+        var any_checked = $form.find("tbody :checkbox").is(":checked");
 
         // Enable the button if any checkbox is checked,
         // Disable if all checkbox is cleared
@@ -168,7 +237,7 @@ var Horizon = function() {
 
   /* Namespace for core functionality related to client-side templating. */
   horizon.templates = {
-    template_ids: ["#modal_template"],
+    template_ids: ["#modal_template", "#empty_row_template", "#alert_message_template"],
     compiled_templates: {}
   };
 
@@ -191,6 +260,70 @@ var Horizon = function() {
         params = {title: title, body: body, confirm: confirm, cancel: cancel},
         modal = $(template.render(params)).appendTo("body");
     return modal;
+  };
+
+  /* Utilities for common needs which aren't JS builtins. */
+  horizon.utils = {
+    capitalize: function(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+  };
+
+  horizon.alert = function (type, message) {
+    var template = horizon.templates.compiled_templates["#alert_message_template"],
+        params = {"type": type,
+                  "type_capitalized": horizon.utils.capitalize(type),
+                  "message": message};
+    return $(template.render(params)).prependTo("#main_content .messages");
+  };
+
+  /* Queued ajax handling for Horizon.
+   *
+   * Note: The number of concurrent AJAX connections hanlded in the queue
+   * can be configured by setting an "ajax_queue_limit" key in
+   * settings.HORIZON_CONFIG to the desired number (or None to disable queue
+   * limiting).
+   */
+  horizon.ajax = {
+    // This will be our jQuery queue container.
+    _queue: [],
+    _active: [],
+    // Function to add a new call to the queue.
+    queue: function(opts) {
+      var complete = opts.complete,
+          active = horizon.ajax._active;
+
+      opts.complete = function () {
+        var index = $.inArray(request, active);
+        if (index > -1) {
+          active.splice(index, 1);
+        }
+        horizon.ajax.next();
+        if (complete) {
+          complete.apply(this, arguments);
+        }
+      };
+
+      function request() {
+        return $.ajax(opts);
+      }
+
+      // Queue the request
+      horizon.ajax._queue.push(request);
+
+      // Start up the queue handler in case it's stopped.
+      horizon.ajax.next();
+    },
+    next: function () {
+      var queue = horizon.ajax._queue,
+          limit = horizon.conf.ajax.queue_limit,
+          request;
+      if (queue.length && (!limit || horizon.ajax._active.length < limit)) {
+        request = queue.pop();
+        horizon.ajax._active.push(request);
+        return request();
+      }
+    }
   };
 
   return horizon;

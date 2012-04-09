@@ -26,7 +26,7 @@ import urlparse
 
 from django.utils.decorators import available_attrs
 
-from quantum.client import Client as quantum_client
+from quantum import client as quantum_client
 from quantum.common import exceptions as quantum_exception
 
 from horizon.api.base import APIDictWrapper, url_for
@@ -43,14 +43,18 @@ class Port(APIDictWrapper):
     _attrs = ['id', 'attachment_server', 'attachment_id', 'state', 'op-status']
 
 
+class Vif(APIDictWrapper):
+    _attrs = ['id']
+
+
 def quantumclient(request):
     o = urlparse.urlparse(url_for(request, 'network'))
     LOG.debug('quantum client connection created for host "%s:%d"' %
               (o.hostname, o.port))
-    return quantum_client(o.hostname,
-                          o.port,
-                          tenant=request.user.tenant_id,
-                          auth_token=request.user.token)
+    return quantum_client.Client(o.hostname,
+                                 o.port,
+                                 tenant=request.user.tenant_id,
+                                 auth_token=request.user.token)
 
 
 def quantum_network_list(request):
@@ -72,7 +76,7 @@ def quantum_network_create(request, n_name):
 
 
 def quantum_network_delete(request, n_uuid):
-    quantumclient(request).delete_network(n_uuid)
+    return quantumclient(request).delete_network(n_uuid)
 
 
 def quantum_network_update(request, *args):
@@ -143,7 +147,7 @@ def quantum_port_detach(request, network_id, port_id):
 
 def quantum_ports_toggle(request, network_id, port_id, state):
     data = {'port': {'state': state}}
-    quantumclient(request).update_port(network_id, port_id, data)
+    return quantumclient(request).update_port(network_id, port_id, data)
 
 
 def get_free_interfaces(request):

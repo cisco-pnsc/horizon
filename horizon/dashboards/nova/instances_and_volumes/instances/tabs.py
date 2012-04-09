@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import api
 from horizon import exceptions
@@ -66,7 +66,7 @@ class VNCTab(tabs.Tab):
             exceptions.handle(request,
                               _('Unable to get VNC console for '
                                 'instance "%s".') % instance.id)
-        return {'vnc_url': vnc_url}
+        return {'vnc_url': vnc_url, 'instance_id': instance.id}
 
 
 class InstanceDetailTabs(tabs.TabGroup):

@@ -17,10 +17,11 @@
 import logging
 import tempfile
 import zipfile
+from contextlib import closing
 
 from django import http
 from django.template.loader import render_to_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import api
 from horizon import exceptions
@@ -79,7 +80,7 @@ class DownloadX509Credentials(forms.SelfHandlingForm):
             keys = find_or_create_access_keys(request, data.get('tenant'))
             context = {'ec2_access_key': keys.access,
                        'ec2_secret_key': keys.secret,
-                       'ec2_endpoint': api.url_for(request, 'identity')}
+                       'ec2_endpoint': api.url_for(request, 'ec2')}
         except:
             exceptions.handle(request,
                               _('Unable to fetch EC2 credentials.'),
@@ -87,7 +88,7 @@ class DownloadX509Credentials(forms.SelfHandlingForm):
 
         try:
             temp_zip = tempfile.NamedTemporaryFile(delete=True)
-            with zipfile.ZipFile(temp_zip.name, mode='w') as archive:
+            with closing(zipfile.ZipFile(temp_zip.name, mode='w')) as archive:
                 archive.writestr('pk.pem', credentials.private_key)
                 archive.writestr('cert.pem', credentials.data)
                 archive.writestr('cacert.pem', cacert.data)

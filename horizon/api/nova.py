@@ -100,6 +100,10 @@ class Server(APIResourceWrapper):
         except glance_exceptions.NotFound:
             return "(not found)"
 
+    @property
+    def internal_name(self):
+        return getattr(self, 'OS-EXT-SRV-ATTR:instance_name', "")
+
     def reboot(self, hardness=REBOOT_HARD):
         novaclient(self.request).servers.reboot(self.id, hardness)
 
@@ -405,7 +409,9 @@ def tenant_quota_usages(request):
     flavors = dict([(f.id, f) for f in flavor_list(request)])
     usages = {'instances': {'flavor_fields': [], 'used': len(instances)},
               'cores': {'flavor_fields': ['vcpus'], 'used': 0},
-              'gigabytes': {'flavor_fields': ['disk', 'ephemeral'], 'used': 0},
+              'gigabytes': {'used': 0,
+                            'flavor_fields': ['disk',
+                                              'OS-FLV-EXT-DATA:ephemeral']},
               'ram': {'flavor_fields': ['ram'], 'used': 0},
               'floating_ips': {'flavor_fields': [], 'used': len(floating_ips)}}
 

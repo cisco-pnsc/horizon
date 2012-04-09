@@ -30,6 +30,7 @@ from django.test.client import RequestFactory
 from glance import client as glance_client
 from keystoneclient.v2_0 import client as keystone_client
 from novaclient.v1_1 import client as nova_client
+from quantum import client as quantum_client
 import httplib2
 import mox
 
@@ -49,6 +50,12 @@ wsgi.WSGIRequest.__repr__ = lambda self: "<class 'django.http.HttpRequest'>"
 
 
 class RequestFactoryWithMessages(RequestFactory):
+    def get(self, *args, **kwargs):
+        req = super(RequestFactoryWithMessages, self).get(*args, **kwargs)
+        req.session = []
+        req._messages = default_storage(req)
+        return req
+
     def post(self, *args, **kwargs):
         req = super(RequestFactoryWithMessages, self).post(*args, **kwargs)
         req.session = []
@@ -149,14 +156,14 @@ class TestCase(django_test.TestCase):
                          ('Location', settings.TESTSERVER + expected_url))
         self.assertEqual(response.status_code, 302)
 
-    def assertNoMessages(self):
+    def assertNoMessages(self, response=None):
         """
         Asserts that no messages have been attached by the ``contrib.messages``
         framework.
         """
-        self.assertMessageCount(success=0, warn=0, info=0, error=0)
+        self.assertMessageCount(response, success=0, warn=0, info=0, error=0)
 
-    def assertMessageCount(self, **kwargs):
+    def assertMessageCount(self, response=None, **kwargs):
         """
         Asserts that the specified number of messages have been attached
         for various message types. Usage would look like
@@ -166,10 +173,20 @@ class TestCase(django_test.TestCase):
         temp_req.COOKIES = self.client.cookies
         storage = default_storage(temp_req)
         messages = []
-        # To gain early access to the messages we have to decode the
-        # cookie on the test client.
-        if 'messages' in self.client.cookies:
-            messages = storage._decode(self.client.cookies['messages'].value)
+
+        if response is None:
+            # To gain early access to the messages we have to decode the
+            # cookie on the test client.
+            if 'messages' in self.client.cookies:
+                message_cookie = self.client.cookies['messages'].value
+                messages = storage._decode(message_cookie)
+        # Check for messages in the context
+        elif hasattr(response, "context") and  "messages" in response.context:
+            messages = response.context["messages"]
+        # Check for messages attached to the request on a TemplateResponse
+        elif hasattr(response, "_request") and hasattr(response._request,
+                                                       "_messages"):
+            messages = response._request._messages._queued_messages
 
         # If we don't have messages and we don't expect messages, we're done.
         if not any(kwargs.values()) and not messages:
@@ -199,7 +216,8 @@ class TestCase(django_test.TestCase):
         assert len(errors) == 0, \
                "Unexpected errors were found on the form: %s" % errors
 
-    def assertFormErrors(self, response, count=0, context_name="form"):
+    def assertFormErrors(self, response, count=0, message=None,
+                         context_name="form"):
         """
         Asserts that the response does contain a form in it's
         context, and that form has errors, if count were given,
@@ -213,6 +231,10 @@ class TestCase(django_test.TestCase):
             assert len(errors) == count, \
                "%d errors were found on the form, %d expected" % \
                (len(errors), count)
+            if message and message not in unicode(errors):
+                self.fail("Expected message not found, instead found: %s"
+                          % ["%s: %s" % (key, [e for e in field_errors]) for
+                             (key, field_errors) in errors.items()])
         else:
             assert len(errors) > 0, "No errors were found on the form"
 
@@ -250,11 +272,13 @@ class APITestCase(TestCase):
         self._original_glanceclient = api.glance.glanceclient
         self._original_keystoneclient = api.keystone.keystoneclient
         self._original_novaclient = api.nova.novaclient
+        self._original_quantumclient = api.quantum.quantumclient
 
         # Replace the clients with our stubs.
         api.glance.glanceclient = lambda request: self.stub_glanceclient()
         api.keystone.keystoneclient = fake_keystoneclient
         api.nova.novaclient = lambda request: self.stub_novaclient()
+        api.quantum.quantumclient = lambda request: self.stub_quantumclient()
 
     def tearDown(self):
         super(APITestCase, self).tearDown()
@@ -290,3 +314,9 @@ class APITestCase(TestCase):
                             .AndReturn(self.swiftclient)
                 expected_calls -= 1
         return self.swiftclient
+
+    def stub_quantumclient(self):
+        if not hasattr(self, "quantumclient"):
+            self.mox.StubOutWithMock(quantum_client, 'Client')
+            self.quantumclient = self.mox.CreateMock(quantum_client.Client)
+        return self.quantumclient
