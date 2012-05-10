@@ -19,6 +19,7 @@
 #    under the License.
 
 import datetime
+import os
 
 import cloudfiles as swift_client
 from django import http
@@ -31,6 +32,7 @@ from functools import wraps
 from glanceclient.v1 import client as glance_client
 from keystoneclient.v2_0 import client as keystone_client
 from novaclient.v1_1 import client as nova_client
+import quantumclient as quantum_client
 import httplib2
 import mox
 
@@ -131,6 +133,7 @@ class TestCase(django_test.TestCase):
         self.request.session = self.client._session()
         self.request.session['token'] = self.token.id
         middleware.HorizonMiddleware().process_request(self.request)
+        os.environ["HORIZON_TEST_RUN"] = "True"
 
     def tearDown(self):
         self.mox.UnsetStubs()
@@ -138,6 +141,7 @@ class TestCase(django_test.TestCase):
         context_processors.horizon = self._real_horizon_context_processor
         users.get_user_from_request = self._real_get_user_from_request
         self.mox.VerifyAll()
+        del os.environ["HORIZON_TEST_RUN"]
 
     def setActiveUser(self, id=None, token=None, username=None, tenant_id=None,
                         service_catalog=None, tenant_name=None, roles=None,
@@ -294,11 +298,13 @@ class APITestCase(TestCase):
         self._original_glanceclient = api.glance.glanceclient
         self._original_keystoneclient = api.keystone.keystoneclient
         self._original_novaclient = api.nova.novaclient
+        self._original_quantumclient = api.quantum.quantumclient
 
         # Replace the clients with our stubs.
         api.glance.glanceclient = lambda request: self.stub_glanceclient()
         api.keystone.keystoneclient = fake_keystoneclient
         api.nova.novaclient = lambda request: self.stub_novaclient()
+        api.quantum.quantumclient = lambda request: self.stub_quantumclient()
 
     def tearDown(self):
         super(APITestCase, self).tearDown()
@@ -333,3 +339,9 @@ class APITestCase(TestCase):
                             .AndReturn(self.swiftclient)
                 expected_calls -= 1
         return self.swiftclient
+
+    def stub_quantumclient(self):
+        if not hasattr(self, "quantumclient"):
+            self.mox.StubOutWithMock(quantum_client, 'Client')
+            self.quantumclient = self.mox.CreateMock(quantum_client.Client)
+        return self.quantumclient
