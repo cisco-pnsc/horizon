@@ -1,0 +1,31 @@
+/* Additional CSS for marketplace. */
+
+moz-keyframes rotater {
+    0% { -moz-transform:rotate(0) scale(1) }
+    50% { -moz-transform:rotate(360deg) scale(1.5) }
+    100% { -moz-transform:rotate(720deg) scale(1.2) }
+}
+
+div.thumbnail img {
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+    position: relative;
+    text-decoration: none;
+}
+
+div.thumbnail img:hover {
+    cursor: pointer;
+    -moz-transform: scale(1.2);
+    -webkit-transform: scale(1.2);
+    transform: scale(1.2);
+}
+
+div.app_title h1 {
+    color: #0088CC;
+}
+
+dl.app_info dt,dd {
+    padding: 5px;
+}

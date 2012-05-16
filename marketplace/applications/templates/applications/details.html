@@ -1,0 +1,121 @@
+{% extends 'marketplace/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Applications" %}{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Applications") %}
+{% endblock page_header %}
+
+{% block marketplace_main %}
+    <div class="app_page row-fluid" id="app_{{app.id}}">
+        <div class="app_header span12">
+            <div class="app_icon span2">
+                <img src="/app_media/marketplace/img/{{app.image}}"/>
+            </div>
+            <div class="span10">
+                <div class="app_title span10"><h1>{{app.name}}</h1></div>
+                <div class="app_desc span10">{{app.description}}</div>
+            </div>
+        </div>
+        <div class="app_details span12">
+            <dl class="dl-horizontal app_info span6">
+                <dt>Customer Rating</dt>
+                <dd>n.a</dd>
+                <dt>Select Version</dt>
+                <dd>
+                    <ul class="nac nav-pills">
+                        <li class="active dropdown">
+                        <a class="dropdown-toggle"
+                        data-toggle="dropdown"
+                        href="#">
+                        Version 5.0 <span class="label label-info">Latest</span>
+                        <b class="caret"></b>
+                        </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#">
+                        Version 5.0 <span class="label label-success">Latest</span>
+                        </a></li>
+                        <li class="divider"></li>
+                        <li><a href="#">
+                        Version 4.0 <span class="label label-info">Supported</span>
+                        </a></li>
+                        <li><a href="#">
+                        Version 3.0 <span class="label label-info">Supported</span>
+                        </a></li>
+                        <li class="divider"></li>
+                        <li><a href="#">
+                        Version 2.0 <span class="label label-warning">Limited Support</span>
+                        </a></li>
+                        <li><a href="#">
+                        Version 1.0 <span class="label label-important">Unsupported</span>
+                        </a></li>
+                    </ul>
+                </dd>
+                <dt>Base Operating System</dt>
+                <dd>Linux/Unix</dd>
+                <dt>Delivery Method</dt>
+                <dd>64-bit Machine Image (Glance)</dd>
+                <dt>Support</dt>
+                <dd>No Soupport for You!</dd>
+                <dt>Select Zone</dt>
+                <dd>
+                    <select>
+                        <option value="us_e">US East</option>
+                        <option value="us_c">US Central</option>
+                        <option value="us_w">US West</option>
+                    </select>
+                </dd>
+            </dl>
+            <div class="app_instance span6 btn-group" data-toggle="buttons-radio">
+                <h4>Select Instance</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Instance Type </th>
+                            <th>Application</th>
+                            <th>Instance</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <button class="btn btn-inverse">Tiny</button>
+                            </td>
+                            <td>$0.00/hr</td><td>$0.01/hr</td><td>$0.01/hr</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <button class="btn btn-primary">Small</button>
+                            </td>
+                            <td>$0.00/hr</td><td>$0.02/hr</td><td>$0.02/hr</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <button class="btn">Medium</button>
+                            </td>
+                            <td>$0.00/hr</td><td>$0.03/hr</td><td>$0.03/hr</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <button class="btn">Large</button>
+                            </td>
+                            <td>$0.00/hr</td><td>$0.04/hr</td><td>$0.04/hr</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <button class="btn">X-Large</button>
+                            </td>
+                            <td>$0.00/hr</td><td>$0.05/hr</td><td>$0.05/hr</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <a class="btn btn-success" href="#">
+                    <i class="icon-shopping-cart icon-white"></i>Checkout
+                </a>
+            </div>
+            <div class="app_bill span6"></div>
+            <div class="app_eula span6"></div>
+        </div>
+    </div>
+{% endblock %}

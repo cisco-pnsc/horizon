@@ -42,6 +42,7 @@ MEDIA_ROOT = os.path.abspath(os.path.join(ROOT_PATH, '..', 'media'))
 MEDIA_URL = '/media/'
 STATIC_ROOT = os.path.abspath(os.path.join(ROOT_PATH, '..', 'static'))
 STATIC_URL = '/static/'
+APP_MEDIA_URL = '/app_media/'
 ADMIN_MEDIA_PREFIX = '/static/admin/'
 
 CREDENTIAL_AUTHORIZATION_DAYS = '5'
@@ -99,6 +100,7 @@ INSTALLED_APPS = (
     'horizon.dashboards.nova',
     'horizon.dashboards.syspanel',
     'horizon.dashboards.settings',
+    'marketplace',
 )
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block sidebar %}
+  {% include 'horizon/common/_sidebar.html' %}
+{% endblock %}
+
+{% block main %}
+    {% include "marketplace/_app_stylesheets.html" %}
+    {% include "marketplace/_scripts.html" %}
+    {% include "horizon/_messages.html" %}
+    {% block marketplace_main %}{% endblock %}
+{% endblock %}
+

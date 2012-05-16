@@ -1,0 +1,22 @@
+{% extends 'marketplace/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Applications" %}{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Applications") %}
+{% endblock page_header %}
+
+{% block marketplace_main %}
+    <ul class="thumbnails" id="app_list">
+    {% for app in apps %}
+        <li class="span2">
+            <div class="thumbnail">
+                <a href="{% url horizon:marketplace:applications:details app.id %}">
+                    <img src="/app_media/marketplace/img/{{app.image}}" alt=""/>
+                </a>
+                <h5>{{app.name}}</h5>
+            </div>
+        </li>
+    {% endfor %}
+    </ul>
+{% endblock %}
