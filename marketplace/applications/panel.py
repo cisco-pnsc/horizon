@@ -5,7 +5,7 @@ from marketplace import dashboard
 
 
 class Applications(horizon.Panel):
-    name = _("Applications")
+    name = _("All Applications")
     slug = "applications"
 
 dashboard.Marketplace.register(Applications)

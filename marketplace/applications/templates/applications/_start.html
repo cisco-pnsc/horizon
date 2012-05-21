@@ -1,0 +1,43 @@
+{% extends "horizon/common/_modal_form.html" %}
+{% load i18n %}
+
+{% block form_id %}start_application_form{% endblock %}
+{% block form_action %}{% url horizon:marketplace:applications:start params.app_id %}{% endblock %}
+
+{% block modal-header %}Start Application{% endblock %}
+
+{% block modal-body %}
+    <div class="left">
+        <fieldset>
+        {% include "horizon/common/_form_fields.html" %}
+        <dl class="start_app_dl">
+            <dt><strong>Version</strong>
+                <i class="icon-tasks"></i></dt>
+            <dd><span class="label label-info" id="sel_version"></span></dd>
+            <dt><strong>Instance</strong>
+                <i class="icon-hdd"></i></dt>
+            <dd><span class="label label-info" id="sel_flavor"></span></dd>
+            <dt><strong>Security Group</strong>
+                <i class="icon-flag"></i></dt>
+            <dd><span class="label label-info" id="sel_sec_grp"></span></dd>
+            <dt><strong>Access Keypair</strong>
+                <i class="icon-lock"></i></dt>
+            <dd><span class="label label-info" id="sel_keypair"></span></dd>
+            <dt><strong>Zone</strong>
+                <i class="icon-globe"></i></dt>
+            <dd><span class="label label-info" id="sel_zone"></span></dd>
+        </dl>
+        </fieldset>
+    </div>
+    <div class="right">
+        <p class="alert alert-block">
+        Please confirm your choices. 
+        If you want to make changes then either close this window or hit cancel. 
+        If satistifed, click the 'Start Application' button.</p>
+    </div>
+{% endblock %}
+
+{% block modal-footer %}
+  <input class="btn btn-primary pull-right" type="submit" value="{% trans "Start Application" %}" />
+  <a href="{% url horizon:marketplace:applications:details params.app_id %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
+{% endblock %}

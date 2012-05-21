@@ -7,6 +7,9 @@
     {% block css %}
       {% include "_stylesheets.html" %}
     {% endblock %}
+    {% block js %}
+      {% include "_scripts.html" %}
+    {% endblock %}
   </head>
   <body id="{% block body_id %}{% endblock %}">
     {% block content %}
@@ -24,8 +27,5 @@
     <div id="footer">
       {% block footer %}{% endblock %}
     </div>
-    {% block js %}
-      {% include "_scripts.html" %}
-    {% endblock %}
   </body>
 </html>

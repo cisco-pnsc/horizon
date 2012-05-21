@@ -5,7 +5,7 @@ import horizon
 class Marketplace(horizon.Dashboard):
     name = _("Marketplace")
     slug = "marketplace"
-    panels = ('applications',)
+    panels = ('applications','my_apps','developer')
     default_panel = 'applications'
     supports_tenants = True
 

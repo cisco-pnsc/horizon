@@ -1,53 +1,73 @@
 import logging
 
 from horizon import views
+from horizon import api
+from horizon import forms
+from marketplace.applications import api as app_api
 
-from .tables import ApplicationsTable
+from .forms import StartApplication
 
 LOG = logging.getLogger(__name__)
-
-apps = [
-    {'id': '1',
-    'name': 'MySQL',
-    'description': 'MySQL is the world\'s most popular open source database software, with over 100 million copies of its software downloaded or distributed throughout it\'s history. With its superior speed, reliability, and ease of use, MySQL has become the preferred choice for Web, Web 2.0, SaaS, ISV, Telecom companies and forward-thinking corporate IT Managers because it eliminates the major problems associated with downtime, maintenance and administration for modern, online applications.',
-    'image': 'mysql.png',
-    'm_types': ['m1.small','m1.medium','m1.large','m1.xlarge'],},
-    {'id': '2',
-    'name': 'Wordpress',
-    'description': 'WordPress started in 2003 with a single bit of code to enhance the typography of everyday writing and with fewer users than you can count on your fingers and toes. Since then it has grown to be the largest self-hosted blogging tool in the world, used on millions of sites and seen by tens of millions of people every day.',
-    'image': 'wordpress.png',
-    'm_types':  ['m1.small','m1.medium','m1.large','m1.xlarge'],},
-    {'id': '3',
-    'name': 'PhpMyAdmin',
-    'description': 'RDBMS management',
-    'image': 'phpmyadmin.png',
-    'm_types':  ['m1.small','m1.medium','m1.large','m1.xlarge'],},
-    {'id': '4',
-    'name': 'NGINX',
-    'description': 'Reverse proxy',
-    'image': 'nginx.png',
-    'm_types':  ['m1.small','m1.medium','m1.large','m1.xlarge'],},
-    {'id': '5',
-    'name': 'Webex',
-    'description': 'Collaboration',
-    'image': 'webex.png',
-    'm_types':  ['m1.medium','m1.large','m1.xlarge'],},
-]
 
 class IndexView(views.APIView):
     # A very simple class-based view...
     template_name = 'marketplace/applications/index.html'
 
     def get_data(self, request, context, *args, **kwargs):
-       context['apps'] = apps
-       return context
+        apps = app_api.get_all_applications(request)
+        context['apps'] = apps
+        return context
 
 class DetailView(views.APIView):
     template_name = 'marketplace/applications/details.html'
 
     def get_data(self, request, context, *args, **kwargs):
-        for app in apps:
-            if app['id'] == kwargs['app_id']:
-                context['app'] = app
-                break
+        # Get application
+        app = app_api.get_application(request, kwargs['app_id'])
+        # Get all flavors
+        flavor_list = api.flavor_list(request)
+        flavors = {}
+        for flavor in flavor_list:
+            flavors[flavor.id] = flavor.name
+
+        # Get application flavors
+        app_flavor_list = app_api.get_application_flavors(request, kwargs['app_id'])
+        app_flavors = []
+        for flavor in app_flavor_list:
+            app_flavors.append({
+                'id': flavor.flavor_id,
+                'recommended': flavor.recommended,
+                'name': flavors[flavor.flavor_id]
+            })
+
+        # Get all versions of the application
+        app_versions = app_api.get_application_versions(request, kwargs['app_id'])
+        # Get security group list
+        security_groups = api.security_group_list(request)
+        # Get keypair list
+        keypairs = api.keypair_list(request)
+
+        context['app'] = app
+        context['app_flavors'] = app_flavors
+        context['app_versions'] = app_versions
+        context['security_groups'] = security_groups
+        context['keypairs'] = keypairs
+        context['support_map'] = {
+            'supported': 'Supported',
+            'limited_support': 'Limited Support',
+            'unsupported': 'Unsupported',
+        }
         return context
+
+class StartView(forms.ModalFormView):
+    template_name = 'marketplace/applications/start.html'
+    form_class = StartApplication
+
+    def get_initial(self):
+        # Get app name
+        app = app_api.get_application(self.request, self.kwargs['app_id'])
+        name = app.name
+        return {
+                'app_id': self.kwargs['app_id'],
+                'name': name
+                }

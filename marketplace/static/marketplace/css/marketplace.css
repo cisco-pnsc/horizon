@@ -29,3 +29,28 @@ div.app_title h1 {
 dl.app_info dt,dd {
     padding: 5px;
 }
+
+select.version-select option {
+    padding: 5px;
+}
+
+option.supported {
+    color: #008000;
+}
+
+option.limited_support {
+    color: #FF7E00;
+}
+
+option.unsupported {
+    color: #FF033E;
+}
+
+dl.start_app_dl dt {
+    padding: 5px;
+}
+
+dl.start_app_dl span {
+    padding:5px;
+    font-size: 10pt;
+}
