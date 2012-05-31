@@ -1,0 +1,24 @@
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Instance Type </th>
+            <th>Application</th>
+            <th>Instance</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for flavor in app_flavors %}
+        <tr>
+            <td>
+            {% if flavor.recommended %}
+                <button class="btn btn-primary" id="{{flavor.id}}">{{ flavor.name }}</button>
+            {% else %}
+                <button class="btn" id="{{flavor.id}}">{{ flavor.name }}</button>
+            {% endif %}
+            </td>
+            <td>$0.00/hr</td><td>$0.01/hr</td><td>$0.01/hr</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>

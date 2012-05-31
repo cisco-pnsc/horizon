@@ -1,5 +1,8 @@
 import logging
 
+from django.http import HttpResponse
+from django.utils import simplejson
+
 from horizon import views
 from horizon import api
 from horizon import forms
@@ -8,6 +11,19 @@ from marketplace.applications import api as app_api
 from .forms import StartApplication
 
 LOG = logging.getLogger(__name__)
+
+class SupportView(views.APIView):
+    def get(self, request, *args, **kwargs):
+        app_id = kwargs['app_id']
+        version_id = request.GET.get('version')
+        if request.is_ajax():
+            message = app_api.get_application_support(request, version_id)
+        else:
+            message = "Not a valid XMLHttpRequest"
+
+        if not message:
+            message = "No support available for this version"
+        return HttpResponse(message, mimetype='application/text')
 
 class IndexView(views.APIView):
     # A very simple class-based view...
@@ -69,5 +85,6 @@ class StartView(forms.ModalFormView):
         name = app.name
         return {
                 'app_id': self.kwargs['app_id'],
+                'eula': app.eula,
                 'name': name
                 }

@@ -42,6 +42,7 @@ MEDIA_ROOT = os.path.abspath(os.path.join(ROOT_PATH, '..', 'media'))
 MEDIA_URL = '/media/'
 STATIC_ROOT = os.path.abspath(os.path.join(ROOT_PATH, '..', 'static'))
 STATIC_URL = '/static/'
+APP_MEDIA_ROOT = os.path.abspath(os.path.join(ROOT_PATH, '..', 'marketplace/static'))
 APP_MEDIA_URL = '/app_media/'
 ADMIN_MEDIA_PREFIX = '/static/admin/'
 

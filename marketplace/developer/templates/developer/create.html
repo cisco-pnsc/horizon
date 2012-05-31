@@ -1,0 +1,11 @@
+{% extends 'nova/base.html' %}
+{% load i18n %}
+{% block title %}Create Application{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Create Application") %}
+{% endblock page_header %}
+
+{% block dash_main %}
+  {% include "marketplace/developer/_create.html" %}
+{% endblock %}

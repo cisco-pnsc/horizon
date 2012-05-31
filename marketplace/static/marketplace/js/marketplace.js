@@ -1,8 +1,27 @@
 /* Additional JavaScript for marketplace. */
+function update_support() {
+    // Get selected version
+    version = $('select#version-select').val();
+    // Get support text
+    var support = '';
+    $.ajax({
+        url: support_url,
+        type: "GET",
+        data: { 'version': version},
+        success: function(data) { 
+            $('div.app_support div.app_support_text').html(data);
+        }
+    });
+}
+
 $(document).ready(function() {
     $('.app_instance button').click(function() {
         $('.app_instance button').removeClass('active btn-primary');
         $(this).addClass('active btn-primary');
+    });
+    if ($('select#version-select')) { update_support(); }
+    $('select#version-select').change(function() {
+        update_support();
     });
 
     $(document).on('show', '.modal', function(evt) {
@@ -26,6 +45,8 @@ $(document).ready(function() {
         keypair = $('select#keypair-select').val();
         // Get keypair text
         keypair_text = $('select#keypair-select option:selected').text();
+        // Get eula text
+        eula = $('div.app_eula').html();
 
         // Update form variables
         $('form#start_application_form input#id_version').val(version);
@@ -39,5 +60,8 @@ $(document).ready(function() {
         $('dl.start_app_dl span#sel_zone').text(zone_text);
         $('dl.start_app_dl span#sel_sec_grp').text(sec_grp_text);
         $('dl.start_app_dl span#sel_keypair').text(keypair_text);
+        
+        // Update eula text
+        $('div.start_eula').html(eula);
     });
 });

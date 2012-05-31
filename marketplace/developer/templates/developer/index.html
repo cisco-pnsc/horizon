@@ -3,10 +3,9 @@
 {% block title %}{% trans "Developer" %}{% endblock %}
 
 {% block page_header %}
-  {% include "horizon/common/_page_header.html" with title=_("Developer") %}
+  {% include "horizon/common/_page_header.html" with title=_("Developer Panel") %}
 {% endblock page_header %}
 
 {% block marketplace_main %}
+    {{ dev_apps_table.render }}
 {% endblock %}
-
-

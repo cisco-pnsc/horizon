@@ -1,0 +1,68 @@
+<table class="table table-striped">
+  <tbody>
+    <tr>
+        <td><strong>Customer Rating</strong></td>
+        <td>n.a.</td>
+    </tr>
+    <tr>
+        <td><strong>Select Version</strong></td>
+        <td>
+            <select class="version-select" id="version-select">                    
+            {% for version in app_versions %}
+                <option 
+                 value="{{version.id}}" 
+                 class="{{version.get_supported_display}}">
+                 {% for key,val in support_map.items %}
+                    {% if key == version.get_supported_display %}
+                        {{version.version}} ({{val}})
+                    {% endif %}
+                  {% endfor %}
+                </option>
+                {% endfor %}
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Base Operating System</strong></td>
+        <td>Linux/Unix</td>
+    </tr>
+    <tr>
+        <td><strong>Delivery Method</strong></td>
+        <td>64-Bit Machine Image (Glance)</td>
+    </tr>
+    <tr>
+        <td><strong>Support</strong></td>
+        <td>See Support below</td>
+    </tr>
+    <tr>
+        <td><strong>Security Group</strong></td>
+        <td>
+            <select id="sec_grp-select">
+            {% for group in security_groups %}
+                <option value="{{group.name}}">{{group.name}}</option>
+            {% endfor %}
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Access Keypair</strong></td>
+        <td>
+            <select id="keypair-select">
+            {% for keypair in keypairs %}
+                <option value="{{keypair.id}}">{{keypair.name}}</option>
+            {% endfor %}
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Select Zone</strong></td>
+        <td>
+            <select id="zone-select">
+                <option value="us_e">US East</option>
+                <option value="us_c">US Central</option>
+                <option value="us_w">US West</option>
+            </select>
+        </td>
+    </tr>
+  </tbody>
+</table>

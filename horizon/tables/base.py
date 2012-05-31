@@ -805,7 +805,7 @@ class DataTable(object):
         Uses :meth:`~horizon.tables.DataTable.get_object_id` internally.
         """
         matches = [datum for datum in self.data if
-                   self.get_object_id(datum) == lookup]
+                   str(self.get_object_id(datum)) == str(lookup)]
         if len(matches) > 1:
             raise ValueError("Multiple matches were returned for that id: %s."
                            % matches)

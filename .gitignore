@@ -16,3 +16,4 @@ docs/source/sourcecode
 build
 dist
 *.sqlite3
+marketplace/static/marketplace/img

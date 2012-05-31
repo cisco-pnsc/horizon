@@ -7,10 +7,13 @@
 {% endblock page_header %}
 
 {% block marketplace_main %}
+    <script type="text/javascript">
+        support_url = "{% url horizon:marketplace:applications:support app.id %}"; 
+    </script>
     <div class="app_page row-fluid" id="app_{{app.id}}">
         <div class="app_header span12">
             <div class="app_icon span2">
-                <img src="/app_media/marketplace/img/{{app.icon}}"/>
+                <img src="{{app.icon.url}}"/>
             </div>
             <div class="span10">
                 <div class="app_title span10"><h1>{{app.name}}</h1></div>
@@ -18,92 +21,30 @@
             </div>
         </div>
         <div class="app_details span12">
-            <dl class="dl-horizontal app_info span6">
-                <dt>Customer Rating</dt>
-                <dd>n.a</dd>
-                <dt>Select Version</dt>
-                <dd>
-                    <select class="version-select" id="version-select">
-                    {% for version in app_versions %}
-                      <option 
-                      value="{{version.id}}" 
-                      class="{{version.get_supported_display}}">
-                      {% for key,val in support_map.items %}
-                        {% if key == version.get_supported_display %}
-                            {{version.version}} ({{val}})
-                        {% endif %}
-                      {% endfor %}
-                      </option>
-                    {% endfor %}
-                    </select>
-                </dd>
-                <dt>Base Operating System</dt>
-                <dd>Linux/Unix</dd>
-                <dt>Delivery Method</dt>
-                <dd>64-bit Machine Image (Glance)</dd>
-                <dt>Support</dt>
-                <dd>No Soupport for You!</dd>
-                <dt>Security Group</dt>
-                <dd>
-                    <select id="sec_grp-select">
-                    {% for group in security_groups %}
-                        <option value="{{group.name}}">{{group.name}}</option>
-                    {% endfor %}
-                    </select>
-                </dd>
-                <dt>Access Keypair</dt>
-                <dd>
-                    <select id="keypair-select">
-                    {% for keypair in keypairs %}
-                        <option value="{{keypair.id}}">{{keypair.name}}</option>
-                    {% endfor %}
-                    </select>
-                </dd>
-                <dt>Select Zone</dt>
-                <dd>
-                    <select id="zone-select">
-                        <option value="us_e">US East</option>
-                        <option value="us_c">US Central</option>
-                        <option value="us_w">US West</option>
-                    </select>
-                </dd>
-            </dl>
+            <div class="app_info span6">
+            <h2>Details</h2>
+            {% include "marketplace/applications/_app_details.html" %}
+            </div>
             <div class="btn-group app_instance span6" data-toggle="buttons-radio">
-                <h4>Select Instance</h4>
+                <h2>Select Instance</h2>
                 <p class="alert alert-block"><strong>NOTE: </strong>Pricing may vary depending on the deployment zone selected.</p>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Instance Type </th>
-                            <th>Application</th>
-                            <th>Instance</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for flavor in app_flavors %}
-                        <tr>
-                            <td>
-                                {% if flavor.recommended %}
-                                <button class="btn btn-primary" id="{{flavor.id}}">
-                                {{ flavor.name }}</button>
-                                {% else %}
-                                <button class="btn" id="{{flavor.id}}">                                  {{ flavor.name }}</button>
-                                {% endif %}
-                            </td>
-                            <td>$0.00/hr</td><td>$0.01/hr</td><td>$0.01/hr</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% include "marketplace/applications/_app_instances.html" %}
                 <a class="ajax-modal btn btn-success" 
                    href="{% url horizon:marketplace:applications:start app.id %}" 
                    id="app_checkout" data-loading-text="Checkout out...">
                     <i class="icon-shopping-cart icon-white"></i>Checkout
                 </a>
             </div>
-            <div class="app_bill span6"></div>
-            <div class="app_eula span6"></div>
+            </div>
+            <div class="span12">
+            <div class="app_support span4">
+               <h2>Support</h2>
+                <div class="app_support_text"></div>
+            </div>
+            <div class="app_eula span8">
+                <h2>EULA</h2>
+                <div class="app_eula_text"><pre>{{app.eula}}</pre></div>
+            </div>
         </div>
     </div>
 {% endblock %}

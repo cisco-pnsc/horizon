@@ -26,10 +26,6 @@ div.app_title h1 {
     color: #0088CC;
 }
 
-dl.app_info dt,dd {
-    padding: 5px;
-}
-
 select.version-select option {
     padding: 5px;
 }
@@ -54,3 +50,10 @@ dl.start_app_dl span {
     padding:5px;
     font-size: 10pt;
 }
+
+div.app_eula_text, div.app_support_text {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+

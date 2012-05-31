@@ -30,14 +30,12 @@
         </fieldset>
     </div>
     <div class="right">
-        <p class="alert alert-block">
-        Please confirm your choices. 
-        If you want to make changes then either close this window or hit cancel. 
-        If satistifed, click the 'Start Application' button.</p>
+        <p class="alert alert-block">You must accept the EULA to continue</p>
+        <div class="start_eula"></div>
     </div>
 {% endblock %}
 
 {% block modal-footer %}
-  <input class="btn btn-primary pull-right" type="submit" value="{% trans "Start Application" %}" />
+  <input class="btn btn-primary pull-right" type="submit" value="{% trans "Accept EULA and Start Application" %}" />
   <a href="{% url horizon:marketplace:applications:details params.app_id %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
 {% endblock %}

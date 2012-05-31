@@ -6,8 +6,12 @@
 #
 # Also note: You'll have to insert the output of 'django-admin.py sqlcustom [appname]'
 # into your database.
+import base64
+import os
 
 from django.db import models
+from django.core.files.storage import FileSystemStorage
+from django.conf import settings
 
 SUPPORT_CHOICES = (
     ('S', 'supported'),
@@ -15,13 +19,19 @@ SUPPORT_CHOICES = (
     ('U', 'unsupported')
 )
 
+upload_storage = FileSystemStorage(
+    location=settings.APP_MEDIA_ROOT,
+    base_url=settings.APP_MEDIA_URL)
+
 class Application(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     name = models.CharField(max_length=255, unique=True)
-    icon = models.CharField(max_length=255)
+    icon = models.ImageField(upload_to='marketplace/img', storage=upload_storage)
     description = models.TextField()
     cost = models.FloatField()
     eula = models.TextField()
+    developer = models.CharField(max_length=255)
+
     class Meta:
         db_table = u'applications'
 
@@ -41,6 +51,7 @@ class ApplicationVersion(models.Model):
     image = models.CharField(max_length=255)
     supported = models.CharField(max_length=1, choices=SUPPORT_CHOICES)
     support = models.TextField()
+    created_on = models.DateTimeField(auto_now=True)
     class Meta:
         db_table = u'application_versions'
         unique_together = (('application', 'version'),)

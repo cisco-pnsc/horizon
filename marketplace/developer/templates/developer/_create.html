@@ -1,0 +1,17 @@
+{% extends "horizon/common/_modal_form.html" %}
+{% load i18n %}
+
+{% block form_id %}create_application_form{% endblock %}
+{% block form_action %}{% url horizon:marketplace:developer:create %}{% endblock %}
+{% block form_attrs %}enctype="multipart/form-data"{% endblock %}
+
+{% block modal-header %}Create Application{% endblock %}
+
+{% block modal-body %}
+    {% include "horizon/common/_form_fields.html" %}
+{% endblock %}
+
+{% block modal-footer %}
+  <input class="btn btn-primary pull-right" type="submit" value="{% trans "Create Application" %}" />
+  <a href="{% url horizon:marketplace:developer:index %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
+{% endblock %}

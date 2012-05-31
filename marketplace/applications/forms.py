@@ -27,6 +27,7 @@ class StartApplication(forms.SelfHandlingForm):
     def __init__(self, *args, **kwargs):
         super(StartApplication, self).__init__(*args, **kwargs)
         self.fields['app_id'].value = kwargs['initial']['app_id']
+        #self.fields['eula'].value = kwargs['initial']['eula']
         # Generate uuid for instance name
         uname = uuid.uuid4()
         self.fields['iname'].initial = kwargs['initial']['name'] +'--'+ uname.get_hex()
