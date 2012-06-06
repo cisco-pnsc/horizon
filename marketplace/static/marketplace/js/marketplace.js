@@ -39,8 +39,6 @@ $(document).ready(function() {
         flavor_text =  $($('div.app_instance button.btn-primary')[0]).text();
         // Get security group
         sec_grp = $('select#sec_grp-select').val();
-        // Get security group text
-        sec_grp_text = $('select#sec_grp-select option:selected').text();
         // Get keypair
         keypair = $('select#keypair-select').val();
         // Get keypair text
@@ -58,7 +56,7 @@ $(document).ready(function() {
         $('dl.start_app_dl span#sel_version').text(version_text);
         $('dl.start_app_dl span#sel_flavor').text(flavor_text);
         $('dl.start_app_dl span#sel_zone').text(zone_text);
-        $('dl.start_app_dl span#sel_sec_grp').text(sec_grp_text);
+        $('dl.start_app_dl span#sel_sec_grp').text(sec_grp.join(','));
         $('dl.start_app_dl span#sel_keypair').text(keypair_text);
         
         // Update eula text

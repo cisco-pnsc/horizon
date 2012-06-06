@@ -44,6 +44,9 @@ class CreateVersionView(forms.ModalFormView):
         
         # Get application flavors
         #app_flavors = app_api.get_application_flavors(self.request, app_id)
+        
+        # Get glance images
+        images = api.image_list_detailed(self.request)
 
         # Get application versions
         app_versions = app_api.get_application_versions(self.request, app_id)
@@ -51,5 +54,6 @@ class CreateVersionView(forms.ModalFormView):
         return {
             'app': app,
             'flavors': flavors,
-            'versions': app_versions
+            'versions': app_versions,
+            'images': images,
         }

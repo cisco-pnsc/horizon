@@ -119,7 +119,8 @@ def start_application(request, app_id, flavor, name,
     app_image = ApplicationVersion.objects.get(('id', version)).image
     # Get application details
     app = get_application(request, app_id)
-
+    sec_groups = sec_grp.split(',')
+    
     server = api.server_create(
         request,
         name,
@@ -127,7 +128,7 @@ def start_application(request, app_id, flavor, name,
         flavor,
         keypair,
         False,
-        [sec_grp],
+        sec_groups,
         False
     )
     # Stash server and application in the db

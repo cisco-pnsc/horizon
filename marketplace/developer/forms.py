@@ -18,7 +18,10 @@ class CreateApplication(forms.SelfHandlingForm):
     name = forms.CharField(max_length="128",
                            label=_("Application Name"),
                            required=True)
-    icon = forms.ImageField(label=_("Application Icon"))
+    icon = forms.ImageField(label=_("Application Icon"),
+                            help_text="All images will be automatically resized \
+                                       to 256px X 256px. Please upload an image \
+                                       with a Square aspect ratio.")
     version = forms.CharField(max_length="10",
                               label=_("Application Version"),
                                required=True)
@@ -43,7 +46,8 @@ class CreateApplication(forms.SelfHandlingForm):
                                 label=_("Select Allowed flavors"),
                                 required=True)
     cost = forms.CharField(widget=forms.widgets.TextInput(),
-                           label=_("Application Cost"),
+                           label=_("Application Cost/Hr"),
+                           help_text="Specify cost per hour in USD",
                            required=True)
     recommended = forms.ChoiceField(widget=forms.widgets.Select(),
                                   label=_("Select Recommended flavor"))
@@ -115,6 +119,8 @@ class CreateApplicationVersion(forms.SelfHandlingForm):
     version = forms.CharField(max_length="10",
                               label=_("Application Version"),
                               required=True)
+    image = forms.ChoiceField(widget=forms.widgets.Select(),
+                              label=_("Select Glance Image"))
 
     def __init__(self, *args, **kwargs):
         super(CreateApplicationVersion, self).__init__(*args, **kwargs)
@@ -139,6 +145,7 @@ class CreateApplicationVersion(forms.SelfHandlingForm):
         for image in images:
             image_choices.append((image.id, image.name))
     
+        self.fields['image'].choices = image_choices
 
     def handle(self, request, data):
         try:

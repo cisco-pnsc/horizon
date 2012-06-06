@@ -2,7 +2,13 @@
   <tbody>
     <tr>
         <td><strong>Customer Rating</strong></td>
-        <td>n.a.</td>
+        <td>
+            <i class="icon-star"></i>
+            <i class="icon-star"></i>
+            <i class="icon-star"></i>
+            <i class="icon-star"></i>
+            <i class="icon-star-empty"></i>
+        </td>
     </tr>
     <tr>
         <td><strong>Select Version</strong></td>
@@ -35,9 +41,9 @@
         <td>See Support below</td>
     </tr>
     <tr>
-        <td><strong>Security Group</strong></td>
+        <td><strong>Security Groups</strong></td>
         <td>
-            <select id="sec_grp-select">
+            <select id="sec_grp-select" multiple>
             {% for group in security_groups %}
                 <option value="{{group.name}}">{{group.name}}</option>
             {% endfor %}
