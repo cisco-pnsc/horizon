@@ -1,0 +1,21 @@
+{% extends 'syspanel/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Hosts" %}{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Host") %}
+{% endblock page_header %}
+
+{% block syspanel_main %}
+    <div class="row-fluid">
+        <div class="span4">
+            <div class="span1">
+                <img src="/media/dashboard/img/server.png" />
+            </div>
+            <div class="span2"><h3>{{host.name}}</h3></div>
+        </div>
+        {% include "syspanel/hosts/_cpu.html" %}
+        {% include "syspanel/hosts/_mem.html" %}
+        {% include "syspanel/hosts/_net.html" %}
+    </div>
+{% endblock %}

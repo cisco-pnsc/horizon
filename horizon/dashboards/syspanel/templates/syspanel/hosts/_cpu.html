@@ -1,0 +1,28 @@
+<div class="span4 well">
+    <div class="span4">
+        <h3>CPU</h3>
+        <img src="/media/dashboard/img/cpu.png"/>
+    </div>
+    <div class="span4">
+        <strong>Cores</strong>
+    </div>
+    <div class="span4">
+        <strong>@{{host.cpu.cpu_speed}}&nbsp;Ghz</strong>
+    </div>
+    <div class="span8 core_selector">
+        <span class="label label-success" title="All Cores"
+              alt="{% url horizon:syspanel:hosts:cpu_stats host.name 'All' %}">All</span>
+        {% for core in host.cpu.cores %}
+            <span class="label" title="Core {{core}}"
+                  alt="{% url horizon:syspanel:hosts:cpu_stats host.name core %}">
+            {{core}}</span>
+        {% endfor %}
+    </div>
+    <div class="span8" id="cpu_load">
+        <strong>Load <span id="cpu_used">{{host.cpu.cpu_load}}</span>%</strong>
+        {% include "syspanel/hosts/_load_bar.html" with load=host.cpu.cpu_load bar_class=host.cpu.cpu_class %}
+    </div>
+    <div class="span12 metric_graph">
+        <img id="cpu_graph" src="{{host.cpu_graph}}"/>
+    </div>
+</div>

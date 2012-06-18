@@ -1,0 +1,40 @@
+<div class="span4 well">
+    <div class="span4">
+        <h3>Network</h3>
+        <img src="/media/dashboard/img/net.png"/>
+    </div>
+    <div class="span8 int_selector">
+        <span class="label label-success"  title="All Interfaces"
+              alt="{% url horizon:syspanel:hosts:net_stats host.name 'All' %}">All</span>
+        {% for interface in host.net %}
+            <span class="label" title="Interface {{interface.name}}"
+                  alt="{% url horizon:syspanel:hosts:net_stats host.name interface.name %}">
+            {{interface.name}}</span>
+        {% endfor %}
+    </div>
+    <div class="span4">
+        <strong>Sent</strong>
+    </div>
+    <div class="span4">
+        <span id="pkts_sent">{{host.net_total.tx}}</span>&nbsp;Pkts
+    </div>
+    <div class="span4">
+        <strong>Received</strong>
+    </div>
+    <div class="span4">
+        <span id="pkts_recv">{{host.net_total.rx}}</span>&nbsp;Pkts
+    </div>
+    <div class="span4">
+        <strong>Bandwidth</strong>
+    </div>
+    <div class="span4">
+        <span id="bandwidth">{{host.net_total.bandwidth}}</span>&nbsp;Mbps
+    </div>
+    <div class="span8" id="net_load">
+        <strong>Used <span id="net_used">{{host.net_total.used}}</span>%</strong>
+        {% include "syspanel/hosts/_load_bar.html" with load=host.net_total.used bar_class=host.net_total.class %}
+    </div>
+    <div class="span12 metric_graph">
+        <img id="net_graph" src="{{host.net_graph}}"/>
+    </div>
+</div>

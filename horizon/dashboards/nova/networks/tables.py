@@ -38,25 +38,6 @@ class DeleteNetworks(tables.DeleteAction):
     def delete(self, request, obj_id):
         api.quantum_network_delete(request, obj_id)
 
-    def handle(self, table, request, object_ids):
-        # Overriden to show clearer error messages instead of generic message
-        deleted = []
-        for obj_id in object_ids:
-            obj = table.get_object_by_id(obj_id)
-            try:
-                self.delete(request, obj_id)
-                deleted.append(obj)
-            except:
-                LOG.exception('Unable to delete network "%s".' % obj.name)
-                messages.error(request,
-                               _('Unable to delete network with ports: %s') %
-                               obj.name)
-        if deleted:
-            messages.success(request,
-                             _('Successfully deleted networks: %s')
-                               % ", ".join([obj.name for obj in deleted]))
-        return shortcuts.redirect('horizon:nova:networks:index')
-
 
 class CreateNetwork(tables.LinkAction):
     name = "create"

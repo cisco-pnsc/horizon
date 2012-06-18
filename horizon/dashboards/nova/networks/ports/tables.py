@@ -56,29 +56,6 @@ class DeletePorts(tables.DeleteAction):
         network_id = self.table.kwargs['network_id']
         api.quantum_port_delete(request, network_id, obj_id)
 
-    def handle(self, table, request, object_ids):
-        # Overriden to show clearer error messages instead of generic message
-        deleted = []
-        for obj_id in object_ids:
-            obj = table.get_object_by_id(obj_id)
-            try:
-                self.delete(request, obj_id)
-                deleted.append(obj)
-            except:
-                LOG.exception('Unable to delete port "%s".' % obj.id)
-                messages.error(request,
-                               _('Unable to delete port: %s') %
-                               obj.id)
-                raise
-        if deleted:
-            messages.success(request,
-                             _('Successfully deleted port: %s')
-                               % ", ".join([obj.id for obj in deleted]))
-        network_id = self.table.kwargs['network_id']
-        return shortcuts.redirect(
-            'horizon:nova:networks:ports:ports',
-            network_id=network_id)
-
 
 class AttachPort(tables.LinkAction):
     name = "attach_port"

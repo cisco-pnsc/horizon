@@ -4,7 +4,7 @@ from django import template
 from django.utils.translation import ugettext_lazy as _
 
 from horizon import tables
-
+from horizon.api.monitoring import monitorclient
 
 LOG = logging.getLogger(__name__)
 
@@ -33,6 +33,13 @@ def get_enabled(service, reverse=False):
     return options[0] if not service.disabled else options[1]
 
 
+def get_status(service):
+    state = monitorclient().get_service_status(service.host, service.id)
+    return template.loader.render_to_string('syspanel/services/_status.html',
+                                            {'status': state,
+                                             'service': service})
+
+
 class ServicesTable(tables.DataTable):
     id = tables.Column('id', verbose_name=_('Id'), hidden=True)
     name = tables.Column("name", verbose_name=_('Name'))
@@ -41,6 +48,8 @@ class ServicesTable(tables.DataTable):
     enabled = tables.Column(get_enabled,
                             verbose_name=_('Enabled'),
                             status=True)
+    status = tables.Column(get_status,
+                           verbose_name=_('Status'))
 
     class Meta:
         name = "services"

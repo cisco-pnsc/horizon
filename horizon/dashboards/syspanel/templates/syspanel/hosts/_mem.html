@@ -1,0 +1,19 @@
+<div class="span4 well">
+    <div class="span4">
+        <h3>Memory</h3>
+        <img src="/media/dashboard/img/mem.png"/>
+    </div>
+    <div class="span4 offset4">
+        <strong>Total</strong> {{host.mem.total_mem}}&nbsp;GB
+    </div>
+    <div class="span4 offset4">
+        <strong>Used</strong> {{host.mem.mem_used}}&nbsp;GB
+    </div>
+    <div class="span8">
+        <strong>Used {{host.mem.mem_usage}}%</strong>
+        {% include "syspanel/hosts/_load_bar.html" with load=host.mem.mem_usage bar_class=host.mem.mem_class %}
+    </div>
+    <div class="span12 metric_graph">
+        <img src="{{host.mem_graph}}"/>
+    </div>
+</div>
