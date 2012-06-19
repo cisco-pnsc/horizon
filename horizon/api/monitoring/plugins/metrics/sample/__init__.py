@@ -14,12 +14,12 @@ class FakeMetricsPlugin(MetricsPluginBase):
             visual_str += '&' + str(key) + '=' + str(val)
         self.visual = visual_str
 
-    def get_cpu_graph(self, id, start=None, end=None):
+    def get_cpu_graph(self, id, core=None, start=None, end=None):
         cpustr = 'render?target=carbon.agents.c02-b01-a.cpuUsage'
         return self.host + '/' + cpustr + '&' + self.visual
 
 
-    def get_mem_graph(self, id, start=None, end=None):
+    def get_mem_graph(self, id, module=None, start=None, end=None):
         memstr = 'render?target=carbon.agents.c02-b01-a.memUsage'
         return self.host + '/' + memstr + '&' + self.visual
 
@@ -27,7 +27,7 @@ class FakeMetricsPlugin(MetricsPluginBase):
         netstr = 'render?_salt=1339443729.664&target=c02-b01.interface.if_packets.eth0.rx&target=c02-b01.interface.if_packets.eth0.tx'
         return self.host + '/' + netstr + '&' + self.visual
 
-    def get_partition_graph(self, id, part_id, start=None, end=None):
+    def get_partition_graph(self, id, partition=None, start=None, end=None):
         partstr = 'render?_salt=1339441480.545&target=c02-b01.df.df.root.free&target=c02-b01.df.df.root.used&target=c02-b01.df.df.dev.free&target=c02-b01.df.df.dev.used&target=c02-b01.df.df.opt-stack-data-swift-drives-sdb1.free&target=c02-b01.df.df.opt-stack-data-swift-drives-sdb1.used'
         return self.host + '/' + partstr + '&' + self.visual
 

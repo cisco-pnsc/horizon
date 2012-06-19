@@ -9,7 +9,7 @@
     <div class="span4">
         <strong>@{{host.cpu.cpu_speed}}&nbsp;Ghz</strong>
     </div>
-    <div class="span8 core_selector">
+    <div class="span8 metric_selector" id="core_selector">
         <span class="label label-success" title="All Cores"
               alt="{% url horizon:syspanel:hosts:cpu_stats host.name 'All' %}">All</span>
         {% for core in host.cpu.cores %}

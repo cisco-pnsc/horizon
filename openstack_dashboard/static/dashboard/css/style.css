@@ -1066,10 +1066,11 @@ span.hosts_filter span.label:hover {
     cursor: pointer;
 }
 
-div.int_selector span.label:hover {
-    cursor: pointer;
+div.metric_selector span.label {
+    margin-left: 5px;
+    display:inline-block;
 }
 
-div.core_selector span.label:hover {
+div.metric_selector span.label:hover {
     cursor: pointer;
 }

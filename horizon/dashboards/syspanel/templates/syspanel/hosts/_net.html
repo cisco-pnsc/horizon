@@ -3,7 +3,7 @@
         <h3>Network</h3>
         <img src="/media/dashboard/img/net.png"/>
     </div>
-    <div class="span8 int_selector">
+    <div class="span8 metric_selector" id="int_selector">
         <span class="label label-success"  title="All Interfaces"
               alt="{% url horizon:syspanel:hosts:net_stats host.name 'All' %}">All</span>
         {% for interface in host.net %}

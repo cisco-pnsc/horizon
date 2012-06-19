@@ -14,7 +14,23 @@ class MonitorPluginBase(object):
         pass
 
     @abstractmethod
-    def get_mem_usage(self, id):
+    def get_cpu_cores(self, id):
+        pass
+
+    @abstractmethod
+    def get_cpu_speed(self, id, core=None):
+        pass
+
+    @abstractmethod
+    def get_memory(self, id, module_id=None):
+        pass
+
+    @abstractmethod
+    def get_memory_modules(self, id):
+        pass
+
+    @abstractmethod
+    def get_mem_usage(self, id, module_id=None):
         pass
 
     @abstractmethod
@@ -43,18 +59,6 @@ class MonitorPluginBase(object):
 
     @abstractmethod
     def get_service_status(self, id, service_id):
-        pass
-
-    @abstractmethod
-    def get_cpu_cores(self, id):
-        pass
-
-    @abstractmethod
-    def get_total_memory(self, id):
-        pass
-
-    @abstractmethod
-    def get_cpu_speed(self, id, core=None):
         pass
 
     @abstractmethod

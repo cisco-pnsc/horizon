@@ -6,11 +6,11 @@ class MetricsPluginBase(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_cpu_graph(self, id, start=None, end=None):
+    def get_cpu_graph(self, id, core=None, start=None, end=None):
         pass
 
     @abstractmethod
-    def get_mem_graph(self, id, start=None, end=None):
+    def get_mem_graph(self, id, module=None, start=None, end=None):
         pass
 
     @abstractmethod
@@ -18,7 +18,7 @@ class MetricsPluginBase(object):
         pass
 
     @abstractmethod
-    def get_partition_graph(self, id, part_id, start=None, end=None):
+    def get_partition_graph(self, id, partition=None, start=None, end=None):
         pass
 
     @abstractmethod

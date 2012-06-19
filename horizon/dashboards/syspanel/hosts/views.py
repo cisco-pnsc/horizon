@@ -38,8 +38,9 @@ def _get_host_cpu_dict(request, host, core=None):
     host_dict = {}
 
     # get cpu stats and load
-    host_dict['cpu_load'] = monitorclient().get_cpu_load(host)
-    host_dict['cores'] = monitorclient().get_cpu_cores(host)
+    host_dict['cpu_load'] = monitorclient().get_cpu_load(host, core)
+    if core == None:
+        host_dict['cores'] = monitorclient().get_cpu_cores(host)
     host_dict['cpu_speed'] = monitorclient().get_cpu_speed(host)
 
     if host_dict['cpu_load'] > 90:
@@ -51,12 +52,16 @@ def _get_host_cpu_dict(request, host, core=None):
 
     return host_dict
 
-def _get_host_mem_dict(request, host):
+def _get_host_mem_dict(request, host, module=None):
     host_dict = {}
 
     # Get memory stats and load
-    host_dict['total_mem'] = monitorclient().get_total_memory(host)
-    host_dict['mem_usage'] = monitorclient().get_mem_usage(host)
+    host_dict['total_mem'] = monitorclient().get_memory(host, module)
+    if module == None:
+        host_dict['mem_mods'] = monitorclient().get_memory_modules(host)
+    else:
+        host_dict['mod'] = module
+    host_dict['mem_usage'] = monitorclient().get_mem_usage(host, module)
     host_dict['mem_used'] = (float(host_dict['mem_usage'])/float(100)) * host_dict['total_mem']
 
     if host_dict['mem_usage'] > 90:
@@ -68,23 +73,55 @@ def _get_host_mem_dict(request, host):
 
     return host_dict
 
-def _get_host_part_dict(request, host):
+def _get_host_part_dict(request, host, partition=None):
+    parts_ret_dict = {}
     parts_ret = []
+    parts = []
 
-    parts = monitorclient().get_monitored_partitions(host)
+    # Track total stats
+    tparts = 0
+    tused = 0
+
+    if partition:
+        parts.append(partition)
+    else:
+        parts = monitorclient().get_monitored_partitions(host)
+
     for part in parts:
         part_dict = {}
 
         stats = monitorclient().get_partition_stats(host, part)
         part_dict['name'] = part
-        part_dict['total'] = stats['total']
-        part_dict['used'] = stats['used']
-        
-        parts_ret.append(part_dict)
+        part_dict['size'] = stats['size']
+        part_dict['usage'] = stats['used_percent']
+        used = (float(stats['used_percent'])/float(100)) * stats['size']
+        part_dict['used'] = int(used)
+       
+        tparts += stats['size']
+        tused += used
 
-    part_dict['parts'] = parts_ret
+        if partition == None or partition == part:
+            parts_ret.append(part_dict)
 
-    return part_dict
+    if partition == None:
+        parts_ret_dict['total'] = tparts
+        parts_ret_dict['used'] = int(tused)
+        parts_ret_dict['parts'] = parts_ret
+
+        parts_ret_dict['usage'] = int((float(tused)/float(tparts)) * 100)
+    else:
+        parts_ret_dict['total'] = parts_ret[0]['size']
+        parts_ret_dict['used'] = parts_ret[0]['used']
+        parts_ret_dict['usage'] = parts_ret[0]['usage']
+
+    if parts_ret_dict['usage'] > 90:
+        parts_ret_dict['class'] = 'progress-danger'
+    elif parts_ret_dict['usage'] > 60:
+        parts_ret_dict['class'] = 'progress-warning'
+    else:
+        parts_ret_dict['class'] = 'progress-success'
+
+    return parts_ret_dict
 
 def _get_host_net_dict(request, host, iface=None):
     net_ret = []
@@ -143,6 +180,42 @@ def _get_host_net_dict(request, host, iface=None):
 
     return net_ret
 
+def _get_host_disk_dict(request, host, disk_id=None):
+    disks = []
+    disk_props = []
+    disk_ret_dict = {}
+    ttps = 0
+    tkbr = 0
+    tkbw = 0
+
+    if disk_id:
+        disks.append(disk_id)
+    else:
+        disks = monitorclient().get_physical_disks(host)
+
+    for disk in disks:
+        disk_dict = {}
+        # Get disk stats
+        dstats = monitorclient().get_disk_io(host, disk)
+        tkbr += dstats['kb_read']
+        tkbw += dstats['kb_written']
+        ttps += dstats['tps']
+        disk_dict['kb_read'] = dstats['kb_read']
+        disk_dict['kb_written'] = dstats['kb_written']
+        disk_dict['tps'] = dstats['tps']
+        disk_dict['name'] = disk
+        disk_props.append(disk_dict)
+
+    if disk_id:
+        disk_ret_dict = disk_props[0]
+    else:
+        disk_ret_dict['tps'] = ttps
+        disk_ret_dict['kb_read'] = tkbr
+        disk_ret_dict['kb_written'] = tkbw
+        disk_ret_dict['disks'] = disk_props
+
+    return disk_ret_dict
+
 class HostsView(views.APIView):
     template_name = 'syspanel/hosts/index.html'
 
@@ -193,11 +266,13 @@ class HostDetailView(views.APIView):
         tot_net_stats = net_dict.pop()
         host_dict['net'] = net_dict
         host_dict['net_total'] = tot_net_stats
-        
+        host_dict['disk'] = _get_host_disk_dict(request, host)
+ 
         # Get available host graphs
         host_dict['cpu_graph'] = metricsclient().get_cpu_graph(host)
         host_dict['mem_graph'] = metricsclient().get_mem_graph(host)
         host_dict['net_graph'] = metricsclient().get_network_graph(host)
+        host_dict['part_graph'] = metricsclient().get_partition_graph(host)
 
         context['host'] = host_dict
 
@@ -207,8 +282,6 @@ class NetStatsView(views.APIView):
    def get(self, request, *args, **kwargs):
         host = kwargs['host_id']
         interface = kwargs['int_id']
-        if interface == 'all':
-            interface = None
 
         message = {}
         if request.is_ajax():
@@ -223,46 +296,62 @@ class CpuStatsView(views.APIView):
    def get(self, request, *args, **kwargs):
         host = kwargs['host_id']
         core = kwargs['cpu_id']
-        if interface == 'all':
-            interface = None
 
         message = {}
         if request.is_ajax():
             message['graph'] = metricsclient().get_cpu_graph(host, core)
-            message['stats'] = _get_host_net_dict(host, interface)
+            message['stats'] = _get_host_cpu_dict(request, host, core)
         else:
             message['error'] = "Not a valid XMLHttpRequest"
 
-        return HttpResponse(message, mimetype='application/text')
+        return HttpResponse(simplejson.dumps(message), mimetype='application/json')
 
 class MemStatsView(views.APIView):
    def get(self, request, *args, **kwargs):
         host = kwargs['host_id']
-        dimm = kwargs['mem_id']
-        if interface == 'all':
-            interface = None
+        mod = kwargs['mem_id']
+        if mod == 'All':
+            mod = None
 
         message = {}
         if request.is_ajax():
-            message['graph'] = metricsclient().get_network_graph(host, interface)
-            message['stats'] = _get_host_net_dict(host, interface)
+            message['graph'] = metricsclient().get_mem_graph(request, host, mod)
+            message['stats'] = _get_host_mem_dict(request, host, mod)
         else:
             message['error'] = "Not a valid XMLHttpRequest"
 
-        return HttpResponse(message, mimetype='application/text')
+        return HttpResponse(simplejson.dumps(message), mimetype='application/json')
+
+class PartStatsView(views.APIView):
+   def get(self, request, *args, **kwargs):
+        host = kwargs['host_id']
+        part = kwargs['part_id']
+        
+        if part == 'All':
+            part = None
+
+        message = {}
+        if request.is_ajax():
+            message['graph'] = metricsclient().get_partition_graph(host, part)
+            message['stats'] = _get_host_part_dict(request, host, part)
+        else:
+            message['error'] = "Not a valid XMLHttpRequest"
+
+        return HttpResponse(simplejson.dumps(message), mimetype='application/json')
 
 class DiskStatsView(views.APIView):
    def get(self, request, *args, **kwargs):
         host = kwargs['host_id']
-        interface = kwargs['int_id']
-        if interface == 'all':
-            interface = None
+        disk = kwargs['disk_id']
+
+        if disk == 'All':
+            disk = None
 
         message = {}
         if request.is_ajax():
-            message['graph'] = metricsclient().get_network_graph(host, interface)
-            message['stats'] = _get_host_net_dict(request, host, interface)
+            message['graph'] = metricsclient().get_partition_graph(host, disk)
+            message['stats'] = _get_host_disk_dict(request, host, disk)
         else:
             message['error'] = "Not a valid XMLHttpRequest"
 
-        return HttpResponse(message, mimetype='application/text')
+        return HttpResponse(simplejson.dumps(message), mimetype='application/json')

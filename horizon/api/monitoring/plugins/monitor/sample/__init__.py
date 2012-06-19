@@ -16,7 +16,7 @@ class FakeMonitorPlugin(MonitorPluginBase):
     def get_cpu_load(self, id, core=None):
         return random.randrange(10, 100)
 
-    def get_mem_usage(self, id):
+    def get_mem_usage(self, id, module_id=None):
         return random.randrange(10, 100)
 
     def get_errors(self, id):
@@ -52,32 +52,33 @@ class FakeMonitorPlugin(MonitorPluginBase):
     def get_cpu_speed(self, id, core=None):
         return '3.4'
 
-    def get_total_memory(self, id):
-        return 24
+    def get_memory(self, id, module_id=None):
+        if module_id:
+            return 4
+        else:
+            return 16
 
+    def get_memory_modules(self, id):
+        return ['dimm0','dimm1','dimm2','dimm3','dimm4',
+                'dimm5','dimm6','dimm7']
+    
     def get_monitored_partitions(self, id):
-        return ('/','/var','/var/tmp','/usr','/home')
+        return ('root','dev','opt-stack-data','usr','home')
 
     def get_partition_stats(self, id, part_id):
         part_size = random.randrange(100, 1000)
         part_used_percent = random.randrange(10, 100)
 
-        part_used = (part_used_percent / 100) * part_size
-       
-        return { 'total': part_size, 'used': part_used }
+        return { 'size': part_size, 'used_percent': part_used_percent }
 
     def get_physical_disks(self, id):
-        return [
-            'sda',
-            'sdb',
-            'sdc'
-        ]
+        return ['sda', 'sdb', 'sdc', 'sdd']
 
     def get_disk_io(self, id, disk_id):
         return {
             'tps': 3.14,
-            'kb_read': 379017,
-            'kb_written': 45091052,
+            'kb_read': random.randrange(20000, 50000),
+            'kb_written': random.randrange(400000, 500000),
         }
 
     def get_monitored_interfaces(self, id):
