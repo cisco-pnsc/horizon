@@ -1074,3 +1074,27 @@ div.metric_selector span.label {
 div.metric_selector span.label:hover {
     cursor: pointer;
 }
+
+div.message-block h5 {
+    display:inline-block;
+}
+
+div.message-list {
+    max-height:200px;
+    overflow-y: scroll;
+}
+
+div.message-block li {
+    font-size: 8pt;
+    padding:3px;
+}
+
+div.service-list {
+    max-height: 300px;
+    overflow-y: scroll;
+}
+
+div#graph_zoom {
+    display: none;
+    position: fixed !important;
+}

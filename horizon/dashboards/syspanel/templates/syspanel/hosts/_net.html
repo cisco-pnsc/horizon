@@ -35,6 +35,6 @@
         {% include "syspanel/hosts/_load_bar.html" with load=host.net_total.used bar_class=host.net_total.class %}
     </div>
     <div class="span12 metric_graph">
-        <img id="net_graph" src="{{host.net_graph}}"/>
+        <img id="net_graph" src="{{host.net_graph}}" alt="Network"/>
     </div>
 </div>

@@ -216,6 +216,34 @@ def _get_host_disk_dict(request, host, disk_id=None):
 
     return disk_ret_dict
 
+def _get_host_service_dict(request, host):
+    services = []
+    service_list = monitorclient().get_services(host)
+    
+    for id,name in service_list.iteritems():
+        # Get service status
+        status = monitorclient().get_service_status(host, id)
+        service_class = ''
+        service_text = ''
+        if status == 1:
+            service_class = 'success'
+            service_text = 'Running'
+        elif status == 0:
+            service_class = 'warning'
+            service_text = 'Warning'
+        else:
+            service_class = 'important'
+            service_text = 'Unknown'
+        services.append({
+            'id': id,
+            'name': name,
+            'status': status,
+            'service_class': service_class,
+            'service_text': service_text
+        })
+
+    return services
+
 class HostsView(views.APIView):
     template_name = 'syspanel/hosts/index.html'
 
@@ -267,6 +295,7 @@ class HostDetailView(views.APIView):
         host_dict['net'] = net_dict
         host_dict['net_total'] = tot_net_stats
         host_dict['disk'] = _get_host_disk_dict(request, host)
+        host_dict['services'] = _get_host_service_dict(request, host)
  
         # Get available host graphs
         host_dict['cpu_graph'] = metricsclient().get_cpu_graph(host)
@@ -277,6 +306,9 @@ class HostDetailView(views.APIView):
         context['host'] = host_dict
 
         return context
+
+class HostDetailViewNew(views.PanelView):
+    pass
 
 class NetStatsView(views.APIView):
    def get(self, request, *args, **kwargs):

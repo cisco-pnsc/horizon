@@ -1,0 +1,30 @@
+<div class="span4 well">
+    <div class="span4">
+        <h3>Services</h3>
+        <img src="/media/dashboard/img/service.png"/>
+    </div>
+
+    <div class="span4">
+        <strong>Monitored</strong>
+    </div>
+    <div class="span4">
+        {{host.services|length}}
+    </div>
+
+    <div class="span12 service-list">
+        <table class="table">
+            <tbody>
+            {% for service in host.services %}
+            <tr>
+                <td><strong>{{service.name}}</strong></td>
+                <td>
+                <span class="label label-{{service.service_class}}">
+                    {{service.service_text}}
+                </span>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -20,26 +20,84 @@ class FakeMonitorPlugin(MonitorPluginBase):
         return random.randrange(10, 100)
 
     def get_errors(self, id):
-        errors = []
+        errors = [
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive',
+            'Fan module 2 failed',
+            'Fan tray 2 sensor unresponsive'
+        ]
         return errors
 
     def get_warnings(self, id):
-        warnings = []
+        warnings = [
+            'CPU temperature high',
+            'CPU load high',
+            'CPU temperature high',
+            'CPU load high',
+            'CPU temperature high',
+            'CPU load high',
+            'CPU temperature high',
+            'CPU load high',
+            'CPU temperature high',
+            'CPU load high',
+            'CPU temperature high',
+            'CPU load high',
+            'CPU temperature high',
+            'CPU load high',
+            'CPU temperature high',
+            'CPU load high',
+        ]
         return warnings
 
     def get_notices(self, id):
-        notices = []
+        notices = [
+            'System rebooted at 00:00:00',
+            'Config backed up at 00:00:00',
+            'System rebooted at 00:00:00',
+            'Config backed up at 00:00:00',
+            'System rebooted at 00:00:00',
+            'Config backed up at 00:00:00',
+            'System rebooted at 00:00:00',
+            'Config backed up at 00:00:00',
+            'System rebooted at 00:00:00',
+            'Config backed up at 00:00:00',
+            'System rebooted at 00:00:00',
+            'Config backed up at 00:00:00',
+            'System rebooted at 00:00:00',
+            'Config backed up at 00:00:00',
+            'System rebooted at 00:00:00',
+            'Config backed up at 00:00:00',
+        ]
         return notices
 
     def get_services(self, id):
-        services  = (
-            'compute',
-            'network',
-            'volumes',
-            'storage',
-            'api',
-            'image'
-        )
+        services  = {
+          'compute': 'compute',
+          'network': 'network',
+          'volumes': 'volumes',
+          'swift': 'swift',
+          'api': 'api',
+          'image': 'image',
+          'rabbitmq': 'rabbitmq',
+          'mysql': 'mysql',
+          'glance': 'glance',
+        }
         return services
 
     def get_service_status(self, id, service_id):

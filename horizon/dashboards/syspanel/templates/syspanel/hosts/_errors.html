@@ -1,0 +1,18 @@
+<div class="span4 well message-block">
+    <div class="fluid-row">
+    <div class="span12 label label-important">
+        <img src="/media/dashboard/img/error.png"/>
+        <h5>Errors</h5>
+    </div>
+    </div>
+    
+    <div class="fluid-row">
+    <div class="span12 message-list">
+        <ol>
+            {% for error in host.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+        </ol>
+    </div>
+    </div>
+</div>

@@ -44,3 +44,16 @@ class APIView(generic.TemplateView):
         except:
             exceptions.handle(request)
         return self.render_to_response(context)
+
+class MonitorPanelView(generic.TemplateView):
+    def __init__(self, options):
+        self.template = 'horizon/common/_monitor_panel.py'
+
+
+    def get_data(self, request, context, *args, **kwargs):
+        """
+        This method should handle any necessary API calls, update the
+        context object, and return the context object at the end.
+        """
+        raise NotImplementedError("You must define a get_data method "
+                                   "on %s" % self.__class__.__name__)

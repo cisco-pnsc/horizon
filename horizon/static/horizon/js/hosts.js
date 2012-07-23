@@ -1,16 +1,10 @@
 $(document).ready(function() {
-    /*
-    $('li.host_icon').hover(
-        function() {
-            elem = this;
-            $(elem).find('dl').show();
-        },
-        function() {
-            elem = this;
-            $(elem).find('dl').hide();
-        }
-    );
-    */
+
+    $("div#graph_zoom").modal({
+        show: false,
+        keyboard: true
+    });
+
     $('span.badge').tooltip();
     $('span.label').tooltip();
     $('span.hosts_filter span.label').tooltip();
@@ -123,5 +117,12 @@ $(document).ready(function() {
                 $("span#disk_kbw").html(data.stats.kb_written);
             }
         });
+    });
+
+    $('div.metric_graph img').click(function() {
+        img = this;
+        $('img#zoom_image').attr('src', $(img).attr('src'));
+        $('div#graph_zoom div.modal-header h3').html($(img).attr('alt'));
+        $("div#graph_zoom").modal('show');
     });
 });

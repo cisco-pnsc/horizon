@@ -23,6 +23,6 @@
         {% include "syspanel/hosts/_load_bar.html" with load=host.cpu.cpu_load bar_class=host.cpu.cpu_class %}
     </div>
     <div class="span12 metric_graph">
-        <img id="cpu_graph" src="{{host.cpu_graph}}"/>
+        <img id="cpu_graph" src="{{host.cpu_graph}}" alt="CPU"/>
     </div>
 </div>

@@ -23,6 +23,6 @@
         {% include "syspanel/hosts/_load_bar.html" with load=host.mem.mem_usage bar_class=host.mem.mem_class %}
     </div>
     <div class="span12 metric_graph">
-        <img id="mem_graph" src="{{host.mem_graph}}"/>
+        <img id="mem_graph" src="{{host.mem_graph}}" alt="Memory"/>
     </div>
 </div>
