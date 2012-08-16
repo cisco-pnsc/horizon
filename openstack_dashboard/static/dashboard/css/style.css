@@ -1098,3 +1098,45 @@ div#graph_zoom {
     display: none;
     position: fixed !important;
 }
+
+div.metric_graph img:hover {
+    cursor: pointer;
+}
+
+div.date-toggle {
+    text-align:right;
+}
+
+div.date-toggle:hover {
+    cursor: pointer;
+}
+
+div.date-selector {
+    display: none;
+}
+
+div.panel {
+    position: relative;
+}
+
+div.panel_loader {
+    display: none;
+    position: absolute;
+    background-color: white !important;
+    top:0;
+    left:0;
+    opacity: 1.0;
+    width:100%;
+    height:100%;
+    z-index: 99;
+}
+
+div.panel_loader_img {
+    position: relative;
+    top: 35%;
+    left:35%;
+}
+
+img.upd_graph:hover {
+    cursor: pointer;
+}

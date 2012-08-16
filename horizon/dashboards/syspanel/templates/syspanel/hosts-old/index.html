@@ -1,0 +1,60 @@
+{% extends 'syspanel/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Hosts" %}{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Hosts") %}
+  {% include "syspanel/hosts/_hosts_filter.html" %}
+{% endblock page_header %}
+
+{% block syspanel_main %}
+    <ul class="thumbnails" id="host_list">
+    {% for host in hosts %}
+        <li class="span2 host_icon {{host.class}}">
+            <div class="thumbnail">
+                <p>
+                    <span class="badge badge-important" 
+                          title="{{host.errors|length}} Errors">
+                        {{host.errors|length}}
+                    </span>
+                    <span class="badge badge-warning" 
+                          title="{{host.warnings|length}} Warnings">
+                        {{host.warnings|length}}
+                    </span>
+                    <span class="badge badge-info" 
+                          title="{{host.notices|length}} Notices">
+                        {{host.notices|length}}
+                    </span>
+                </p>
+                <h4>{{host.name}}</h4>
+                <span class="host_overlay {{host.class}}">
+                    <a href="{% url horizon:syspanel:hosts:details host.name %}">
+                    <img src="/media/dashboard/img/server.png"/>
+                    </a>
+                </span>
+                <p>
+                    <div><strong>{{host.cores|length}}</strong> Cores@<strong>
+                        {{host.cpu_speed}} Ghz</strong></div>
+                    <div><strong>{{host.total_mem}} GB</strong> Memory</div>
+                </p>
+                <p>
+                    <dl>
+                    <dt>CPU (GHz)</dt>
+                    <dd>
+                    <div class="progress {{host.cpu_class}}">
+                        <div class="bar" style="width:{{host.cpu_load}}%"></div>
+                    </div>
+                    </dd>
+                    <dt>Memory (GBytes)</dt>
+                    <dd>
+                    <div class="progress {{host.mem_class}}">
+                        <div class="bar" style="width:{{host.mem_usage}}%"></div>
+                    </div>
+                    </dd>
+                    </dl>
+                </p>
+            </div>
+        </li>
+    {% endfor %}
+    </ul>
+{% endblock %}

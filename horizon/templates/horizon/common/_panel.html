@@ -1,0 +1,18 @@
+{% load i18n %}
+<div class="span4 well">
+    <div class="span4">
+        <h3>{{panel.label}}</h3>
+        <img src="{{panel.icon}}"/>
+    </div>
+
+    <div class="span6 info-list">
+        <dl class="dl-horizontal">
+        {% for item in panel.get_data %}
+            {% for key,value in item.items %}
+                <dt>{{key}}</dt>
+                <dd>{{value}}</dd>
+            {% endfor %}
+        {% endfor %}
+        </dl>
+    </div>
+</div>

@@ -1,42 +1,60 @@
 import logging
 from django.conf import settings
 
+from horizon.api.monitoring.metrics_plugin_base import MetricsPluginBase
+from horizon.panels import Panel, GraphPanel
+
 LOG=logging.getLogger(__name__)
 
-from horizon.api.monitoring.metrics_plugin_base import MetricsPluginBase
+def _visual_str(options):
+    visual_opts = options['visual']
+    visual_str = ''
+    for key,val in visual_opts.iteritems():
+        visual_str += '&' + str(key) + '=' + str(val)
+    return visual_str
+
 
 class FakeMetricsPlugin(MetricsPluginBase):
     def __init__(self, options=None):
         self.host = options['fakehost']
-        visual_opts = options['visual']
-        visual_str = ''
-        for key,val in visual_opts.iteritems():
-            visual_str += '&' + str(key) + '=' + str(val)
-        self.visual = visual_str
+        self.visual = _visual_str(options)
+        
+    def get_graphs(self):
+        return (cpu, memory, network, load) 
 
-    def get_cpu_graph(self, id, core=None, start=None, end=None):
+
+class cpu(GraphPanel):
+    label = 'CPU Graph'
+    date_select = True
+
+    def get_graph(self):
         cpustr = 'render?target=carbon.agents.c02-b01-a.cpuUsage'
-        return self.host + '/' + cpustr + '&' + self.visual
+        return self.kwargs['metrics_client'].host +\
+               '/' + cpustr + '&' + self.kwargs['metrics_client'].visual
 
-
-    def get_mem_graph(self, id, module=None, start=None, end=None):
+class memory(GraphPanel):
+    label = 'Memory Graph'
+    date_select = True
+    
+    def get_graph(self):
         memstr = 'render?target=carbon.agents.c02-b01-a.memUsage'
-        return self.host + '/' + memstr + '&' + self.visual
+        return self.kwargs['metrics_client'].host +\
+               '/' + memstr + '&' + self.kwargs['metrics_client'].visual
 
-    def get_network_graph(self, id, interface=None, start=None, end=None):
+class network(GraphPanel):
+    label = 'Network Graph'
+    date_select = True
+    
+    def get_graph(self):
         netstr = 'render?_salt=1339443729.664&target=c02-b01.interface.if_packets.eth0.rx&target=c02-b01.interface.if_packets.eth0.tx'
-        return self.host + '/' + netstr + '&' + self.visual
+        return self.kwargs['metrics_client'].host +\
+               '/' + netstr + '&' + self.kwargs['metrics_client'].visual
 
-    def get_partition_graph(self, id, partition=None, start=None, end=None):
-        partstr = 'render?_salt=1339441480.545&target=c02-b01.df.df.root.free&target=c02-b01.df.df.root.used&target=c02-b01.df.df.dev.free&target=c02-b01.df.df.dev.used&target=c02-b01.df.df.opt-stack-data-swift-drives-sdb1.free&target=c02-b01.df.df.opt-stack-data-swift-drives-sdb1.used'
-        return self.host + '/' + partstr + '&' + self.visual
+class load(GraphPanel):
+    label = 'Load'
+    date_select = True
 
-    def get_load_graph(self, id, start=None, end=None):
+    def get_graph(self):
         loadstr = 'render?_salt=1339442259.041&target=c02-b01.load.load.shortterm&target=c02-b01.load.load.midterm&target=c02-b01.load.load.longterm'
-        return self.host + '/' + loadstr + '&' + self.visual
-
-    def get_additional_graphs(self, id):
-        pass
-
-    def get_graph(self, id, graph_id, start=None, end=None):
-        pass
+        return self.kwargs['metrics_client'].host +\
+               '/' + loadstr + '&' + self.kwargs['metrics_client'].visual

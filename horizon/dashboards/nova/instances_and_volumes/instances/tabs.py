@@ -20,6 +20,8 @@ from horizon import api
 from horizon import exceptions
 from horizon import tabs
 
+from horizon.api.monitoring import monitorclient
+from horizon.api.monitoring import metricsclient
 
 class OverviewTab(tabs.Tab):
     name = _("Overview")
@@ -70,7 +72,40 @@ class VNCTab(tabs.Tab):
                                 'instance "%s".') % instance.id)
         return {'vnc_url': vnc_url, 'instance_id': instance.id}
 
+class MonitorTab(tabs.Tab):
+    name = _("Performance")
+    slug = "monitor"
+    template_name = "nova/instances_and_volumes/instances/_monitor.html"
+    preload = False
+
+    def __init__(self, tab_group, request=None):
+        super(MonitorTab, self).__init__(tab_group, request)
+        self.monitorclient = monitorclient()
+        self.metricsclient = metricsclient()
+
+    def get_context_data(self, request):
+        instance = self.tab_group.kwargs['instance']
+        panels = []
+        panel_list = self.monitorclient.get_panels()
+        for panel in panel_list:
+            obj = panel(
+                self.request,
+                monitor_client=self.monitorclient,
+                metrics_client=self.metricsclient)
+            panels.append(obj)
+
+
+        graphs = []
+        graph_list = self.metricsclient.get_graphs()
+        for graph in graph_list:
+            obj = graph(
+                self.request,
+                monitor_client=self.monitorclient,
+                metrics_client=self.metricsclient)
+            graphs.append(obj)
+
+        return {'panels': panels, 'graphs': graphs} 
 
 class InstanceDetailTabs(tabs.TabGroup):
     slug = "instance_details"
-    tabs = (OverviewTab, LogTab, VNCTab)
+    tabs = (OverviewTab, LogTab, VNCTab, MonitorTab)

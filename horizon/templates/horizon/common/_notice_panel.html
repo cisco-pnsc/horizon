@@ -1,0 +1,17 @@
+{% load i18n %}
+<div class="span4 well label label-{{panel.panel_class}}">
+    <div class="span2">
+        <img src="{{panel.icon}}"/>
+    </div>
+    <div class="span4">
+        <h3>{{panel.label}}</h3>
+    </div>
+
+    <div class="span10 message-list">
+        <ol class="dl-horizontal">
+        {% for item in panel.get_data %}
+            <li>{{item}}</li>
+        {% endfor %}
+        </ol>
+    </div>
+</div>

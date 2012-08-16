@@ -28,14 +28,15 @@ from django.conf import settings
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 import horizon
-
+from horizon.panels import urls as panel_urls
 
 urlpatterns = patterns('',
     url(r'^$', 'openstack_dashboard.views.splash', name='splash'),
     url(r'^qunit/$',
         'openstack_dashboard.views.qunit_tests',
         name='qunit_tests'),
-    url(r'', include(horizon.urls)))
+    url(r'', include(horizon.urls)),
+    url(r'^panels/$', include(panel_urls)))
 
 # Development static app and project media serving using the staticfiles app.
 urlpatterns += staticfiles_urlpatterns()

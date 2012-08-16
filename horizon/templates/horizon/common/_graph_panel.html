@@ -1,0 +1,22 @@
+{% load i18n %}
+<div class="span4 well panel">
+    <div class="panel_loader">
+        <div class="panel_loader_img">
+        <img src="/media/dashboard/img/updating.gif"/>
+        </div>
+    </div>
+    <div class="row-fluid">
+        <div class="span8"><h3>{{panel.label}}</h3></div>
+        {% if panel.date_select %}
+            <div class="span4 date-toggle" title="Select date">
+               <i class="icon-th"></i>
+            </div>
+        {% endif %}
+    </div>
+    {% if panel.date_select %}
+        {% include "horizon/common/_date_select.html" with host_id=panel.host_id %}
+    {% endif %}
+    <div class="span12 metric_graph">
+        <img src="{{panel.get_graph}}" alt="{{panel.label}}"/>
+    </div>
+</div>
