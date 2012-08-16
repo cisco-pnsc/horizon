@@ -1,10 +1,22 @@
 # Horizon Core Requirements
 Django>=1.4
-python-cloudfiles
-python-dateutil
+django_compressor
+django_openstack_auth
+python-cinderclient
+python-glanceclient<2
+python-keystoneclient
+python-novaclient
+python-quantumclient>=2.0
+python-swiftclient>1.1,<1.2
+pytz
 
+<<<<<<< HEAD
 # Horizon Non-pip Requirements
 -e git+https://github.com/openstack/python-novaclient.git#egg=python-novaclient
 -e git+https://github.com/openstack/python-keystoneclient.git#egg=python-keystoneclient
 -e git+https://github.com/openstack/python-glanceclient.git#egg=python-glanceclient
 -e git+https://github.com/openstack/python-quantumclient.git#egg=python-quantumclient
+=======
+# Horizon Utility Requirements
+lockfile # for SECURE_KEY generation
+>>>>>>> master

@@ -20,7 +20,6 @@
 
 from django import http
 from django.core.urlresolvers import reverse
-from keystoneclient import exceptions as keystone_exceptions
 from mox import IgnoreArg, IsA
 
 from horizon import api
@@ -47,7 +46,8 @@ class UsersViewTests(test.BaseAdminViewTests):
     @test.create_stubs({api: ('user_create',
                               'tenant_list',
                               'add_tenant_user_role'),
-                        api.keystone: ('get_default_role',)})
+                        api.keystone: ('get_default_role',
+                                       'role_list')})
     def test_create(self):
         user = self.users.get(id="1")
         role = self.roles.first()
@@ -59,6 +59,7 @@ class UsersViewTests(test.BaseAdminViewTests):
                         user.password,
                         self.tenant.id,
                         True).AndReturn(user)
+        api.keystone.role_list(IgnoreArg()).AndReturn(self.roles.list())
         api.keystone.get_default_role(IgnoreArg()).AndReturn(role)
         api.add_tenant_user_role(IgnoreArg(), self.tenant.id, user.id, role.id)
 
@@ -69,17 +70,22 @@ class UsersViewTests(test.BaseAdminViewTests):
                     'email': user.email,
                     'password': user.password,
                     'tenant_id': self.tenant.id,
+                    'role_id': self.roles.first().id,
                     'confirm_password': user.password}
         res = self.client.post(USER_CREATE_URL, formData)
 
         self.assertNoFormErrors(res)
         self.assertMessageCount(success=1)
 
-    @test.create_stubs({api: ('tenant_list',)})
+    @test.create_stubs({api: ('tenant_list',),
+                        api.keystone: ('role_list', 'get_default_role')})
     def test_create_with_password_mismatch(self):
         user = self.users.get(id="1")
 
         api.tenant_list(IgnoreArg(), admin=True).AndReturn(self.tenants.list())
+        api.keystone.role_list(IgnoreArg()).AndReturn(self.roles.list())
+        api.keystone.get_default_role(IgnoreArg()) \
+                    .AndReturn(self.roles.first())
 
         self.mox.ReplayAll()
 
@@ -88,17 +94,22 @@ class UsersViewTests(test.BaseAdminViewTests):
                     'email': user.email,
                     'password': user.password,
                     'tenant_id': self.tenant.id,
+                    'role_id': self.roles.first().id,
                     'confirm_password': "doesntmatch"}
 
         res = self.client.post(USER_CREATE_URL, formData)
 
         self.assertFormError(res, "form", None, ['Passwords do not match.'])
 
-    @test.create_stubs({api: ('tenant_list',)})
+    @test.create_stubs({api: ('tenant_list',),
+                        api.keystone: ('role_list', 'get_default_role')})
     def test_create_validation_for_password_too_short(self):
         user = self.users.get(id="1")
 
         api.tenant_list(IgnoreArg(), admin=True).AndReturn(self.tenants.list())
+        api.keystone.role_list(IgnoreArg()).AndReturn(self.roles.list())
+        api.keystone.get_default_role(IgnoreArg()) \
+                    .AndReturn(self.roles.first())
 
         self.mox.ReplayAll()
 
@@ -108,6 +119,7 @@ class UsersViewTests(test.BaseAdminViewTests):
                     'email': user.email,
                     'password': 'four',
                     'tenant_id': self.tenant.id,
+                    'role_id': self.roles.first().id,
                     'confirm_password': 'four'}
 
         res = self.client.post(USER_CREATE_URL, formData)
@@ -116,11 +128,15 @@ class UsersViewTests(test.BaseAdminViewTests):
             res, "form", 'password',
             ['Password must be between 8 and 18 characters.'])
 
-    @test.create_stubs({api: ('tenant_list',)})
+    @test.create_stubs({api: ('tenant_list',),
+                        api.keystone: ('role_list', 'get_default_role')})
     def test_create_validation_for_password_too_long(self):
         user = self.users.get(id="1")
 
         api.tenant_list(IgnoreArg(), admin=True).AndReturn(self.tenants.list())
+        api.keystone.role_list(IgnoreArg()).AndReturn(self.roles.list())
+        api.keystone.get_default_role(IgnoreArg()) \
+                    .AndReturn(self.roles.first())
 
         self.mox.ReplayAll()
 
@@ -130,6 +146,7 @@ class UsersViewTests(test.BaseAdminViewTests):
                     'email': user.email,
                     'password': 'MoreThanEighteenChars',
                     'tenant_id': self.tenant.id,
+                    'role_id': self.roles.first().id,
                     'confirm_password': 'MoreThanEighteenChars'}
 
         res = self.client.post(USER_CREATE_URL, formData)
@@ -142,7 +159,8 @@ class UsersViewTests(test.BaseAdminViewTests):
                               'tenant_list',
                               'user_update_tenant',
                               'user_update_password'),
-                        api.keystone: ('user_update',)})
+                        api.keystone: ('user_update',
+                                       'roles_for_user', )})
     def test_update(self):
         user = self.users.get(id="1")
 
@@ -157,6 +175,9 @@ class UsersViewTests(test.BaseAdminViewTests):
         api.user_update_tenant(IsA(http.HttpRequest),
                                user.id,
                                self.tenant.id).AndReturn(None)
+        api.keystone.roles_for_user(IsA(http.HttpRequest),
+                                    user.id,
+                                    self.tenant.id).AndReturn(None)
         api.user_update_password(IsA(http.HttpRequest),
                                  user.id,
                                  IgnoreArg()).AndReturn(None)
@@ -174,11 +195,13 @@ class UsersViewTests(test.BaseAdminViewTests):
         res = self.client.post(USER_UPDATE_URL, formData)
 
         self.assertNoFormErrors(res)
+        self.assertMessageCount(warning=1)
 
     @test.create_stubs({api: ('user_get',
                               'tenant_list',
                               'user_update_tenant',
-                              'keystone_can_edit_user')})
+                              'keystone_can_edit_user'),
+                        api.keystone: ('roles_for_user', )})
     def test_update_with_keystone_can_edit_user_false(self):
         user = self.users.get(id="1")
 
@@ -191,16 +214,21 @@ class UsersViewTests(test.BaseAdminViewTests):
         api.user_update_tenant(IsA(http.HttpRequest),
                                user.id,
                                self.tenant.id).AndReturn(None)
+        api.keystone.roles_for_user(IsA(http.HttpRequest),
+                                    user.id,
+                                    self.tenant.id).AndReturn(None)
 
         self.mox.ReplayAll()
 
         formData = {'method': 'UpdateUserForm',
-                    'tenant_id': self.tenant.id,
-                    'id': user.id}
+                    'id': user.id,
+                    'name': user.name,
+                    'tenant_id': self.tenant.id, }
 
         res = self.client.post(USER_UPDATE_URL, formData)
 
         self.assertNoFormErrors(res)
+        self.assertMessageCount(warning=1)
 
     @test.create_stubs({api: ('user_get', 'tenant_list')})
     def test_update_validation_for_password_too_short(self):
@@ -255,7 +283,7 @@ class UsersViewTests(test.BaseAdminViewTests):
     @test.create_stubs({api.keystone: ('user_update_enabled', 'user_list')})
     def test_enable_user(self):
         user = self.users.get(id="2")
-
+        user.enabled = False
         api.keystone.user_list(IgnoreArg()).AndReturn(self.users.list())
         api.keystone.user_update_enabled(IgnoreArg(),
                                          user.id,
@@ -271,6 +299,7 @@ class UsersViewTests(test.BaseAdminViewTests):
     @test.create_stubs({api.keystone: ('user_update_enabled', 'user_list')})
     def test_disable_user(self):
         user = self.users.get(id="2")
+        self.assertTrue(user.enabled)
 
         api.keystone.user_list(IgnoreArg()).AndReturn(self.users.list())
         api.keystone.user_update_enabled(IgnoreArg(),
@@ -279,7 +308,7 @@ class UsersViewTests(test.BaseAdminViewTests):
 
         self.mox.ReplayAll()
 
-        formData = {'action': 'users__disable__%s' % user.id}
+        formData = {'action': 'users__enable__%s' % user.id}
         res = self.client.post(USERS_INDEX_URL, formData)
 
         self.assertRedirectsNoFollow(res, USERS_INDEX_URL)
@@ -287,14 +316,10 @@ class UsersViewTests(test.BaseAdminViewTests):
     @test.create_stubs({api.keystone: ('user_update_enabled', 'user_list')})
     def test_enable_disable_user_exception(self):
         user = self.users.get(id="2")
-
+        user.enabled = False
         api.keystone.user_list(IgnoreArg()).AndReturn(self.users.list())
-        api_exception = keystone_exceptions.ClientException('apiException',
-                                                    message='apiException')
-        api.keystone.user_update_enabled(IgnoreArg(),
-                                         user.id,
-                                         True).AndRaise(api_exception)
-
+        api.keystone.user_update_enabled(IgnoreArg(), user.id, True) \
+                    .AndRaise(self.exceptions.keystone)
         self.mox.ReplayAll()
 
         formData = {'action': 'users__enable__%s' % user.id}
@@ -309,7 +334,7 @@ class UsersViewTests(test.BaseAdminViewTests):
 
         self.mox.ReplayAll()
 
-        formData = {'action': 'users__disable__%s' % self.request.user.id}
+        formData = {'action': 'users__enable__%s' % self.request.user.id}
         res = self.client.post(USERS_INDEX_URL, formData, follow=True)
 
         self.assertEqual(list(res.context['messages'])[0].message,

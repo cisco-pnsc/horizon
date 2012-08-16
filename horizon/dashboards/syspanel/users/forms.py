@@ -20,14 +20,14 @@
 
 import logging
 
-from django import shortcuts
-from django.contrib import messages
-from django.utils.translation import force_unicode, ugettext_lazy as _
 from django.forms import ValidationError
+from django.utils.translation import force_unicode, ugettext_lazy as _
+from django.views.decorators.debug import sensitive_variables
 
 from horizon import api
 from horizon import exceptions
 from horizon import forms
+from horizon import messages
 from horizon.utils import validators
 
 
@@ -36,7 +36,7 @@ LOG = logging.getLogger(__name__)
 
 class BaseUserForm(forms.SelfHandlingForm):
     def __init__(self, request, *args, **kwargs):
-        super(BaseUserForm, self).__init__(*args, **kwargs)
+        super(BaseUserForm, self).__init__(request, *args, **kwargs)
         # Populate tenant choices
         tenant_choices = [('', _("Select a project"))]
 
@@ -45,10 +45,6 @@ class BaseUserForm(forms.SelfHandlingForm):
                 tenant_choices.append((tenant.id, tenant.name))
         self.fields['tenant_id'].choices = tenant_choices
 
-    @classmethod
-    def _instantiate(cls, request, *args, **kwargs):
-        return cls(request, *args, **kwargs)
-
     def clean(self):
         '''Check to make sure password fields match.'''
         data = super(forms.Form, self).clean()
@@ -56,6 +52,9 @@ class BaseUserForm(forms.SelfHandlingForm):
             if data['password'] != data.get('confirm_password', None):
                 raise ValidationError(_('Passwords do not match.'))
         return data
+
+
+ADD_PROJECT_URL = "horizon:syspanel:projects:create"
 
 
 class CreateUserForm(BaseUserForm):
@@ -70,8 +69,19 @@ class CreateUserForm(BaseUserForm):
             label=_("Confirm Password"),
             required=False,
             widget=forms.PasswordInput(render_value=False))
-    tenant_id = forms.ChoiceField(label=_("Primary Project"))
+    tenant_id = forms.DynamicChoiceField(label=_("Primary Project"),
+                                         add_item_link=ADD_PROJECT_URL)
+    role_id = forms.ChoiceField(label=_("Role"))
 
+    def __init__(self, *args, **kwargs):
+        roles = kwargs.pop('roles')
+        super(CreateUserForm, self).__init__(*args, **kwargs)
+        role_choices = [(role.id, role.name) for role in roles]
+        self.fields['role_id'].choices = role_choices
+
+    # We have to protect the entire "data" dict because it contains the
+    # password and confirm_password strings.
+    @sensitive_variables('data')
     def handle(self, request, data):
         try:
             LOG.info('Creating user with name "%s"' % data['name'])
@@ -84,20 +94,19 @@ class CreateUserForm(BaseUserForm):
             messages.success(request,
                              _('User "%s" was successfully created.')
                              % data['name'])
-            try:
-                default_role = api.keystone.get_default_role(request)
-                if default_role:
+            if data['role_id']:
+                try:
                     api.add_tenant_user_role(request,
                                              data['tenant_id'],
                                              new_user.id,
-                                             default_role.id)
-            except:
-                exceptions.handle(request,
-                                  _('Unable to add user to primary project.'))
-            return shortcuts.redirect('horizon:syspanel:users:index')
+                                             data['role_id'])
+                except:
+                    exceptions.handle(request,
+                                      _('Unable to add user'
+                                        'to primary project.'))
+            return new_user
         except:
             exceptions.handle(request, _('Unable to create user.'))
-            return shortcuts.redirect('horizon:syspanel:users:index')
 
 
 class UpdateUserForm(BaseUserForm):
@@ -119,16 +128,18 @@ class UpdateUserForm(BaseUserForm):
     def __init__(self, request, *args, **kwargs):
         super(UpdateUserForm, self).__init__(request, *args, **kwargs)
 
-        if api.keystone_can_edit_user() == False:
+        if api.keystone_can_edit_user() is False:
             for field in ('name', 'email', 'password', 'confirm_password'):
                 self.fields.pop(field)
 
+    # We have to protect the entire "data" dict because it contains the
+    # password and confirm_password strings.
+    @sensitive_variables('data', 'password')
     def handle(self, request, data):
         failed, succeeded = [], []
         user_is_editable = api.keystone_can_edit_user()
         user = data.pop('id')
         tenant = data.pop('tenant_id')
-        data.pop('method')
 
         if user_is_editable:
             password = data.pop('password')
@@ -153,6 +164,15 @@ class UpdateUserForm(BaseUserForm):
             failed.append(msg_bits)
             exceptions.handle(request, ignore=True)
 
+        # Check for existing roles
+        # Show a warning if no role exists for the tenant
+        user_roles = api.keystone.roles_for_user(request, user, tenant)
+        if not user_roles:
+            messages.warning(request,
+                             _('The user %s has no role defined for' +
+                             ' that project.')
+                             % data.get('name', None))
+
         if user_is_editable:
             # If present, update password
             # FIXME(gabriel): password change should be its own form and view
@@ -172,4 +192,4 @@ class UpdateUserForm(BaseUserForm):
             messages.error(request,
                            _('Unable to update %(attributes)s for the user.')
                              % {"attributes": ", ".join(failed)})
-        return shortcuts.redirect('horizon:syspanel:users:index')
+        return True

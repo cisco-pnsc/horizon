@@ -1,6 +1,10 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
+<<<<<<< HEAD
 # Copyright 2012 Cisco Systems Inc.
+=======
+# Copyright 2012 NEC Corporation
+>>>>>>> master
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -15,6 +19,7 @@
 #    under the License.
 
 import logging
+<<<<<<< HEAD
 import copy
 
 from cloudfiles.errors import ContainerNotEmpty
@@ -32,10 +37,19 @@ from horizon.tables.actions import FilterAction, LinkAction
 
 import re
 
+=======
+
+from django import template
+from django.utils.translation import ugettext_lazy as _
+
+from horizon import tables
+
+>>>>>>> master
 
 LOG = logging.getLogger(__name__)
 
 
+<<<<<<< HEAD
 class CreatePorts(tables.LinkAction):
     name = "create_ports"
     verbose_name = _("Create Ports")
@@ -163,3 +177,31 @@ class PortsTable(tables.DataTable):
         verbose_name = _("Ports")
         row_actions = (AttachPort, DetachPort,)
         table_actions = (CreatePorts, DeletePorts, TurnPortUp, TurnPortDown)
+=======
+def get_fixed_ips(port):
+    template_name = 'nova/networks/ports/_port_ips.html'
+    context = {"ips": port.fixed_ips}
+    return template.loader.render_to_string(template_name, context)
+
+
+def get_attached(port):
+    return _('Attached') if port['device_id'] else _('Detached')
+
+
+class PortsTable(tables.DataTable):
+    name = tables.Column("name",
+                         verbose_name=_("Name"),
+                         link="horizon:nova:networks:ports:detail")
+    fixed_ips = tables.Column(get_fixed_ips, verbose_name=_("Fixed IPs"))
+    attached = tables.Column(get_attached, verbose_name=_("Device Attached"))
+    status = tables.Column("status", verbose_name=_("Status"))
+    admin_state = tables.Column("admin_state",
+                                verbose_name=_("Admin State"))
+
+    def get_object_display(self, port):
+        return port.id
+
+    class Meta:
+        name = "ports"
+        verbose_name = _("Ports")
+>>>>>>> master

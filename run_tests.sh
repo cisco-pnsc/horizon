@@ -6,7 +6,7 @@ set -o errexit
 # Increment me any time the environment should be rebuilt.
 # This includes dependncy changes, directory renames, etc.
 # Simple integer secuence: 1, 2, 3...
-environment_version=17
+environment_version=27
 #--------------------------------------------------------#
 
 function usage {
@@ -28,6 +28,7 @@ function usage {
   echo "  -y, --pylint             Just run pylint"
   echo "  -q, --quiet              Run non-interactively. (Relatively) quiet."
   echo "                           Implies -V if -N is not set."
+  echo "  --only-selenium          Run only the Selenium unit tests"
   echo "  --with-selenium          Run unit tests including Selenium tests"
   echo "  --runserver              Run the Django development server for"
   echo "                           openstack_dashboard in the virtual"
@@ -65,7 +66,8 @@ never_venv=0
 quiet=0
 restore_env=0
 runserver=0
-selenium=0
+only_selenium=0
+with_selenium=0
 testargs=""
 with_coverage=0
 makemessages=0
@@ -87,7 +89,8 @@ function process_option {
     -c|--coverage) with_coverage=1;;
     -m|--manage) manage=1;;
     --makemessages) makemessages=1;;
-    --with-selenium) selenium=1;;
+    --only-selenium) only_selenium=1;;
+    --with-selenium) with_selenium=1;;
     --docs) just_docs=1;;
     --runserver) runserver=1;;
     --backup-environment) backup_env=1;;
@@ -123,25 +126,13 @@ function run_pylint {
 
 function run_pep8 {
   echo "Running pep8 ..."
-  rm -f pep8.txt
-  PEP8_EXCLUDE=vcsversion.py,panel_template,dash_template
-  PEP8_IGNORE=W602
-  PEP8_OPTIONS="--exclude=$PEP8_EXCLUDE --ignore=$PEP8_IGNORE --repeat"
-  ${command_wrapper} pep8 $PEP8_OPTIONS $included_dirs | perl -ple 's/: ([WE]\d+)/: [$1]/' > pep8.txt || true
-  PEP8_COUNT=`wc -l pep8.txt | awk '{ print $1 }'`
-  if [ $PEP8_COUNT -ge 1 ]; then
-    echo "PEP8 violations found ($PEP8_COUNT):"
-    cat pep8.txt
-    echo "Please fix all PEP8 violations before committing."
-  else
-    echo "No violations found. Good job!"
-  fi
+  ${command_wrapper} pep8 $included_dirs || true
 }
 
 function run_sphinx {
     echo "Building sphinx..."
     export DJANGO_SETTINGS_MODULE=openstack_dashboard.settings
-    ${command_wrapper} sphinx-build -b html docs/source docs/build/html
+    ${command_wrapper} sphinx-build -b html doc/source doc/build/html
     echo "Build complete."
 }
 
@@ -271,16 +262,22 @@ function install_venv {
 function run_tests {
   sanity_check
 
+  if [ $with_selenium -eq 1 ]; then
+    export WITH_SELENIUM=1
+  elif [ $only_selenium -eq 1 ]; then
+    export WITH_SELENIUM=1
+    export SKIP_UNITTESTS=1
+  fi
+
   echo "Running Horizon application tests"
+  export NOSE_XUNIT_FILE=horizon/nosetests.xml
   ${command_wrapper} coverage erase
   ${command_wrapper} coverage run -p $root/manage.py test horizon --settings=horizon.tests.testsettings $testargs
   # get results of the Horizon tests
   HORIZON_RESULT=$?
 
   echo "Running openstack_dashboard tests"
-  if [ $selenium -eq 1 ]; then
-    export WITH_SELENIUM=1
-  fi
+  export NOSE_XUNIT_FILE=openstack_dashboard/nosetests.xml
   ${command_wrapper} coverage run -p $root/manage.py test openstack_dashboard --settings=openstack_dashboard.test.settings $testargs
   # get results of the openstack_dashboard tests
   DASHBOARD_RESULT=$?
@@ -304,13 +301,15 @@ function run_tests {
 
 function run_makemessages {
   cd horizon
-  ${command_wrapper} $root/manage.py makemessages --all
-  HORIZON_RESULT=$?
+  ${command_wrapper} $root/manage.py makemessages --all --no-obsolete
+  HORIZON_PY_RESULT=$?
+  ${command_wrapper} $root/manage.py makemessages -d djangojs --all --no-obsolete
+  HORIZON_JS_RESULT=$?
   cd ../openstack_dashboard
-  ${command_wrapper} $root/manage.py makemessages --all
+  ${command_wrapper} $root/manage.py makemessages --all --no-obsolete
   DASHBOARD_RESULT=$?
   cd ..
-  exit $(($HORIZON_RESULT || $DASHBOARD_RESULT))
+  exit $(($HORIZON_PY_RESULT || $HORIZON_JS_RESULT || $DASHBOARD_RESULT))
 }
 
 

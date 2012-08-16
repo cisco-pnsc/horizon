@@ -1,8 +1,14 @@
+<<<<<<< HEAD
 # Copyright 2012 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 # All Rights Reserved.
 #
 # Copyright Cisco Systems Inc.
+=======
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2012 NEC Corporation
+>>>>>>> master
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -16,6 +22,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+<<<<<<< HEAD
 """
 Views for managing Nova keypairs.
 """
@@ -71,3 +78,17 @@ class AttachPortView(forms.ModalFormView):
 class DetachPortView(forms.ModalFormView):
     form_class = DetachPort
     template_name = 'nova/networks/ports/detach.html'
+=======
+import logging
+
+from horizon import tabs
+from .tabs import PortDetailTabs
+
+
+LOG = logging.getLogger(__name__)
+
+
+class DetailView(tabs.TabView):
+    tab_group_class = PortDetailTabs
+    template_name = 'nova/networks/ports/detail.html'
+>>>>>>> master

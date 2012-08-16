@@ -20,6 +20,7 @@
 
 import logging
 
+from django.core.urlresolvers import reverse_lazy
 from django.utils.translation import ugettext_lazy as _
 
 from horizon import api
@@ -37,11 +38,18 @@ class IndexView(tables.DataTableView):
     table_class = AdminImagesTable
     template_name = 'syspanel/images/index.html'
 
+    def has_more_data(self, table):
+        return self._more
+
     def get_data(self):
         images = []
+        marker = self.request.GET.get(AdminImagesTable._meta.pagination_param,
+                                      None)
         try:
-            images = api.image_list_detailed(self.request)
+            images, self._more = api.image_list_detailed(self.request,
+                                                         marker=marker)
         except:
+            self._more = False
             msg = _('Unable to retrieve image list.')
             exceptions.handle(self.request, msg)
         return images
@@ -50,3 +58,9 @@ class IndexView(tables.DataTableView):
 class UpdateView(views.UpdateView):
     template_name = 'syspanel/images/update.html'
     form_class = AdminUpdateImageForm
+    success_url = reverse_lazy('horizon:syspanel:images:index')
+
+
+class DetailView(views.DetailView):
+    """ Admin placeholder for image detail view. """
+    pass
