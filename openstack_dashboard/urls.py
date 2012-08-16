@@ -31,18 +31,10 @@ import horizon
 from horizon.panels import urls as panel_urls
 
 urlpatterns = patterns('',
-<<<<<<< HEAD
-    url(r'^$', 'openstack_dashboard.views.splash', name='splash'),
-    url(r'^qunit/$',
-        'openstack_dashboard.views.qunit_tests',
-        name='qunit_tests'),
-    url(r'', include(horizon.urls)),
     url(r'^panels/$', include(panel_urls)))
-=======
     url(r'^$', 'horizon.views.splash', name='splash'),
     url(r'^auth/', include('openstack_auth.urls')),
     url(r'', include(horizon.urls)))
->>>>>>> master
 
 # Development static app and project media serving using the staticfiles app.
 urlpatterns += staticfiles_urlpatterns()
