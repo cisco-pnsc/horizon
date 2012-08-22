@@ -4,12 +4,8 @@
 # Administrator of the National Aeronautics and Space Administration.
 # All Rights Reserved.
 #
-<<<<<<< HEAD
-# Copyright 2012 Cisco Systems Inc.
-=======
 # Copyright 2012 Cisco Systems, Inc.
 # Copyright 2012 NEC Corporation
->>>>>>> master
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -25,7 +21,6 @@
 
 from __future__ import absolute_import
 
-<<<<<<< HEAD
 import functools
 import logging
 import urlparse
@@ -37,20 +32,10 @@ from quantumclient.common import exceptions as quantum_exception
 
 from horizon.api.base import APIDictWrapper, url_for
 from horizon.api import nova
-=======
-import logging
 
-from quantumclient.v2_0 import client as quantum_client
-from django.utils.datastructures import SortedDict
-
-from horizon.api.base import APIDictWrapper, url_for
-
->>>>>>> master
 
 LOG = logging.getLogger(__name__)
 
-
-<<<<<<< HEAD
 class Network(APIDictWrapper):
     _attrs = ['id', 'name', 'port_count']
 
@@ -199,7 +184,7 @@ def get_interface_server(request, interface):
             if vif.id == interface:
                 return instance
     return None
-=======
+
 class QuantumAPIDictWrapper(APIDictWrapper):
 
     def set_id_as_name_if_empty(self, length=8):
@@ -405,4 +390,3 @@ def port_modify(request, port_id, **kwargs):
     body = {'port': kwargs}
     port = quantumclient(request).update_port(port_id, body=body).get('port')
     return Port(port)
->>>>>>> master

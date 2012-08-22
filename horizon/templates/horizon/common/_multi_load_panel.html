@@ -6,7 +6,7 @@
         <img src="{{panel.icon}}"/>
     </div>
 
-    <div class="span6 info-list">
+    <div class="span8 info-list">
         <dl class="dl-horizontal">
         {% for item in panel.get_data %}
             {% for key,value in item.items %}
@@ -16,5 +16,15 @@
         {% endfor %}
         </dl>
     </div>
-  </div>
+
+    {% for load in panel.get_loads %}
+    <div class="span12">
+        <strong>{{load.load_label}} ({{load.load_value}}{{load.load_suffix}})
+        </strong>
+        <div class="progress progress-{{load.load_class}}">
+            <div class="bar" style="width: {{load.load_value}}%"></div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
 </div>

@@ -1,14 +1,11 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-<<<<<<< HEAD
 # Copyright 2012 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 # All Rights Reserved.
 #
 # Copyright 2012 Cisco Systems, Inc.
-=======
 # Copyright 2012 NEC Corporation
->>>>>>> master
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -22,21 +19,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-<<<<<<< HEAD
-from django.conf.urls.defaults import *
-
-from .ports import urls as port_urls
-from .views import IndexView, CreateNetworkView
-
-NETWORKS = r'^(?P<network_id>[^/]+)/%s$'
-
-# Quantum Networks and Ports
-urlpatterns = patterns('horizon.dashboards.nova.networks.views',
-    url(r'^$', IndexView.as_view(), name='index'),
-    url(r'^create/$', CreateNetworkView.as_view(), name='create'),
-    url(r'', include(port_urls, namespace='ports'))
-)
-=======
 from django.conf.urls.defaults import patterns, url, include
 
 from .views import IndexView, CreateView, DetailView, UpdateView
@@ -58,4 +40,3 @@ urlpatterns = patterns('',
         EditSubnetView.as_view(), name='editsubnet'),
     url(r'^subnets/', include(subnet_urls, namespace='subnets')),
     url(r'^ports/', include(port_urls, namespace='ports')))
->>>>>>> master

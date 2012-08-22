@@ -26,7 +26,7 @@ from horizon import api
 from horizon import tables
 from horizon.templatetags import sizeformat
 from horizon.utils.filters import replace_underscores
-
+from horizon.api.monitoring import monitorclient
 from horizon.dashboards.nova.access_and_security \
         .floating_ips.workflows import IPAssociationWorkflow
 from .tabs import InstanceDetailTabs, LogTab, VNCTab
@@ -270,6 +270,9 @@ def get_power_state(instance):
     return POWER_STATES.get(getattr(instance, "OS-EXT-STS:power_state", 0), '')
 
 
+def get_oper_state(instance):
+    return monitorclient().get_host_state(instance.id)
+    
 class InstancesTable(tables.DataTable):
     TASK_STATUS_CHOICES = (
         (None, True),
@@ -306,7 +309,8 @@ class InstancesTable(tables.DataTable):
     state = tables.Column(get_power_state,
                           filters=(title, replace_underscores),
                           verbose_name=_("Power State"))
-
+    operstate = tables.Column(get_oper_state,
+                              verbose_name=_("Operational State"))
     class Meta:
         name = "instances"
         verbose_name = _("Instances")

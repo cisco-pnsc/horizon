@@ -1,4 +1,4 @@
-{% extends 'syspanel/base.html' %}
+{% extends 'base.html' %}
 {% load i18n %}
 {% block title %}{% trans "Hosts" %}{% endblock %}
 
@@ -6,7 +6,7 @@
   {% include "horizon/common/_page_header.html" with title=_("Hosts") %}
 {% endblock page_header %}
 
-{% block syspanel_main %}
+{% block main %}
     <ul class="thumbnails" id="host_list">
     {% for host in hosts %}
         <li class="host_icon">

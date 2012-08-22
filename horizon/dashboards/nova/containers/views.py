@@ -31,13 +31,8 @@ from horizon import api
 from horizon import browsers
 from horizon import exceptions
 from horizon import forms
-<<<<<<< HEAD
-from horizon import tables
-
-=======
 from horizon.api import FOLDER_DELIMITER
 from .browsers import ContainerBrowser
->>>>>>> master
 from .forms import CreateContainer, UploadObject, CopyObject
 from .tables import wrap_delimiter
 

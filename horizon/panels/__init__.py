@@ -14,6 +14,8 @@ class Panel(object):
         self.request = request
         self.args = args
         self.kwargs = kwargs
+        self.monitor_client = kwargs['monitor_client']
+        self.metrics_client = kwargs['metrics_client']
         self.template = 'horizon/common/_panel.html'
         self.host_id = False
         self.url = reverse('index')
@@ -37,6 +39,14 @@ class LoadPanel(Panel):
     def get_load(self):
         pass
 
+
+class MultiLoadPanel(Panel):
+    def __init__(self, request, *args, **kwargs):
+        super(MultiLoadPanel, self).__init__(request, *args, **kwargs)
+        self.template = 'horizon/common/_multi_load_panel.html'
+
+    def get_loads(self):
+        pass
 
 class ServicePanel(Panel):
     def __init__(self, request, *args, **kwargs):

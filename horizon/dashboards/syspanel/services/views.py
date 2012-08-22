@@ -19,11 +19,13 @@
 #    under the License.
 
 import logging
+import random
 
 from horizon import api
 from horizon import tables
 from .tables import ServicesTable
-
+from horizon.api.monitoring import monitorclient
+from horizon.api.monitoring.service import Service
 
 LOG = logging.getLogger(__name__)
 
@@ -33,8 +35,17 @@ class IndexView(tables.DataTableView):
     template_name = 'syspanel/services/index.html'
 
     def get_data(self):
+        """
         services = []
         for i, service in enumerate(self.request.user.service_catalog):
             service['id'] = i
             services.append(api.keystone.Service(service))
+        return services
+        """
+        services = []
+        service_dict = monitorclient().get_services()
+        for service in service_dict:
+            if not 'id' in service:
+                service['id'] = random.randrange(10,1000000)
+            services.append(Service(service))
         return services

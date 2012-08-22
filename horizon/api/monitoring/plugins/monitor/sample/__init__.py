@@ -18,7 +18,10 @@ class FakeMonitorPlugin(MonitorPluginBase):
             {'name': '64.102.251.79', 'state': 'WARNING', 'class':'host_warn'}
         )
         return hosts
-    
+   
+    def get_host_state(self, host_id):
+        return 'OK'
+
     def get_panels(self):
         return (errors, warnings, notices, cpu, memory,
                 network, users, processes, services)
@@ -26,7 +29,7 @@ class FakeMonitorPlugin(MonitorPluginBase):
 class errors(NoticePanel):
     label = 'Errors'
     icon = '/media/dashboard/img/error.png'
-    panel_class = 'important'
+    panel_class = 'label label-important'
 
     def get_data(self): 
         return (
@@ -37,7 +40,7 @@ class errors(NoticePanel):
 class warnings(NoticePanel):
     label = 'Warnings'
     icon = '/media/dashboard/img/warning.png'
-    panel_class = 'warning'
+    panel_class = 'label label-warning'
 
     def get_data(self): 
         return (
@@ -48,7 +51,7 @@ class warnings(NoticePanel):
 class notices(NoticePanel):
     label = 'Notices'
     icon = '/media/dashboard/img/notice.png'
-    panel_class = 'info'
+    panel_class = 'label label-info'
 
     def get_data(self):
         return (

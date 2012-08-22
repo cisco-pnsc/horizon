@@ -108,9 +108,5 @@ class MonitorTab(tabs.Tab):
 
 class InstanceDetailTabs(tabs.TabGroup):
     slug = "instance_details"
-<<<<<<< HEAD:horizon/dashboards/nova/instances_and_volumes/instances/tabs.py
     tabs = (OverviewTab, LogTab, VNCTab, MonitorTab)
-=======
-    tabs = (OverviewTab, LogTab, VNCTab)
     sticky = True
->>>>>>> master:horizon/dashboards/nova/instances/tabs.py

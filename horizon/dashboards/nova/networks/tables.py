@@ -1,10 +1,7 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-<<<<<<< HEAD
 # Copyright 2012 Cisco Systems Inc.
-=======
 # Copyright 2012 NEC Corporation
->>>>>>> master
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -17,20 +14,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-<<<<<<< HEAD
-
-import logging
-
-from cloudfiles.errors import ContainerNotEmpty
-from django import shortcuts
-from django.contrib import messages
-from django.core.urlresolvers import reverse
-from django.template.defaultfilters import filesizeformat
-from django.utils import http
-from django.utils.translation import ugettext as _
-
-from horizon import api
-=======
 import logging
 
 from django import template
@@ -39,21 +22,12 @@ from django.utils.translation import ugettext_lazy as _
 
 from horizon import api
 from horizon import exceptions
->>>>>>> master
 from horizon import tables
 
 
 LOG = logging.getLogger(__name__)
 
 
-<<<<<<< HEAD
-class DeleteNetworks(tables.DeleteAction):
-    data_type_singular = _("Network")
-    data_type_plural = _("Networks")
-
-    def delete(self, request, obj_id):
-        api.quantum_network_delete(request, obj_id)
-=======
 class DeleteNetwork(tables.DeleteAction):
     data_type_singular = _("Network")
     data_type_plural = _("Networks")
@@ -75,7 +49,6 @@ class DeleteNetwork(tables.DeleteAction):
             LOG.info(msg)
             redirect = reverse("horizon:nova:networks:index")
             exceptions.handle(request, msg, redirect=redirect)
->>>>>>> master
 
 
 class CreateNetwork(tables.LinkAction):
@@ -85,18 +58,6 @@ class CreateNetwork(tables.LinkAction):
     classes = ("ajax-modal", "btn-create")
 
 
-<<<<<<< HEAD
-class NetworksTable(tables.DataTable):
-    name = tables.Column("name", link='horizon:nova:networks:ports:ports',
-                         verbose_name=_("Network Name"))
-    id = tables.Column("id", link='horizon:nova:networks:ports:ports',
-                       verbose_name=_("Network id"))
-    port_count = tables.Column("port_count", verbose_name=_('Ports'),
-                               empty_value="0")
-
-    def get_object_id(self, network):
-        return network.id
-=======
 class EditNetwork(tables.LinkAction):
     name = "update"
     verbose_name = _("Edit Network")
@@ -126,15 +87,9 @@ class NetworksTable(tables.DataTable):
     status = tables.Column("status", verbose_name=_("Status"))
     admin_state = tables.Column("admin_state",
                                 verbose_name=_("Admin State"))
->>>>>>> master
 
     class Meta:
         name = "networks"
         verbose_name = _("Networks")
-<<<<<<< HEAD
-        table_actions = (CreateNetwork, DeleteNetworks,)
-        row_actions = (DeleteNetworks,)
-=======
         table_actions = (CreateNetwork, DeleteNetwork)
         row_actions = (EditNetwork, CreateSubnet, DeleteNetwork)
->>>>>>> master

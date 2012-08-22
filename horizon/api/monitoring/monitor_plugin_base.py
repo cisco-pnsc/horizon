@@ -10,5 +10,9 @@ class MonitorPluginBase(object):
         pass
 
     @abstractmethod
+    def get_host_state(self, host_id):
+        pass
+
+    @abstractmethod
     def get_panels(self):
         pass

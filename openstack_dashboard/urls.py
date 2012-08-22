@@ -31,7 +31,7 @@ import horizon
 from horizon.panels import urls as panel_urls
 
 urlpatterns = patterns('',
-    url(r'^panels/$', include(panel_urls)))
+    url(r'^panels/$', include(panel_urls)),
     url(r'^$', 'horizon.views.splash', name='splash'),
     url(r'^auth/', include('openstack_auth.urls')),
     url(r'', include(horizon.urls)))

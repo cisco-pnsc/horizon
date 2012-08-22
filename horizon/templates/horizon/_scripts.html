@@ -16,6 +16,7 @@
 
 {% comment %} Bootstrap {% endcomment %}
 <script src="{{ STATIC_URL }}bootstrap/js/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ STATIC_URL }}datepicker/js/bootstrap-datepicker.js" type="text/javascript" charset="utf-8"></script>
 
 {% comment %} Hogan.js (client-side templating) {% endcomment %}
 <script src="{{ STATIC_URL }}horizon/lib/hogan-1.0.5.min.js" type="text/javascript" charset='utf-8'></script>
@@ -33,6 +34,7 @@
 <script src='{{ STATIC_URL }}horizon/js/horizon.templates.js' type='text/javascript' charset='utf-8'></script>
 <script src='{{ STATIC_URL }}horizon/js/horizon.utils.js' type='text/javascript' charset='utf-8'></script>
 <script src='{{ STATIC_URL }}horizon/js/horizon.projects.js' type='text/javascript' charset='utf-8'></script>
+<script src='{{ STATIC_URL }}horizon/js/hosts.js' type='text/javascript' charset='utf-8'></script>
 {% endcompress %}
 
 {% comment %} Client-side Templates (These should *not* be inside the "compress" tag.) {% endcomment %}

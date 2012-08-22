@@ -1,5 +1,6 @@
 {% load i18n %}
 <div class="span4 well">
+  <div class="row-fluid">
     <div class="span4">
         <h3>{{panel.label}}</h3>
         <img src="{{panel.icon}}"/>
@@ -16,11 +17,12 @@
         </dl>
     </div>
    
-    <div class="span8">
+    <div class="span12">
         <strong>{{panel.load_label}} ({{panel.get_load}}{{panel.load_suffix}})
         </strong>
         <div class="progress progress-{{panel.load_class}}">
             <div class="bar" style="width: {{panel.get_load}}%"></div>
         </div>
     </div>
+  </div>
 </div>

@@ -33,27 +33,15 @@ def get_enabled(service, reverse=False):
     return options[0] if not service.disabled else options[1]
 
 
-def get_status(service):
-    state = monitorclient().get_service_status(service.host, service.id)
-    return template.loader.render_to_string('syspanel/services/_status.html',
-                                            {'status': state,
-                                             'service': service})
-
 
 class ServicesTable(tables.DataTable):
     id = tables.Column('id', verbose_name=_('Id'), hidden=True)
-    name = tables.Column("name", verbose_name=_('Name'))
-    service_type = tables.Column('__unicode__', verbose_name=_('Service'))
+    name = tables.Column('name', verbose_name=_('Name'))
     host = tables.Column('host', verbose_name=_('Host'))
-    enabled = tables.Column(get_enabled,
-                            verbose_name=_('Enabled'),
-                            status=True)
-    status = tables.Column(get_status,
+    status = tables.Column('status',
                            verbose_name=_('Status'))
 
     class Meta:
         name = "services"
         verbose_name = _("Services")
-        table_actions = (ServiceFilterAction,)
         multi_select = False
-        status_columns = ["enabled"]

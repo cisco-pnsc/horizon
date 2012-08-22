@@ -20,7 +20,6 @@ class HostsView(views.APIView):
 
     def get_data(self, request, context, *args, **kwargs):
         host_list = {}
-        hosts = []
 
         host_list = monitorclient().get_hosts()
 
@@ -33,14 +32,13 @@ class HostDetailView(views.APIView):
 
     def __init__(self):
         super(HostDetailView, self).__init__()
-        self.monitorclient = monitorclient()
-        self.metricsclient = metricsclient()
+        self.monitorclient = monitorclient
+        self.metricsclient = metricsclient
 
     def get_data(self, request, context, *args, **kwargs):
         host = kwargs['host_id']
-
         panels = []
-        panel_list = self.monitorclient.get_panels()
+        panel_list = self.monitorclient().get_panels()
         for panel in panel_list:
             obj = panel(
                 self.request,
@@ -54,7 +52,7 @@ class HostDetailView(views.APIView):
         context['panels'] = panels
 
         graphs = []
-        graph_list = self.metricsclient.get_graphs()
+        graph_list = self.metricsclient().get_graphs()
         for graph in graph_list:
             obj = graph(
                 self.request,
