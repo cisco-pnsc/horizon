@@ -139,7 +139,9 @@ class vmcpu(MultiLoadPanel):
         vload_str = re.sub(r'CPU:', '', vload_str)
         vload_str = re.sub(r'Memory:', '', vload_str)
         vm_strs = vload_str.split('Instance:')
-        
+        if not re.match(',', vm_strs):
+            vm_strs = []
+
         for vm in vm_strs:
             stats = vm.split(',')
             name = stats[0]

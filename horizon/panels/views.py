@@ -14,8 +14,8 @@ LOG = logging.getLogger(__name__)
 class PanelView(views.APIView):
     def __init__(self):
         super(PanelView, self).__init__()
-        self.monitorclient = monitorclient()
-        self.metricsclient = metricsclient()
+        self.monitorclient = monitorclient
+        self.metricsclient = metricsclient
 
     def get(self, request, *args, **kwargs):
         start = request.GET['start']
@@ -41,5 +41,4 @@ class PanelView(views.APIView):
         obj.host_id = host_id
         obj.start = start
         obj.end = end
-        time.sleep(5)
         return HttpResponse(obj.render(), mimetype="text/html")
