@@ -1,0 +1,40 @@
+{% load i18n %}
+<div class="panel_wrapper">
+
+    <div class="panel_icon">{{panel.icon}}</div>
+
+    <div class="panel_title"><h3>{{panel.title}}</h3></div>
+
+    <div class="panel_options">
+        <select name="option">
+        {% for option in options %}
+        <option value="{{option.value}}">{{option.name}}</option>
+        {% endfor %}
+        </select>
+    </div>
+
+    <div class="panel_date_options"></div>
+
+    <div class="panel_data">
+        {% for key,value in panel.data.items %}
+            <div class="panel_datum_name">{{key}}</div>
+            <div class="panel_datum_value">{{value}}</div>
+        {% endfor %}
+    </div>
+
+    <div class="panel_loads">
+        {% for load in panel.loads %}
+            <div class="panel_load">
+                <span class="panel_load_title">{{load.title}}</span>
+                <span class="panel_load_value">{{load.value}}%</span>
+                <div class="progress {{load.class}}">
+                    <div class="bar" style="width:{{load.value}}%"></div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="panel_graph">
+        <img class="metric_graph" src="{{panel.graph}}"/>
+    </div>
+</div>

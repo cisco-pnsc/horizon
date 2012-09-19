@@ -1,0 +1,30 @@
+{% load i18n %}
+<div class="span4 well">
+  <div class="row-fluid">
+    <div class="span4">
+        <h3>{{panel.label}}</h3>
+        <img src="{{panel.icon}}"/>
+    </div>
+
+    <div class="span8 info-list">
+        <dl class="dl-horizontal">
+        {% for item in panel.get_data %}
+            {% for key,value in item.items %}
+                <dt>{{key}}</dt>
+                <dd>{{value}}</dd>
+            {% endfor %}
+        {% endfor %}
+        </dl>
+    </div>
+
+    {% for load in panel.get_loads %}
+    <div class="span12">
+        <strong>{{load.load_label}} ({{load.load_value}}{{load.load_suffix}})
+        </strong>
+        <div class="progress progress-{{load.load_class}}">
+            <div class="bar" style="width: {{load.load_value}}%"></div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+</div>

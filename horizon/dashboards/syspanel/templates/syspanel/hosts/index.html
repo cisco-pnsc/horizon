@@ -1,0 +1,25 @@
+{% extends 'syspanel/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Hosts" %}{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Hosts") %}
+{% endblock page_header %}
+
+{% block main %}
+    <ul class="thumbnails" id="host_list">
+    {% for host in hosts %}
+        <li class="host_icon">
+            <div class="thumbnail">
+                <h4>{{host.name}}</h4>
+                <span class="host_overlay {{host.class}}">
+                    <h6>{{host.state}}</h6>
+                    <a href="{% url horizon:syspanel:hosts:details host.name %}">
+                    <img src="/media/dashboard/img/server.png"/>
+                    </a>
+                </span>
+            </div>
+        </li>
+    {% endfor %}
+    </ul>
+{% endblock %}

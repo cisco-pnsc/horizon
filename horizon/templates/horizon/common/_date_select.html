@@ -1,0 +1,14 @@
+<div class="row-fluid date-selector control-group">
+    <form>
+    <input type="hidden" name="host_id" value="{{panel.host_id}}" />
+    <input type="hidden" name="panel_class" value="{{panel.panel_class_name}}" />
+    <input type="hidden" name="ajax_url" value="{{panel.url}}" />
+    <div class="span10 input-append date">
+        <input type="text" class="datepicker" name="start" value="{{panel.start}}" data-date-format="mm/dd/yy" data-date="{{panel.start}}"/><span class="add-on">Start</span>
+        <input type="text" class="datepicker" name="end" value="{{panel.end}}" data-date-format="mm/dd/yy" date-date="{{panel.end}}"/><span class="add-on">End</span>
+    </div>
+    <div class="span2">
+        <img class="upd_graph" src="/media/dashboard/img/go.png"/>
+    </div>
+    </form>
+</div>
