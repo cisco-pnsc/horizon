@@ -44,7 +44,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
 #        return selected_type
 
     def handle(self, request, data):
-       try:
+        try:
             profile = api.quantum.profile_create(request,
                 name=data['name'],
                 profile_type='network',
