@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright 2012 Nebula, Inc.
+# Copyright 2012 NEC Corporation All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -14,20 +14,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext_lazy as _
-
-from horizon import tables
+import uuid
 
 
-def get_endpoint(service):
-    return service.endpoints[0]['publicURL']
+def get_int_or_uuid(value):
+    """Check if a value is valid as UUID or an integer.
 
-
-class EndpointsTable(tables.DataTable):
-    api_name = tables.Column('name', verbose_name=_("Service Name"))
-    api_endpoint = tables.Column(get_endpoint,
-                                 verbose_name=_("Service Endpoint"))
-
-    class Meta:
-        name = "endpoints"
-        verbose_name = _("API Endpoints")
+    This method is mainly used to convert floating IP id to the
+    appropriate type. For floating IP id, integer is used in Nova's
+    original implementation, but UUID is used in Quantum based one.
+    """
+    try:
+        uuid.UUID(value)
+        return value
+    except (ValueError, AttributeError):
+        return int(value)

@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright 2012 Nebula, Inc.
+# Copyright 2013 Red Hat, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -14,20 +14,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext_lazy as _
+from django.core.urlresolvers import reverse
 
-from horizon import tables
-
-
-def get_endpoint(service):
-    return service.endpoints[0]['publicURL']
+from horizon import test
 
 
-class EndpointsTable(tables.DataTable):
-    api_name = tables.Column('name', verbose_name=_("Service Name"))
-    api_endpoint = tables.Column(get_endpoint,
-                                 verbose_name=_("Service Endpoint"))
+INDEX_URL = reverse("horizon:settings:user:index")
 
-    class Meta:
-        name = "endpoints"
-        verbose_name = _("API Endpoints")
+
+class UserSettingsTest(test.TestCase):
+
+    def test_timezone_offset_is_displayed(self):
+        res = self.client.get(INDEX_URL)
+
+        self.assertContains(res, "Australia/Melbourne (UTC +11:00)")
+        self.assertContains(res, "Canada/Newfoundland (UTC -03:30)")
