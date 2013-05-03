@@ -28,6 +28,8 @@ from django.utils.datastructures import SortedDict
 
 from horizon.conf import HORIZON_CONFIG
 
+from quantum.plugins.cisco.extensions import n1kv_profile as n1kv_profile
+
 from openstack_dashboard.api.base import APIDictWrapper, url_for
 from openstack_dashboard.api import network
 from openstack_dashboard.api import nova
@@ -82,6 +84,15 @@ class Port(QuantumAPIDictWrapper):
         apiresource['admin_state'] = \
             'UP' if apiresource['admin_state_up'] else 'DOWN'
         super(Port, self).__init__(apiresource)
+
+class Profile(QuantumAPIDictWrapper):
+    """Wrapper for quantum profiles"""
+    _attrs = ['profile_id', 'name', 'segment_type',
+             'segment_range', 'multicast_ip_index', 'multicast_ip_range']
+
+    def __init__(self, apiresource):
+        super(Profile, self).__init__(apiresource)
+        #apiresource['id'] = apiresource['id']
 
 
 class Router(QuantumAPIDictWrapper):
@@ -275,6 +286,8 @@ def network_create(request, **kwargs):
     :returns: Subnet object
     """
     LOG.debug("network_create(): kwargs = %s" % kwargs)
+    if 'n1kv_profile_id' in kwargs:
+        kwargs[n1kv_profile.PROFILE_ID] = kwargs.pop('n1kv_profile_id')
     body = {'network': kwargs}
     network = quantumclient(request).create_network(body=body).get('network')
     return Network(network)
@@ -365,6 +378,8 @@ def port_create(request, network_id, **kwargs):
     :returns: Port object
     """
     LOG.debug("port_create(): netid=%s, kwargs=%s" % (network_id, kwargs))
+    if 'n1kv_profile_id' in kwargs:
+        kwargs[n1kv_profile.PROFILE_ID] = kwargs.pop('n1kv_profile_id')
     body = {'port': {'network_id': network_id}}
     body['port'].update(kwargs)
     port = quantumclient(request).create_port(body=body).get('port')
@@ -381,6 +396,42 @@ def port_modify(request, port_id, **kwargs):
     body = {'port': kwargs}
     port = quantumclient(request).update_port(port_id, body=body).get('port')
     return Port(port)
+
+
+def profile_list(request, type_p, **params):
+    LOG.debug("profile_list(): profile_type=%s params=%s" % (type_p, params))
+    if (type_p == 'network'):
+        profiles = quantumclient(request).list_network_profiles(**params).get('network_profiles')
+    elif (type_p == 'policy'):
+    #else:
+        profiles = quantumclient(request).list_policy_profiles(**params).get('policy_profiles')
+    #for p in profiles:
+        #LOG.error("OIII id - %s name - %s" % p['id'], p['name'])
+        #p['id'] = p['name']
+    #return [Profile(n) for n in profiles if n['profile_type'] == type]
+    return [Profile(n) for n in profiles]
+
+def profile_get(request, profile_id, **params):
+    LOG.debug("profile_get(): profileid=%s, params=%s" % (profile_id, params))
+    profile = quantumclient(request).show_network_profile(profile_id, **params).get('profile')
+    return Profile(profile)
+
+def profile_create(request, **kwargs):
+    LOG.debug("profile_create(): kwargs=%s" % kwargs)
+    body = {'network_profile': {}}
+    body['network_profile'].update(kwargs)
+    profile = quantumclient(request).create_network_profile(body=body)#.get('profile')
+    return Profile(profile)
+
+def profile_delete(request, profile_id):
+    LOG.debug("profile_delete(): profile_id=%s" % profile_id)
+    quantumclient(request).delete_network_profile(profile_id)
+
+def profile_modify(request, profile_id, **kwargs):
+    LOG.debug("profile_modify(): profileid=%s, kwargs=%s" % (profile_id, kwargs))
+    body = {'profile': kwargs}
+    profile = quantumclient(request).update_network_profile(profile_id, body=body).get('profile')
+    return Profile(profile)
 
 
 def router_create(request, **kwargs):
