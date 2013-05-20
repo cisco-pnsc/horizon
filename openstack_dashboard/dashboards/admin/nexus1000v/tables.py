@@ -12,8 +12,8 @@ from .forms import CreateNetworkProfile
 
 # from openstack_dashboard import api
 
-__author__ = "Sergey Sudakovich"
-__email__ = "ssudakov@cisco.com"
+__author__ = "Sergey Sudakovich", "Abishek Subramanian"
+__email__ = "ssudakov@cisco.com", "absubram@cisco.com"
 
 LOG = logging.getLogger(__name__)
 
@@ -29,8 +29,6 @@ class DeleteNetworkProfile(tables.DeleteAction):
 
     def delete(self, request, obj_id):
         try:
-            LOG.error("AAAAAAprofile_delete(): profile_id= %s " % 
-                      obj_id, )
             api.quantum.profile_delete(request, obj_id)
         except:
             msg = _('Failed to delete network profile %s') % obj_id
@@ -42,14 +40,14 @@ class DeleteNetworkProfile(tables.DeleteAction):
 class EditNetworkProfile(tables.LinkAction):
     name = "update"
     verbose_name = _("Edit Network Profile")
-    url = "horizon:admin:nexus1000v:update_networkprofile"
+    url = "horizon:admin:nexus1000v:update_network_profile"
     classes = ("ajax-modal", "btn-edit")
 
 
 class NetworkProfile(tables.DataTable):
     id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
     name = tables.Column("name", verbose_name=_("Network Profile"), )
-    tenant = tables.Column("tenant_name", verbose_name=_("Tenant"))
+    tenant = tables.Column(id, verbose_name=_("Tenant"))
     segment_type = tables.Column("segment_type", verbose_name=_("Segment Type"))
     segment_range = tables.Column("segment_range", verbose_name=_("Segment Range"))
 
@@ -71,8 +69,8 @@ class PolicyProfile(tables.DataTable):
     id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
     name = tables.Column("name", verbose_name=_("Policy Profile"), )
     tenant_id = tables.Column("tenant_id", verbose_name=_("Tenant"))
-    segment_type = tables.Column("segment_type", verbose_name=_("Segment Type"))
-    segment_range = tables.Column("segment_range", verbose_name=_("Segment Range"))
+    #segment_type = tables.Column("segment_type", verbose_name=_("Segment Type"))
+    #segment_range = tables.Column("segment_range", verbose_name=_("Segment Range"))
 
     class Meta:
         name = "policy_profile"

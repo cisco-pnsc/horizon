@@ -413,7 +413,7 @@ def profile_list(request, type_p, **params):
 
 def profile_get(request, profile_id, **params):
     LOG.debug("profile_get(): profileid=%s, params=%s" % (profile_id, params))
-    profile = quantumclient(request).show_network_profile(profile_id, **params).get('profile')
+    profile = quantumclient(request).show_network_profile(profile_id, **params)#.get('profile')
     return Profile(profile)
 
 def profile_create(request, **kwargs):

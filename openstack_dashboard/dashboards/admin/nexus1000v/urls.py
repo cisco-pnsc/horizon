@@ -14,7 +14,7 @@ urlpatterns = patterns('',
     url(r'^network_profile/create$', CreateNetworkProfileView.as_view(),
         name='create_network_profile'),
     url(r'^network_profile/(?P<profile_id>[^/]+)/update$',
-        UpdateNetworkProfileView.as_view(), name='update_networkprofile'),
+        UpdateNetworkProfileView.as_view(), name='update_network_profile'),
     #Policy Profile
 #    url(r'^policy_profile$', PolicyProfileIndexView.as_view(),
 #        name='policy_profile'),
