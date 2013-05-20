@@ -424,6 +424,11 @@ class SetNetworkAction(workflows.Action):
                                                 " be specified.")},
                                         help_text=_("Launch instance with"
                                                     "these networks"))
+    profile = forms.ChoiceField(label=_("Policy Profiles"),
+                                         required=False,
+                                         help_text=_("Launch instance with "
+                                                     "this policy profile"))
+
 
     class Meta:
         name = _("Networking")
@@ -432,6 +437,7 @@ class SetNetworkAction(workflows.Action):
 
     def populate_network_choices(self, request, context):
         try:
+            LOG.error("ABISHEK ABISHEK ABISHEK HERE TOO!!\n")
             tenant_id = self.request.user.tenant_id
             networks = api.quantum.network_list_for_tenant(request, tenant_id)
             for n in networks:
@@ -443,11 +449,23 @@ class SetNetworkAction(workflows.Action):
                               _('Unable to retrieve networks.'))
         return network_list
 
+    def populate_profile_choices(self, request, context):
+        try:
+            profiles = api.quantum.profile_list(request, 'policy')
+#            for p in profiles:
+#                p.set_id_as_name_if_empty()
+            LOG.error("ABISHEK getting here!!")
+            profile_list = [(p.id, p.name) for p in profiles]
+        except:
+            profile_list = []
+            exceptions.handle(request, _("Unable to retrieve profiles."))
+        return profile_list
+
 
 class SetNetwork(workflows.Step):
     action_class = SetNetworkAction
-    template_name = "project/instances/_update_networks.html"
-    contributes = ("network_id",)
+    #template_name = "project/instances/_update_networks.html"
+    contributes = ("network_id", "profile_id")
 
     def contribute(self, data, context):
         if data:
@@ -457,6 +475,7 @@ class SetNetwork(workflows.Step):
             networks = [n for n in networks if n != '']
             if networks:
                 context['network_id'] = networks
+            context['profile_id'] = data.get('profile', None)
         return context
 
 
@@ -506,6 +525,17 @@ class LaunchInstance(workflows.Workflow):
             nics = None
 
         try:
+            # Create port with Network Name and Port Profile
+            # quantum port-create <Network name> --n1kv:profile <Port Profile ID>
+            #for net_id in context['network_id']:
+
+            ## HACK: for now use first network
+            net_id = context['network_id'][0]
+            LOG.debug("Horizon->Create Port with %s %s" %
+                          (net_id,context['profile_id']))
+            port = api.quantum.port_create(request, net_id,
+                    n1kv_profile_id=context['profile_id'])
+
             api.nova.server_create(request,
                                    context['name'],
                                    context['source_id'],
@@ -515,7 +545,8 @@ class LaunchInstance(workflows.Workflow):
                                    context['security_group_ids'],
                                    dev_mapping,
                                    nics=nics,
-                                   instance_count=int(context['count']))
+                                   instance_count=int(context['count']),
+                                   meta={'port_id':port.id})
             return True
         except:
             exceptions.handle(request)

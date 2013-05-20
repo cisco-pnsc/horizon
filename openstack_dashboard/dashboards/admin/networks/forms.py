@@ -18,6 +18,7 @@ import logging
 
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.utils.datastructures import SortedDict
 
 from horizon import exceptions
 from horizon import forms
@@ -34,6 +35,7 @@ class CreateNetwork(forms.SelfHandlingForm):
                            label=_("Name"),
                            required=False)
     tenant_id = forms.ChoiceField(label=_("Project"))
+    n1kv_profile_id = forms.ChoiceField(label=_("Network Profile"))
     admin_state = forms.BooleanField(label=_("Admin State"),
                                      initial=True, required=False)
     shared = forms.BooleanField(label=_("Shared"),
@@ -52,6 +54,42 @@ class CreateNetwork(forms.SelfHandlingForm):
             if tenant.enabled:
                 tenant_choices.append((tenant.id, tenant.name))
         self.fields['tenant_id'].choices = tenant_choices
+        self.fields['n1kv_profile_id'].choices = self.get_network_profile_choices(request)
+
+    def get_network_profile_choices(self,request):
+        profile_choices = [('', _("Select a profile"))]
+        for profile in self._get_profiles(request, 'network'):
+            profile_choices.append((profile.id, profile.name))
+        return profile_choices
+
+    def _get_profiles(self, request, type_p):
+        try:
+            profiles = api.quantum.profile_list(request, type_p)
+        except:
+            profiles = []
+            msg = _('Network Profiles could not be retrieved.')
+            exceptions.handle(request, msg)
+        if profiles:
+            tenant_dict = self._get_tenant_list(request)
+            #for p in profiles:
+                #LOG.error("AAAAA profile name %s " % p)
+            # Set tenant name
+                #tenant = tenant_dict.get(p.tenant_id, None)
+                #p.tenant_name = getattr(tenant, 'name', None)
+        return profiles
+
+    def _get_tenant_list(self, request):
+        tenants = []
+        try:
+            tenants = api.keystone.tenant_list(request, admin=True)
+        except:
+            tenants = []
+            msg = _('Unable to retrieve instance tenant information.')
+            exceptions.handle(request, msg)
+
+        tenant_dict = SortedDict([(t.id, t) for t in tenants])
+        tenants = tenant_dict
+        return tenants
 
     def handle(self, request, data):
         try:
@@ -59,7 +97,8 @@ class CreateNetwork(forms.SelfHandlingForm):
                       'tenant_id': data['tenant_id'],
                       'admin_state_up': data['admin_state'],
                       'shared': data['shared'],
-                      'router:external': data['external']}
+                      'router:external': data['external'],
+                      'n1kv_profile_id': data['n1kv_profile_id']}
             network = api.quantum.network_create(request, **params)
             msg = _('Network %s was successfully created.') % data['name']
             LOG.debug(msg)
