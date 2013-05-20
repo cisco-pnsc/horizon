@@ -125,9 +125,9 @@ class UpdateNetworkProfileView(forms.ModalFormView):
 
     def get_initial(self):
         profile = self._get_object()
-        return {'profile_id': profile['profile_id'],
+        return {'profile_id': profile['id'],
                 'name': profile['name'],
-                'tenant_id': profile['tenant_id'],
+                #'tenant_id': profile['tenant_id'],
                 'segment_range': profile['segment_range'],
                 'segment_type': profile['segment_type']}
                 #'profile_type': profile['profile_type']}
