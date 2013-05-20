@@ -413,24 +413,24 @@ def profile_list(request, type_p, **params):
 
 def profile_get(request, profile_id, **params):
     LOG.debug("profile_get(): profileid=%s, params=%s" % (profile_id, params))
-    profile = quantumclient(request).show_network_profile(profile_id, **params)#.get('profile')
+    profile = quantumclient(request).show_network_profile(profile_id, **params).get('network_profile')
     return Profile(profile)
 
 def profile_create(request, **kwargs):
     LOG.debug("profile_create(): kwargs=%s" % kwargs)
     body = {'network_profile': {}}
     body['network_profile'].update(kwargs)
-    profile = quantumclient(request).create_network_profile(body=body)#.get('profile')
+    profile = quantumclient(request).create_network_profile(body=body).get('network_profile')
     return Profile(profile)
 
 def profile_delete(request, profile_id):
     LOG.debug("profile_delete(): profile_id=%s" % profile_id)
-    quantumclient(request).delete_network_profile(profile_id)
+    quantumclient(request).delete_network_profile(profile_id)#.get('network_profile')
 
 def profile_modify(request, profile_id, **kwargs):
     LOG.debug("profile_modify(): profileid=%s, kwargs=%s" % (profile_id, kwargs))
-    body = {'profile': kwargs}
-    profile = quantumclient(request).update_network_profile(profile_id, body=body).get('profile')
+    body = {'network_profile': kwargs}
+    profile = quantumclient(request).update_network_profile(profile_id, body=body).get('network_profile')
     return Profile(profile)
 
 

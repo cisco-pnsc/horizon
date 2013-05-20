@@ -76,8 +76,12 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
         widget=forms.Select(attrs={'class': 'switchable'}))
     segment_range = forms.CharField(max_length=10, label=_("Segment Range"),
         required=True)
-    tenant_id = forms.CharField(label=_("Tenant"))
+    tenant_id = forms.CharField(label=_("Tenant"), required=False)
 
+
+#    def  __init__(self, request, *args, **kwargs):
+#        super(UpdateNetworkProfile, self).__init__(request, *args, **kwargs)
+#        self.fields['tenant_id'].choices = get_tenant_choices(request)
 
     def handle(self, request, data):
         try:
