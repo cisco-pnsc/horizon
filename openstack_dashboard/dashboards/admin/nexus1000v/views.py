@@ -129,6 +129,7 @@ class UpdateNetworkProfileView(forms.ModalFormView):
                 'name': profile['name'],
                 #'tenant_id': profile['tenant_id'],
                 'segment_range': profile['segment_range'],
-                'segment_type': profile['segment_type']}
+                'segment_type': profile['segment_type'],
+                'physical_network': profile['physical_network']}
                 #'profile_type': profile['profile_type']}
 

@@ -50,6 +50,7 @@ class NetworkProfile(tables.DataTable):
     tenant = tables.Column(id, verbose_name=_("Tenant"))
     segment_type = tables.Column("segment_type", verbose_name=_("Segment Type"))
     segment_range = tables.Column("segment_range", verbose_name=_("Segment Range"))
+    physical_network = tables.Column("physical_network", verbose_name=_("Physical Network Name"))
 
     class Meta:
         name = "network_profile"

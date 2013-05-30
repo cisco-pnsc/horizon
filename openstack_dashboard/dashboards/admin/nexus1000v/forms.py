@@ -33,6 +33,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
         required=True)
     multicast_ip_range = forms.CharField(max_length=30,
         label=_("Multicast IP Range"), required=False)
+    physical_network = forms.CharField(max_length=255, label=_("Physical Network"),  required=False)
     tenant_id = forms.ChoiceField(label=_("Tenant"), required=False)
 
     def  __init__(self, request, *args, **kwargs):
@@ -51,6 +52,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                 #profile_type='network',
                 segment_type=data['segment_type'],
                 segment_range=data['segment_range'],
+                physical_network=data['physical_network'],
                 multicast_ip_range=data['multicast_ip_range'],
                 tenant_id=data['tenant_id']
             )
@@ -76,6 +78,7 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
         widget=forms.Select(attrs={'class': 'switchable'}))
     segment_range = forms.CharField(max_length=10, label=_("Segment Range"),
         required=True)
+    physical_network = forms.CharField(max_length=255, label=_("Physical Network"),  required=False)
     tenant_id = forms.CharField(label=_("Tenant"), required=False)
 
 
@@ -91,6 +94,7 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                 name=data['name'],
                 segment_type=data['segment_type'],
                 segment_range=data['segment_range'],
+                physical_network=data['physical_network'],
 #                tenant_id=data['tenant_id']
             )
             msg = _('Network Profile %s was successfully updated.')\
