@@ -464,7 +464,7 @@ class SetNetworkAction(workflows.Action):
 
 class SetNetwork(workflows.Step):
     action_class = SetNetworkAction
-    #template_name = "project/instances/_update_networks.html"
+    template_name = "project/instances/_update_networks.html"
     contributes = ("network_id", "profile_id")
 
     def contribute(self, data, context):

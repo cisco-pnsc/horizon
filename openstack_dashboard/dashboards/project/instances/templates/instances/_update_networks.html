@@ -16,6 +16,18 @@
           {% include "project/instances/_launch_network_help.html" %}
       </td>
     </tr>
+    <tr>
+      <td class="actions">
+        <h4 id="selected_profile_h4">{% trans "Policy Profiles" %}</h4>
+        <ul id="selected_profile" class="profilelist">
+	    <div class="input">
+         {{ form.profile }}
+	    </div>
+      </td>
+      <td class="help_text">
+          {% include "project/instances/_launch_profile_help.html" %}
+      </td>
+    </tr>
   </tbody>
 </table>
 
