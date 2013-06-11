@@ -403,12 +403,7 @@ def profile_list(request, type_p, **params):
     if (type_p == 'network'):
         profiles = quantumclient(request).list_network_profiles(**params).get('network_profiles')
     elif (type_p == 'policy'):
-    #else:
         profiles = quantumclient(request).list_policy_profiles(**params).get('policy_profiles')
-    #for p in profiles:
-        #LOG.error("OIII id - %s name - %s" % p['id'], p['name'])
-        #p['id'] = p['name']
-    #return [Profile(n) for n in profiles if n['profile_type'] == type]
     return [Profile(n) for n in profiles]
 
 def profile_get(request, profile_id, **params):
@@ -432,6 +427,15 @@ def profile_modify(request, profile_id, **kwargs):
     body = {'network_profile': kwargs}
     profile = quantumclient(request).update_network_profile(profile_id, body=body).get('network_profile')
     return Profile(profile)
+
+def profile_bindings_list(request, type_p, **params):
+    LOG.debug("profile_bindings_list(): profile_type=%s params=%s" % 
+              (type_p, params))
+    if (type_p == 'network'):
+        bindings = quantumclient(request).list_network_profile_bindings(**params).get('network_profile_bindings')
+    elif (type_p == 'policy'):
+        bindings = quantumclient(request).list_policy_profile_bindings(**params).get('policy_profile_bindings')
+    return [Profile(n) for n in bindings]
 
 
 def router_create(request, **kwargs):

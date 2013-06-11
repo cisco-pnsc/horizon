@@ -29,7 +29,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
     segment_type = forms.ChoiceField(label=_('Segment Type'),
         choices=[('vlan', 'VLAN'), ('vxlan', 'VXLAN')],
         widget=forms.Select(attrs={'class': 'switchable'}))
-    segment_range = forms.CharField(max_length=10, label=_("Segment Range"),
+    segment_range = forms.CharField(max_length=11, label=_("Segment Range"),
         required=True)
     multicast_ip_range = forms.CharField(max_length=30,
         label=_("Multicast IP Range"), required=False)

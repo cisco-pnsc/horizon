@@ -1,3 +1,5 @@
+
+
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
 # Copyright 2012 NEC Corporation
@@ -20,6 +22,7 @@ import netaddr
 
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.utils.datastructures import SortedDict
 
 from horizon import exceptions
 from horizon import forms
@@ -39,9 +42,31 @@ class CreateNetworkInfoAction(workflows.Action):
                                help_text=_("Network Name. This field is "
                                            "optional."),
                                required=False)
+    n1kv_profile_id = forms.ChoiceField(label=_("Network Profile"))
     admin_state = forms.BooleanField(label=_("Admin State"),
                                      initial=True, required=False)
 
+    def __init__(self, request, *args, **kwargs):
+        super(CreateNetworkInfoAction, self).__init__(request, *args, **kwargs)
+        self.fields['n1kv_profile_id'].choices = self.get_network_profile_choices(request)
+
+    def get_network_profile_choices(self,request):
+        profile_choices = [('', _("Select a profile"))]
+        for profile in self._get_profiles(request, 'network'):
+            profile_choices.append((profile.id, profile.name))
+        return profile_choices
+
+    def _get_profiles(self, request, type_p):
+        try:
+            tenant_id = self.request.user.tenant_id
+            profiles = api.quantum.profile_list(request, type_p)
+        except:
+            profiles = []
+            msg = _('Network Profiles could not be retrieved.')
+            exceptions.handle(request, msg)
+        return profiles
+
+                                        
     class Meta:
         name = ("Network")
         help_text = _("From here you can create a new network.\n"
@@ -49,9 +74,10 @@ class CreateNetworkInfoAction(workflows.Action):
                       "can be created in the next panel.")
 
 
+
 class CreateNetworkInfo(workflows.Step):
     action_class = CreateNetworkInfoAction
-    contributes = ("net_name", "admin_state")
+    contributes = ("net_name", "admin_state", "n1kv_profile_id")
 
 
 class CreateSubnetInfoAction(workflows.Action):
@@ -258,7 +284,8 @@ class CreateNetwork(workflows.Workflow):
     def _create_network(self, request, data):
         try:
             params = {'name': data['net_name'],
-                      'admin_state_up': data['admin_state']}
+                      'admin_state_up': data['admin_state'],
+                      'n1kv_profile_id': data['n1kv_profile_id']}
             network = api.quantum.network_create(request, **params)
             network.set_id_as_name_if_empty()
             self.context['net_id'] = network.id
@@ -368,3 +395,20 @@ class CreateNetwork(workflows.Workflow):
         else:
             self._delete_network(request, network)
             return False
+
+        def _get_profiles(self, request, type_p):
+            try:
+                profiles = api.quantum.profile_list(request, type_p)
+            except:
+                profiles = []
+                msg = _('Network Profiles could not be retrieved.')
+                exceptions.handle(request, msg)
+                if profiles:
+                    return profiles
+
+        def get_network_profile_choices(self,request):
+            profile_choices = [('', _("Select a profile"))]
+            for profile in _get_profiles(request, 'network'):
+                profile_choices.append((profile.id, profile.name))
+                return profile_choices
+

@@ -45,10 +45,14 @@ def _get_profiles(request, type_p):
         exceptions.handle(request, msg)
     if profiles:
         tenant_dict = _get_tenant_list(request)
+        bindings = api.quantum.profile_bindings_list(request, type_p)
         for p in profiles:
         # Set tenant name
-            tenant = tenant_dict.get(p.id, None)
-            p.tenant_name = getattr(tenant, 'name', None)
+            if bindings:
+                for b in bindings:
+                    if (p.id == b.profile_id):
+                        tenant = tenant_dict.get(b.tenant_id, None)
+                        p.tenant_name = getattr(tenant, 'name', None)
 #            p.set_id_as_name_if_empty()
     return profiles
 

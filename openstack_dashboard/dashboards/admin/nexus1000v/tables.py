@@ -47,7 +47,7 @@ class EditNetworkProfile(tables.LinkAction):
 class NetworkProfile(tables.DataTable):
     id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
     name = tables.Column("name", verbose_name=_("Network Profile"), )
-    tenant = tables.Column(id, verbose_name=_("Tenant"))
+    tenant = tables.Column("tenant_name", verbose_name=_("Tenant"))
     segment_type = tables.Column("segment_type", verbose_name=_("Segment Type"))
     segment_range = tables.Column("segment_range", verbose_name=_("Segment Range"))
     physical_network = tables.Column("physical_network", verbose_name=_("Physical Network Name"))
@@ -69,9 +69,7 @@ class EditPolicyProfile(tables.LinkAction):
 class PolicyProfile(tables.DataTable):
     id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
     name = tables.Column("name", verbose_name=_("Policy Profile"), )
-    tenant_id = tables.Column("tenant_id", verbose_name=_("Tenant"))
-    #segment_type = tables.Column("segment_type", verbose_name=_("Segment Type"))
-    #segment_range = tables.Column("segment_range", verbose_name=_("Segment Range"))
+    tenant_id = tables.Column("tenant_name", verbose_name=_("Tenant"))
 
     class Meta:
         name = "policy_profile"
