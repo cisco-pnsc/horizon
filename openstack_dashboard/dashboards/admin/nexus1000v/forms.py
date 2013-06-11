@@ -27,13 +27,27 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
     """ Create Network Profile form  """
     name = forms.CharField(max_length=255, label=_("Name"), required=True)
     segment_type = forms.ChoiceField(label=_('Segment Type'),
-        choices=[('vlan', 'VLAN'), ('vxlan', 'VXLAN')],
-        widget=forms.Select(attrs={'class': 'switchable'}))
+        choices=[('vlan', _('VLAN')), ('vxlan', _('VXLAN'))],
+        widget=forms.Select(attrs={'class': 'switchable',
+                                   'data-slug': 'segtype'}))
     segment_range = forms.CharField(max_length=11, label=_("Segment Range"),
         required=True)
-    multicast_ip_range = forms.CharField(max_length=30,
-        label=_("Multicast IP Range"), required=False)
-    physical_network = forms.CharField(max_length=255, label=_("Physical Network"),  required=False)
+    multicast_ip_range = forms.CharField(
+        max_length=30,
+        label=_("Multicast IP Range"),
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'switched',
+            'data-switch-on': 'segtype',
+            'data-segtype-vxlan': _("Multicast IP Range")}))
+    physical_network = forms.CharField(
+        max_length=255,
+        label=_("Physical Network"),
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'switched',
+            'data-switch-on': 'segtype',
+            'data-segtype-vlan': _("Physical Network")}))
     tenant_id = forms.ChoiceField(label=_("Tenant"), required=False)
 
     def  __init__(self, request, *args, **kwargs):
