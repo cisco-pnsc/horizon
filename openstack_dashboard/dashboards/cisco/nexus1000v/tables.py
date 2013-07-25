@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 class CreateNetworkProfile(tables.LinkAction):
     name = "create"
     verbose_name = _("Create Network Profile")
-    url = "horizon:admin:nexus1000v:create_network_profile"
+    url = "horizon:cisco:nexus1000v:create_network_profile"
     classes = ("ajax-modal", "btn-create")
 
 class DeleteNetworkProfile(tables.DeleteAction):
@@ -33,14 +33,14 @@ class DeleteNetworkProfile(tables.DeleteAction):
         except:
             msg = _('Failed to delete network profile %s') % obj_id
             LOG.info(msg)
-            redirect = reverse('horizon:admin:nexus1000v:index')
+            redirect = reverse('horizon:cisco:nexus1000v:index')
             exceptions.handle(request, msg, redirect=redirect)
 
 
 class EditNetworkProfile(tables.LinkAction):
     name = "update"
     verbose_name = _("Edit Network Profile")
-    url = "horizon:admin:nexus1000v:update_network_profile"
+    url = "horizon:cisco:nexus1000v:update_network_profile"
     classes = ("ajax-modal", "btn-edit")
 
 

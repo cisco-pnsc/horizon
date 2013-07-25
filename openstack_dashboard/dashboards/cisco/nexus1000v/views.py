@@ -1,5 +1,5 @@
-__author__ = "Sergey Sudakovich"
-__email__ = "ssudakov@cisco.com"
+__author__ = "Sergey Sudakovich", "Abishek Subramanian"
+__email__ = "ssudakov@cisco.com", "absubram@cisco.com"
 
 import logging
 
@@ -59,7 +59,7 @@ def _get_profiles(request, type_p):
 #class NetworkProfileIndexView(tabs.TableTab):
 class NetworkProfileIndexView(tables.DataTableView):
     table_class = NetworkProfile
-    template_name = 'admin/nexus1000v/network_profile/index.html'
+    template_name = 'cisco/nexus1000v/network_profile/index.html'
 
     def get_data(self):
         return _get_profiles(self.request, 'network')
@@ -69,7 +69,7 @@ class NetworkProfileIndexView(tables.DataTableView):
 #class PolicyProfileIndexView(tabs.TableTab):
 class PolicyProfileIndexView(tables.DataTableView):
     table_class = PolicyProfile
-    template_name = 'admin/nexus1000v/policy_profile/index.html'
+    template_name = 'cisco/nexus1000v/policy_profile/index.html'
 
     def get_data(self):
         return _get_profiles(self.request, 'policy')
@@ -90,7 +90,7 @@ class IndexTabGroup(tabs.TabGroup):
 
 class IndexView(tables.MultiTableView):
     table_classes = (NetworkProfile, PolicyProfile,)
-    template_name = 'admin/nexus1000v/index.html'
+    template_name = 'cisco/nexus1000v/index.html'
 
     def get_network_profile_data(self):
         return _get_profiles(self.request,'network')
@@ -101,14 +101,14 @@ class IndexView(tables.MultiTableView):
 
 class CreateNetworkProfileView(forms.ModalFormView):
     form_class = CreateNetworkProfile
-    template_name = 'admin/nexus1000v/create_network_profile.html'
-    success_url = reverse_lazy('horizon:admin:nexus1000v:index')
+    template_name = 'cisco/nexus1000v/create_network_profile.html'
+    success_url = reverse_lazy('horizon:cisco:nexus1000v:index')
 
 class UpdateNetworkProfileView(forms.ModalFormView):
     form_class = UpdateNetworkProfile
-    template_name = 'admin/nexus1000v/update_network_profile.html'
+    template_name = 'cisco/nexus1000v/update_network_profile.html'
     context_object_name = 'network_profile'
-    success_url = reverse_lazy('horizon:admin:nexus1000v:index')
+    success_url = reverse_lazy('horizon:cisco:nexus1000v:index')
 
     def get_context_data(self, **kwargs):
         context = super(UpdateNetworkProfileView, self).get_context_data(**kwargs)

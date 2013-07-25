@@ -1,5 +1,5 @@
-__author__ = 'ssudakov'
-__email__ = "ssudakov@cisco.com"
+__author__ = 'ssudakov', 'absubram'
+__email__ = "ssudakov@cisco.com", "absubram@cisco.com"
 
 import logging
 
@@ -76,7 +76,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
             messages.success(request, msg)
             return profile
         except:
-            redirect = reverse('horizon:admin:nexus1000v:index')
+            redirect = reverse('horizon:cisco:nexus1000v:index')
             msg = _('Failed to create network profile %s') % data['name']
             exceptions.handle(request, msg, redirect=redirect)
 
@@ -119,5 +119,5 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
         except Exception:
             msg = _('Failed to update network profile %s') % data['profile_id']
             LOG.info(msg)
-            redirect = reverse('horizon:admin:nexus1000v:index')
+            redirect = reverse('horizon:cisco:nexus1000v:index')
             exceptions.handle(request, msg, redirect=redirect)

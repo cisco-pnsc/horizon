@@ -1,8 +1,9 @@
 from django.conf.urls.defaults import patterns, url
 from .views import IndexView, CreateNetworkProfileView, UpdateNetworkProfileView
+#from .views import IndexView
 
-__author__ = "Sergey Sudakovich"
-__email__ = "ssudakov@cisco.com"
+__author__ = "Sergey Sudakovich", "Abishek Subramanian"
+__email__ = "ssudakov@cisco.com", "absubram@cisco.com"
 
 NETWORKS_PROFLIE = r'^network_profile/(?P<network_id>[^/]+)/%s$'
 
