@@ -27,6 +27,8 @@ from django.conf import settings
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
+from neutron.plugins.cisco.extensions import n1kv_profile as n1kv_profile
+
 from openstack_dashboard.api.base import APIDictWrapper
 from openstack_dashboard.api.base import url_for
 from openstack_dashboard.api import network_base
@@ -83,6 +85,16 @@ class Port(NeutronAPIDictWrapper):
         apiresource['admin_state'] = \
             'UP' if apiresource['admin_state_up'] else 'DOWN'
         super(Port, self).__init__(apiresource)
+
+
+class Profile(QuantumAPIDictWrapper):
+    """Wrapper for quantum profiles"""
+    _attrs = ['profile_id', 'name', 'segment_type',
+             'segment_range', 'multicast_ip_index', 'multicast_ip_range']
+
+    def __init__(self, apiresource):
+        super(Profile, self).__init__(apiresource)
+        #apiresource['id'] = apiresource['id']
 
 
 class Router(NeutronAPIDictWrapper):
@@ -446,7 +458,9 @@ def network_create(request, **kwargs):
     :returns: Subnet object
     """
     LOG.debug("network_create(): kwargs = %s" % kwargs)
-    body = {'network': kwargs}
+    if 'n1kv_profile_id' in kwargs:
+        kwargs[n1kv_profile.PROFILE_ID] = kwargs.pop('n1kv_profile_id')
+   body = {'network': kwargs}
     network = neutronclient(request).create_network(body=body).get('network')
     return Network(network)
 
@@ -536,6 +550,8 @@ def port_create(request, network_id, **kwargs):
     :returns: Port object
     """
     LOG.debug("port_create(): netid=%s, kwargs=%s" % (network_id, kwargs))
+    if 'n1kv_profile_id' in kwargs:
+        kwargs[n1kv_profile.PROFILE_ID] = kwargs.pop('n1kv_profile_id')
     body = {'port': {'network_id': network_id}}
     body['port'].update(kwargs)
     port = neutronclient(request).create_port(body=body).get('port')
@@ -552,6 +568,47 @@ def port_modify(request, port_id, **kwargs):
     body = {'port': kwargs}
     port = neutronclient(request).update_port(port_id, body=body).get('port')
     return Port(port)
+
+
+def profile_list(request, type_p, **params):
+    LOG.debug("profile_list(): profile_type=%s params=%s" % (type_p, params))
+    if (type_p == 'network'):
+        profiles = neutronclient(request).list_network_profiles(**params).get('network_profiles')
+    elif (type_p == 'policy'):
+        profiles = neutronclient(request).list_policy_profiles(**params).get('policy_profiles')
+    return [Profile(n) for n in profiles]
+
+def profile_get(request, profile_id, **params):
+    LOG.debug("profile_get(): profileid=%s, params=%s" % (profile_id, params))
+    profile = neutronclient(request).show_network_profile(profile_id, 
+                                                          **params).get('network_profile')
+    return Profile(profile)
+
+def profile_create(request, **kwargs):
+    LOG.debug("profile_create(): kwargs=%s" % kwargs)
+    body = {'network_profile': {}}
+    body['network_profile'].update(kwargs)
+    profile = neutronclient(request).create_network_profile(body=body).get('network_profile')
+    return Profile(profile)
+
+def profile_delete(request, profile_id):
+    LOG.debug("profile_delete(): profile_id=%s" % profile_id)
+    neutronclient(request).delete_network_profile(profile_id)#.get('network_profile')
+
+def profile_modify(request, profile_id, **kwargs):
+    LOG.debug("profile_modify(): profileid=%s, kwargs=%s" % (profile_id, kwargs))
+    body = {'network_profile': kwargs}
+    profile = neutronclient(request).update_network_profile(profile_id, body=body).get('network_profile')
+    return Profile(profile)
+
+def profile_bindings_list(request, type_p, **params):
+    LOG.debug("profile_bindings_list(): profile_type=%s params=%s" % 
+              (type_p, params))
+    if (type_p == 'network'):
+        bindings = neutronclient(request).list_network_profile_bindings(**params).get('network_profile_bindings')
+    elif (type_p == 'policy'):
+        bindings = neutronclient(request).list_policy_profile_bindings(**params).get('policy_profile_bindings')
+    return [Profile(n) for n in bindings]
 
 
 def router_create(request, **kwargs):

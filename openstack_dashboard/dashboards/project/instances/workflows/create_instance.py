@@ -443,6 +443,10 @@ class SetNetworkAction(workflows.Action):
                                                 " be specified.")},
                                         help_text=_("Launch instance with"
                                                     " these networks"))
+    profile = forms.ChoiceField(label=_("Policy Profiles"),
+                                         required=False,
+                                         help_text=_("Launch instance with "
+                                                     "this policy profile"))
 
     class Meta:
         name = _("Networking")
@@ -462,11 +466,23 @@ class SetNetworkAction(workflows.Action):
                               _('Unable to retrieve networks.'))
         return network_list
 
+    def populate_profile_choices(self, request, context):
+        try:
+            profiles = api.neutron.profile_list(request, 'policy')
+#            for p in profiles:
+#                p.set_id_as_name_if_empty()
+            profile_list = [(p.id, p.name) for p in profiles]
+        except:
+            profile_list = []
+            exceptions.handle(request, _("Unable to retrieve profiles."))
+        return profile_list
 
+ 
 class SetNetwork(workflows.Step):
     action_class = SetNetworkAction
-    template_name = "project/instances/_update_networks.html"
-    contributes = ("network_id",)
+    #Commented out the next line in Grizzly till drag/drop issue is fixed.
+    #template_name = "project/instances/_update_networks.html"
+    contributes = ("network_id", "profile_id",)
 
     def contribute(self, data, context):
         if data:
@@ -476,6 +492,7 @@ class SetNetwork(workflows.Step):
             networks = [n for n in networks if n != '']
             if networks:
                 context['network_id'] = networks
+            context['profile_id'] = data.get('profile', None)
         return context
 
 
@@ -518,8 +535,20 @@ class LaunchInstance(workflows.Workflow):
         else:
             dev_mapping = None
 
+        # Create port with Network Name and Port Profile
+        # quantum port-create <Network name> --n1kv:profile <Port Profile ID>
+        #for net_id in context['network_id']:
+
+        ## HACK: for now use first network
+        net_id = context['network_id'][0]
+        LOG.debug("Horizon->Create Port with %s %s" %
+                  (net_id,context['profile_id']))
+        port = api.neutron.port_create(request, net_id,
+                                       n1kv_profile_id=context['profile_id'])
         netids = context.get('network_id', None)
-        if netids:
+        if port.id:
+            nics = [{"port-id":port.id}]
+        elif netids:
             nics = [{"net-id": netid, "v4-fixed-ip": ""}
                     for netid in netids]
         else:
