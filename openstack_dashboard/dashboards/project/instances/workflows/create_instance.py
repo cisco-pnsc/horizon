@@ -464,7 +464,8 @@ class SetNetworkAction(workflows.Action):
 
 class SetNetwork(workflows.Step):
     action_class = SetNetworkAction
-    template_name = "project/instances/_update_networks.html"
+    #Commented out the next line in Grizzly till drag/drop issue is fixed.
+    #template_name = "project/instances/_update_networks.html"
     contributes = ("network_id", "profile_id")
 
     def contribute(self, data, context):
@@ -517,25 +518,26 @@ class LaunchInstance(workflows.Workflow):
         else:
             dev_mapping = None
 
+        # Create port with Network Name and Port Profile
+        # quantum port-create <Network name> --n1kv:profile <Port Profile ID>
+        #for net_id in context['network_id']:
+
+        ## HACK: for now use first network
+        net_id = context['network_id'][0]
+        LOG.debug("Horizon->Create Port with %s %s" %
+                  (net_id,context['profile_id']))
+        port = api.quantum.port_create(request, net_id,
+                                       n1kv_profile_id=context['profile_id'])
         netids = context.get('network_id', None)
-        if netids:
+        if port.id:
+            nics = [{"port-id":port.id}]
+        elif netids:
             nics = [{"net-id": netid, "v4-fixed-ip": ""}
                     for netid in netids]
         else:
             nics = None
 
         try:
-            # Create port with Network Name and Port Profile
-            # quantum port-create <Network name> --n1kv:profile <Port Profile ID>
-            #for net_id in context['network_id']:
-
-            ## HACK: for now use first network
-            net_id = context['network_id'][0]
-            LOG.debug("Horizon->Create Port with %s %s" %
-                          (net_id,context['profile_id']))
-            port = api.quantum.port_create(request, net_id,
-                    n1kv_profile_id=context['profile_id'])
-
             api.nova.server_create(request,
                                    context['name'],
                                    context['source_id'],
@@ -545,8 +547,7 @@ class LaunchInstance(workflows.Workflow):
                                    context['security_group_ids'],
                                    dev_mapping,
                                    nics=nics,
-                                   instance_count=int(context['count']),
-                                   meta={'port_id':port.id})
+                                   instance_count=int(context['count']))
             return True
         except:
             exceptions.handle(request)
