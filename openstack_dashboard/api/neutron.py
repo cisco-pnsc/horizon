@@ -87,8 +87,8 @@ class Port(NeutronAPIDictWrapper):
         super(Port, self).__init__(apiresource)
 
 
-class Profile(QuantumAPIDictWrapper):
-    """Wrapper for quantum profiles"""
+class Profile(NeutronAPIDictWrapper):
+    """Wrapper for neutron profiles"""
     _attrs = ['profile_id', 'name', 'segment_type',
              'segment_range', 'multicast_ip_index', 'multicast_ip_range']
 
@@ -460,7 +460,7 @@ def network_create(request, **kwargs):
     LOG.debug("network_create(): kwargs = %s" % kwargs)
     if 'n1kv_profile_id' in kwargs:
         kwargs[n1kv_profile.PROFILE_ID] = kwargs.pop('n1kv_profile_id')
-   body = {'network': kwargs}
+    body = {'network': kwargs}
     network = neutronclient(request).create_network(body=body).get('network')
     return Network(network)
 

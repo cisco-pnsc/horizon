@@ -1,8 +1,26 @@
-__author__ = 'ssudakov'
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2013 Cisco Systems, Inc.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+#
+# @author: Abishek Subramanian, Cisco Systems, Inc.
+# @author: Sergey Sudakovich,   Cisco Systems, Inc.
 
 from django.utils.translation import ugettext as _
 
 from horizon import tabs
+
 
 class NetworkProfileTab(tabs.Tab):
     name = _("Network Profile")
@@ -18,6 +36,7 @@ class PolicyProfileTab(tabs.Tab):
     slug = "policy_profile"
     template_name = 'cisco/nexus1000v/policy_profile/index.html'
     preload = False
+
 
 class IndexTabs(tabs.TabGroup):
     slug = "indextabs"

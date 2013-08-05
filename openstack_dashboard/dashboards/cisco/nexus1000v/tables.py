@@ -1,3 +1,22 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2013 Cisco Systems, Inc.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+#
+# @author: Abishek Subramanian, Cisco Systems, Inc.
+# @author: Sergey Sudakovich,   Cisco Systems, Inc.
+
 import logging
 
 from django.core.urlresolvers import reverse
@@ -8,14 +27,8 @@ from horizon import tables
 
 from openstack_dashboard import api
 
-from .forms import CreateNetworkProfile
-
-# from openstack_dashboard import api
-
-__author__ = "Sergey Sudakovich", "Abishek Subramanian"
-__email__ = "ssudakov@cisco.com", "absubram@cisco.com"
-
 LOG = logging.getLogger(__name__)
+
 
 class CreateNetworkProfile(tables.LinkAction):
     name = "create"
@@ -23,13 +36,14 @@ class CreateNetworkProfile(tables.LinkAction):
     url = "horizon:cisco:nexus1000v:create_network_profile"
     classes = ("ajax-modal", "btn-create")
 
+
 class DeleteNetworkProfile(tables.DeleteAction):
     data_type_singular = _("Network Profile")
     data_type_plural = _("Netork Profiles")
 
     def delete(self, request, obj_id):
         try:
-            api.quantum.profile_delete(request, obj_id)
+            api.neutron.profile_delete(request, obj_id)
         except:
             msg = _('Failed to delete network profile %s') % obj_id
             LOG.info(msg)
@@ -48,16 +62,20 @@ class NetworkProfile(tables.DataTable):
     id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
     name = tables.Column("name", verbose_name=_("Network Profile"), )
     tenant = tables.Column("tenant_name", verbose_name=_("Tenant"))
-    segment_type = tables.Column("segment_type", verbose_name=_("Segment Type"))
-    segment_range = tables.Column("segment_range", verbose_name=_("Segment Range"))
-    multicast_ip_range = tables.Column("multicast_ip_range", verbose_name=_("Multicast IP Range"))
-    physical_network = tables.Column("physical_network", verbose_name=_("Physical Network Name"))
+    segment_type = tables.Column("segment_type",
+                                 verbose_name=_("Segment Type"))
+    segment_range = tables.Column("segment_range",
+                                  verbose_name=_("Segment Range"))
+    multicast_ip_range = tables.Column("multicast_ip_range",
+                                       verbose_name=_("Multicast IP Range"))
+    physical_network = tables.Column("physical_network",
+                                     verbose_name=_("Physical Network Name"))
 
     class Meta:
         name = "network_profile"
         verbose_name = _("Network Profile")
         table_actions = (CreateNetworkProfile, DeleteNetworkProfile,)
-        row_actions = (EditNetworkProfile,DeleteNetworkProfile,)
+        row_actions = (EditNetworkProfile, DeleteNetworkProfile,)
 
 
 class EditPolicyProfile(tables.LinkAction):
@@ -75,4 +93,3 @@ class PolicyProfile(tables.DataTable):
     class Meta:
         name = "policy_profile"
         verbose_name = _("Policy Profile")
-#        row_actions = (EditPolicyProfile,)
