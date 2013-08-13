@@ -68,7 +68,7 @@ class CreateNetworkInfoAction(workflows.Action):
 
                                         
     class Meta:
-        name = ("Network")
+        name = _("Network")
         help_text = _("From here you can create a new network.\n"
                       "In addition a subnet associated with the network "
                       "can be created in the next panel.")
@@ -114,7 +114,7 @@ class CreateSubnetInfoAction(workflows.Action):
                                     initial=False, required=False)
 
     class Meta:
-        name = ("Subnet")
+        name = _("Subnet")
         help_text = _('You can create a subnet associated with the new '
                       'network, in which case "Network Address" must be '
                       'specified. If you wish to create a network WITHOUT a '
@@ -190,7 +190,7 @@ class CreateSubnetDetailAction(workflows.Action):
         required=False)
 
     class Meta:
-        name = ("Subnet Detail")
+        name = _("Subnet Detail")
         help_text = _('You can specify additional attributes for the subnet.')
 
     def _convert_ip_address(self, ip, field_name):
