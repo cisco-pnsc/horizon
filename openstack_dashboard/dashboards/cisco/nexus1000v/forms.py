@@ -81,6 +81,8 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
 
     def handle(self, request, data):
         try:
+            LOG.error('ABISHEK HEREEEEE')
+
             profile = api.neutron.profile_create(request,
                                                  name=data['name'],
                                                  #profile_type='network',

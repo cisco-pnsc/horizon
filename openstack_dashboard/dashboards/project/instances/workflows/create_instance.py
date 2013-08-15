@@ -443,10 +443,11 @@ class SetNetworkAction(workflows.Action):
                                                 " be specified.")},
                                         help_text=_("Launch instance with"
                                                     " these networks"))
-    profile = forms.ChoiceField(label=_("Policy Profiles"),
-                                         required=False,
-                                         help_text=_("Launch instance with "
-                                                     "this policy profile"))
+    if (api.neutron.CISCO_N1K == True):
+        profile = forms.ChoiceField(label=_("Policy Profiles"),
+                                    required=False,
+                                    help_text=_("Launch instance with "
+                                                "this policy profile"))
 
     class Meta:
         name = _("Networking")
@@ -481,8 +482,11 @@ class SetNetworkAction(workflows.Action):
 class SetNetwork(workflows.Step):
     action_class = SetNetworkAction
     #Commented out the next line in Grizzly till drag/drop issue is fixed.
-    #template_name = "project/instances/_update_networks.html"
-    contributes = ("network_id", "profile_id",)
+    if (api.neutron.CISCO_N1K == False):
+        template_name = "project/instances/_update_networks.html"
+        contributes = ("network_id",)
+    elif (api.neutron.CISCO_N1K == True):
+        contributes = ("network_id", "profile_id",)
 
     def contribute(self, data, context):
         if data:
@@ -492,7 +496,9 @@ class SetNetwork(workflows.Step):
             networks = [n for n in networks if n != '']
             if networks:
                 context['network_id'] = networks
-            context['profile_id'] = data.get('profile', None)
+
+            if (api.neutron.CISCO_N1K == True):
+                context['profile_id'] = data.get('profile', None)
         return context
 
 
@@ -540,17 +546,20 @@ class LaunchInstance(workflows.Workflow):
         #for net_id in context['network_id']:
 
         ## HACK: for now use first network
-        net_id = context['network_id'][0]
-        LOG.debug("Horizon->Create Port with %s %s" %
-                  (net_id,context['profile_id']))
-        port = api.neutron.port_create(request, net_id,
-                                       n1kv_profile_id=context['profile_id'])
+        if (api.neutron.CISCO_N1K == True):
+            net_id = context['network_id'][0]
+            LOG.debug("Horizon->Create Port with %s %s" %
+                      (net_id,context['profile_id']))
+            port = api.neutron.port_create(request, net_id,
+                                           n1kv_profile_id=context['profile_id'])
         netids = context.get('network_id', None)
-        if port.id:
-            nics = [{"port-id":port.id}]
-        elif netids:
-            nics = [{"net-id": netid, "v4-fixed-ip": ""}
-                    for netid in netids]
+        if (api.neutron.CISCO_N1K == True):
+           if port.id:
+               nics = [{"port-id":port.id}]
+        elif (api.neutron.CISCO_N1K == False):
+            if netids:
+                nics = [{"net-id": netid, "v4-fixed-ip": ""}
+                        for netid in netids]
         else:
             nics = None
 

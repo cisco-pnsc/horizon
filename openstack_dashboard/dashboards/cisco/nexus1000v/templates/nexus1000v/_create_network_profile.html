@@ -9,18 +9,18 @@
 {% block modal-header %}{% trans "Create Network Profile" %}{% endblock %}
 
 {% block modal-body %}
-    <div class="left">
-        <fieldset>
-            {% include "horizon/common/_form_fields.html" %}
-        </fieldset>
-    </div>
-    <div class="right">
-        <h3>{% trans "Description" %}:</h3>
-        <p>{% trans "Select a name for your network."%}</p>
-    </div>
+<div class="left">
+    <fieldset>
+    {% include "horizon/common/_form_fields.html" %}
+    </fieldset>
+</div>
+<div class="right">
+    <h3>{% trans "Description" %}:</h3>
+    <p>{% trans "Select a name for your network."%}</p>
+</div>
 {% endblock %}
 
 {% block modal-footer %}
-    <input class="btn btn-primary pull-right" type="submit" value="{% trans "Create Network Profile" %}" />
+    <input class="btn btn-primary pull-right" type="submit" value="{% trans "Create Network Profle" %}" />
     <a href="{% url horizon:cisco:nexus1000v:index %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
 {% endblock %}

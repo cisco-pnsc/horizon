@@ -35,7 +35,8 @@ class CreateNetwork(forms.SelfHandlingForm):
                            label=_("Name"),
                            required=False)
     tenant_id = forms.ChoiceField(label=_("Project"))
-    n1kv_profile_id = forms.ChoiceField(label=_("Network Profile"))
+    if (api.neutron.CISCO_N1K == True):
+        n1kv_profile_id = forms.ChoiceField(label=_("Network Profile"))
     admin_state = forms.BooleanField(label=_("Admin State"),
                                      initial=True, required=False)
     shared = forms.BooleanField(label=_("Shared"),
@@ -56,7 +57,9 @@ class CreateNetwork(forms.SelfHandlingForm):
                 tenant_choices.append((tenant.id, tenant.name))
         self.fields['tenant_id'].choices = tenant_choices
 
-        self.fields['n1kv_profile_id'].choices = self.get_network_profile_choices(request)
+        if (api.neutron.CISCO_N1K == True):
+            self.fields['n1kv_profile_id'].choices = \
+            self.get_network_profile_choices(request)
 
     def get_network_profile_choices(self,request):
         profile_choices = [('', _("Select a profile"))]
@@ -99,8 +102,9 @@ class CreateNetwork(forms.SelfHandlingForm):
                       'tenant_id': data['tenant_id'],
                       'admin_state_up': data['admin_state'],
                       'shared': data['shared'],
-                      'router:external': data['external'],
-                      'n1kv_profile_id': data['n1kv_profile_id']}
+                      'router:external': data['external']}
+            if (api.neutron.CISCO_N1K == True):
+                params['n1kv_profile_id'] =  data['n1kv_profile_id']
             network = api.neutron.network_create(request, **params)
             msg = _('Network %s was successfully created.') % data['name']
             LOG.debug(msg)

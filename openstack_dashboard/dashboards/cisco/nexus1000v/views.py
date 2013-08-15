@@ -45,7 +45,7 @@ LOG = logging.getLogger(__name__)
 def _get_tenant_list(request):
     tenants = []
     try:
-        tenants = api.keystone.tenant_list(request, admin=True)
+        tenants, has_more = api.keystone.tenant_list(request)
     except:
         tenants = []
         msg = _('Unable to retrieve instance tenant information.')

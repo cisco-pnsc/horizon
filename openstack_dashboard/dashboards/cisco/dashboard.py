@@ -17,6 +17,7 @@
 # @author: Abishek Subramanian, Cisco Systems, Inc.
 
 from django.utils.translation import ugettext_lazy as _
+from openstack_dashboard.api import neutron as neutron
 
 import horizon
 
@@ -35,4 +36,5 @@ class Cisco(horizon.Dashboard):
     permissions = ('openstack.roles.admin',)
 
 
-horizon.register(Cisco)
+if (neutron.CISCO_N1K == True):
+    horizon.register(Cisco)

@@ -27,18 +27,19 @@ from django.conf import settings
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
-from neutron.plugins.cisco.extensions import n1kv_profile as n1kv_profile
-
 from openstack_dashboard.api.base import APIDictWrapper
 from openstack_dashboard.api.base import url_for
 from openstack_dashboard.api import network_base
 from openstack_dashboard.api import nova
 
 from neutronclient.v2_0 import client as neutron_client
+from neutron.plugins.cisco.extensions import n1kv_profile as n1kv_profile
 
 LOG = logging.getLogger(__name__)
 
 IP_VERSION_DICT = {4: 'IPv4', 6: 'IPv6'}
+
+CISCO_N1K = True
 
 
 class NeutronAPIDictWrapper(APIDictWrapper):

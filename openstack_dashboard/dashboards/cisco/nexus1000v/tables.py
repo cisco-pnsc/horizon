@@ -86,7 +86,7 @@ class EditPolicyProfile(tables.LinkAction):
 
 
 class PolicyProfile(tables.DataTable):
-    id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
+    #id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
     name = tables.Column("name", verbose_name=_("Policy Profile"), )
     tenant_id = tables.Column("tenant_name", verbose_name=_("Tenant"))
 
