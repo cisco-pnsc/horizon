@@ -39,7 +39,7 @@ LOG = logging.getLogger(__name__)
 
 IP_VERSION_DICT = {4: 'IPv4', 6: 'IPv6'}
 
-CISCO_N1K = True
+CISCO_N1K = False
 
 
 class NeutronAPIDictWrapper(APIDictWrapper):
