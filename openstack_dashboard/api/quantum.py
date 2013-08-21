@@ -28,8 +28,6 @@ from django.utils.datastructures import SortedDict
 
 from horizon.conf import HORIZON_CONFIG
 
-from quantum.plugins.cisco.extensions import n1kv_profile as n1kv_profile
-
 from openstack_dashboard.api.base import APIDictWrapper, url_for
 from openstack_dashboard.api import network
 from openstack_dashboard.api import nova
@@ -286,8 +284,6 @@ def network_create(request, **kwargs):
     :returns: Subnet object
     """
     LOG.debug("network_create(): kwargs = %s" % kwargs)
-    if 'n1kv_profile_id' in kwargs:
-        kwargs[n1kv_profile.PROFILE_ID] = kwargs.pop('n1kv_profile_id')
     body = {'network': kwargs}
     network = quantumclient(request).create_network(body=body).get('network')
     return Network(network)
@@ -378,8 +374,6 @@ def port_create(request, network_id, **kwargs):
     :returns: Port object
     """
     LOG.debug("port_create(): netid=%s, kwargs=%s" % (network_id, kwargs))
-    if 'n1kv_profile_id' in kwargs:
-        kwargs[n1kv_profile.PROFILE_ID] = kwargs.pop('n1kv_profile_id')
     body = {'port': {'network_id': network_id}}
     body['port'].update(kwargs)
     port = quantumclient(request).create_port(body=body).get('port')
