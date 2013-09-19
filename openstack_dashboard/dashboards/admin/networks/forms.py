@@ -35,7 +35,8 @@ class CreateNetwork(forms.SelfHandlingForm):
                            label=_("Name"),
                            required=False)
     tenant_id = forms.ChoiceField(label=_("Project"))
-    n1kv_profile_id = forms.ChoiceField(label=_("Network Profile"))
+    if api.quantum.is_port_profiles_supported():
+        net_profile_id = forms.ChoiceField(label=_("Network Profile"))
     admin_state = forms.BooleanField(label=_("Admin State"),
                                      initial=True, required=False)
     shared = forms.BooleanField(label=_("Shared"),
@@ -54,7 +55,9 @@ class CreateNetwork(forms.SelfHandlingForm):
             if tenant.enabled:
                 tenant_choices.append((tenant.id, tenant.name))
         self.fields['tenant_id'].choices = tenant_choices
-        self.fields['n1kv_profile_id'].choices = self.get_network_profile_choices(request)
+        if api.quantum.is_port_profiles_supported():
+            self.fields['net_profile_id'].choices = (
+                self.get_network_profile_choices(request))
 
     def get_network_profile_choices(self,request):
         profile_choices = [('', _("Select a profile"))]
@@ -63,10 +66,10 @@ class CreateNetwork(forms.SelfHandlingForm):
         return profile_choices
 
     def _get_profiles(self, request, type_p):
+        profiles = []
         try:
             profiles = api.quantum.profile_list(request, type_p)
-        except:
-            profiles = []
+        except Exception:
             msg = _('Network Profiles could not be retrieved.')
             exceptions.handle(request, msg)
         if profiles:
@@ -97,8 +100,9 @@ class CreateNetwork(forms.SelfHandlingForm):
                       'tenant_id': data['tenant_id'],
                       'admin_state_up': data['admin_state'],
                       'shared': data['shared'],
-                      'router:external': data['external'],
-                      'n1kv_profile_id': data['n1kv_profile_id']}
+                      'router:external': data['external']}
+            if api.quantum.is_port_profiles_supported():
+                params['net_profile_id'] = data['net_profile_id']
             network = api.quantum.network_create(request, **params)
             msg = _('Network %s was successfully created.') % data['name']
             LOG.debug(msg)

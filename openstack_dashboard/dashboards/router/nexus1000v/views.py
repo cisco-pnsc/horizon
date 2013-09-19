@@ -1,23 +1,38 @@
-__author__ = "Sergey Sudakovich", "Abishek Subramanian"
-__email__ = "ssudakov@cisco.com", "absubram@cisco.com"
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+#
+# @author: Abishek Subramanian, Cisco Systems, Inc.
+# @author: Sergey Sudakovich,   Cisco Systems, Inc.
 
 import logging
 
-from django.core.urlresolvers import reverse_lazy
-from django.utils.datastructures import SortedDict
+from django.core import urlresolvers
+from django.utils import datastructures
 from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
 from horizon import tables
 from horizon import tabs
-from horizon import views
 
 from openstack_dashboard import api
 
-from .forms import CreateNetworkProfile, UpdateNetworkProfile
-from .tables import NetworkProfile, PolicyProfile
-from .tabs import IndexTabs
+from openstack_dashboard.dashboards.router.nexus1000v \
+    import forms as profileforms
+from openstack_dashboard.dashboards.router.nexus1000v \
+    import tables as profiletables
+
 
 LOG = logging.getLogger(__name__)
 
@@ -26,20 +41,17 @@ def _get_tenant_list(request):
     tenants = []
     try:
         tenants = api.keystone.tenant_list(request, admin=True)
-    except:
-        tenants = []
-        msg = _('Unable to retrieve instance tenant information.')
+    except Exception:
+        msg = _('Unable to retrieve project information.')
         exceptions.handle(request, msg)
 
-    tenant_dict = SortedDict([(t.id, t) for t in tenants])
-    tenants = tenant_dict
-    return tenants
+    return datastructures.SortedDict([(t.id, t) for t in tenants])
 
 
 def _get_profiles(request, type_p):
     try:
         profiles = api.quantum.profile_list(request, type_p)
-    except:
+    except Exception:
         profiles = []
         msg = _('Network Profiles could not be retrieved.')
         exceptions.handle(request, msg)
@@ -56,62 +68,54 @@ def _get_profiles(request, type_p):
 #            p.set_id_as_name_if_empty()
     return profiles
 
-#class NetworkProfileIndexView(tabs.TableTab):
 class NetworkProfileIndexView(tables.DataTableView):
-    table_class = NetworkProfile
-    template_name = 'cisco/nexus1000v/network_profile/index.html'
+    table_class = profiletables.NetworkProfile
+    template_name = 'router/nexus1000v/network_profile/index.html'
 
     def get_data(self):
         return _get_profiles(self.request, 'network')
 
 
-
-#class PolicyProfileIndexView(tabs.TableTab):
 class PolicyProfileIndexView(tables.DataTableView):
-    table_class = PolicyProfile
-    template_name = 'cisco/nexus1000v/policy_profile/index.html'
+    table_class = profiletables.PolicyProfile
+    template_name = 'router/nexus1000v/policy_profile/index.html'
 
     def get_data(self):
         return _get_profiles(self.request, 'policy')
+
 
 class IndexTabGroup(tabs.TabGroup):
     slug = "group"
     tabs = (NetworkProfileIndexView, PolicyProfileIndexView,)
 
-#class IndexView(tabs.TabbedTableView):
-#    tab_group_class = IndexTabs
-#    template_name = 'syspanel/nexus1000v/index.html'
-#
-#    def get_network_profile_data(self):
-#        return _get_profiles('network')
-#
-#    def get_policy_profile_data(self):
-#        return _get_profiles('policy')
 
 class IndexView(tables.MultiTableView):
-    table_classes = (NetworkProfile, PolicyProfile,)
-    template_name = 'cisco/nexus1000v/index.html'
+    table_classes = (profiletables.NetworkProfile,
+                     profiletables.PolicyProfile,)
+    template_name = 'router/nexus1000v/index.html'
 
     def get_network_profile_data(self):
-        return _get_profiles(self.request,'network')
+        return _get_profiles(self.request, 'network')
 
     def get_policy_profile_data(self):
-        return _get_profiles(self.request,'policy')
+        return _get_profiles(self.request, 'policy')
 
 
 class CreateNetworkProfileView(forms.ModalFormView):
-    form_class = CreateNetworkProfile
-    template_name = 'cisco/nexus1000v/create_network_profile.html'
-    success_url = reverse_lazy('horizon:cisco:nexus1000v:index')
+    form_class = profileforms.CreateNetworkProfile
+    template_name = 'router/nexus1000v/create_network_profile.html'
+    success_url = urlresolvers.reverse_lazy('horizon:router:nexus1000v:index')
+
 
 class UpdateNetworkProfileView(forms.ModalFormView):
-    form_class = UpdateNetworkProfile
-    template_name = 'cisco/nexus1000v/update_network_profile.html'
+    form_class = profileforms.UpdateNetworkProfile
+    template_name = 'router/nexus1000v/update_network_profile.html'
     context_object_name = 'network_profile'
-    success_url = reverse_lazy('horizon:cisco:nexus1000v:index')
+    success_url = urlresolvers.reverse_lazy('horizon:router:nexus1000v:index')
 
     def get_context_data(self, **kwargs):
-        context = super(UpdateNetworkProfileView, self).get_context_data(**kwargs)
+        context = super(UpdateNetworkProfileView,
+                        self).get_context_data(**kwargs)
         context["profile_id"] = self.kwargs['profile_id']
         return context
 
@@ -119,9 +123,10 @@ class UpdateNetworkProfileView(forms.ModalFormView):
         if not hasattr(self, "_object"):
             profile_id = self.kwargs['profile_id']
             try:
-                self._object = api.quantum.profile_get(self.request, profile_id)
-                LOG.debug("_object=%s" % self._object)
-            except:
+                self._object = api.quantum.profile_get(self.request,
+                                                       profile_id)
+                LOG.debug(_("Network Profile object=%s") % self._object)
+            except Exception:
                 redirect = self.success_url
                 msg = _('Unable to retrieve network profile details.')
                 exceptions.handle(self.request, msg, redirect=redirect)
@@ -131,9 +136,7 @@ class UpdateNetworkProfileView(forms.ModalFormView):
         profile = self._get_object()
         return {'profile_id': profile['id'],
                 'name': profile['name'],
-                #'tenant_id': profile['tenant_id'],
                 'segment_range': profile['segment_range'],
                 'segment_type': profile['segment_type'],
                 'physical_network': profile['physical_network']}
-                #'profile_type': profile['profile_type']}
 

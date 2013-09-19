@@ -24,7 +24,9 @@ from __future__ import absolute_import
 import logging
 
 from quantumclient.v2_0 import client as quantum_client
+from django.conf import settings
 from django.utils.datastructures import SortedDict
+from django.utils.translation import ugettext_lazy as _
 
 from horizon.conf import HORIZON_CONFIG
 
@@ -90,7 +92,6 @@ class Profile(QuantumAPIDictWrapper):
 
     def __init__(self, apiresource):
         super(Profile, self).__init__(apiresource)
-        #apiresource['id'] = apiresource['id']
 
 
 class Router(QuantumAPIDictWrapper):
@@ -284,8 +285,9 @@ def network_create(request, **kwargs):
     :returns: Subnet object
     """
     LOG.debug("network_create(): kwargs = %s" % kwargs)
-    if 'n1kv_profile_id' in kwargs: 
-        kwargs['n1kv:profile_id'] = kwargs.pop('n1kv_profile_id')
+    # In the case network profiles are being used, profile id is needed.
+    if 'net_profile_id' in kwargs: 
+        kwargs['n1kv:profile_id'] = kwargs.pop('net_profile_id')
     body = {'network': kwargs}
     network = quantumclient(request).create_network(body=body).get('network')
     return Network(network)
@@ -376,8 +378,9 @@ def port_create(request, network_id, **kwargs):
     :returns: Port object
     """
     LOG.debug("port_create(): netid=%s, kwargs=%s" % (network_id, kwargs))
-    if 'n1kv_profile_id' in kwargs: 
-        kwargs['n1kv:profile_id'] = kwargs.pop('n1kv_profile_id')
+    # In the case policy profiles are being used, profile id is needed.
+    if 'policy_profile_id' in kwargs: 
+        kwargs['n1kv:profile_id'] = kwargs.pop('policy_profile_id')
     body = {'port': {'network_id': network_id}}
     body['port'].update(kwargs)
     port = quantumclient(request).create_port(body=body).get('port')
@@ -397,42 +400,56 @@ def port_modify(request, port_id, **kwargs):
 
 
 def profile_list(request, type_p, **params):
-    LOG.debug("profile_list(): profile_type=%s params=%s" % (type_p, params))
-    if (type_p == 'network'):
-        profiles = quantumclient(request).list_network_profiles(**params).get('network_profiles')
-    elif (type_p == 'policy'):
-        profiles = quantumclient(request).list_policy_profiles(**params).get('policy_profiles')
+    LOG.debug(_("profile_list(): "
+                "profile_type=%(profile_type)s params=%(params)s"),
+              {'profile_type': type_p, 'params': params})
+    if type_p == 'network':
+        profiles = quantumclient(request).list_network_profiles(
+            **params).get('network_profiles')
+    elif type_p == 'policy':
+        profiles = quantumclient(request).list_policy_profiles(
+            **params).get('policy_profiles')
     return [Profile(n) for n in profiles]
 
 def profile_get(request, profile_id, **params):
-    LOG.debug("profile_get(): profileid=%s, params=%s" % (profile_id, params))
-    profile = quantumclient(request).show_network_profile(profile_id, **params).get('network_profile')
+    LOG.debug(_("profile_get(): "
+                "profileid=%(profileid)s, params=%(params)s"),
+              {'profileid': profile_id, 'params': params})
+    profile = quantumclient(request).show_network_profile(
+        profile_id, **params).get('network_profile')
     return Profile(profile)
 
 def profile_create(request, **kwargs):
-    LOG.debug("profile_create(): kwargs=%s" % kwargs)
+    LOG.debug(_("profile_create(): kwargs=%s") % kwargs)
     body = {'network_profile': {}}
     body['network_profile'].update(kwargs)
-    profile = quantumclient(request).create_network_profile(body=body).get('network_profile')
+    profile = quantumclient(request).create_network_profile(
+        body=body).get('network_profile')
     return Profile(profile)
 
 def profile_delete(request, profile_id):
-    LOG.debug("profile_delete(): profile_id=%s" % profile_id)
-    quantumclient(request).delete_network_profile(profile_id)#.get('network_profile')
+    LOG.debug(_("profile_delete(): profile_id=%s") % profile_id)
+    quantumclient(request).delete_network_profile(profile_id)
 
 def profile_modify(request, profile_id, **kwargs):
-    LOG.debug("profile_modify(): profileid=%s, kwargs=%s" % (profile_id, kwargs))
+    LOG.debug(_("profile_modify(): "
+                "profileid=%(profileid)s, kwargs=%(kwargs)s"),
+              {'profileid': profile_id, 'kwargs': kwargs})
     body = {'network_profile': kwargs}
-    profile = quantumclient(request).update_network_profile(profile_id, body=body).get('network_profile')
+    profile = quantumclient(request).update_network_profile(
+        profile_id, body=body).get('network_profile')
     return Profile(profile)
 
 def profile_bindings_list(request, type_p, **params):
-    LOG.debug("profile_bindings_list(): profile_type=%s params=%s" % 
-              (type_p, params))
-    if (type_p == 'network'):
-        bindings = quantumclient(request).list_network_profile_bindings(**params).get('network_profile_bindings')
-    elif (type_p == 'policy'):
-        bindings = quantumclient(request).list_policy_profile_bindings(**params).get('policy_profile_bindings')
+    LOG.debug(_("profile_bindings_list(): "
+                "profile_type=%(profile_type)s params=%(params)s"),
+              {'profile_type': type_p, 'params': params})
+    if type_p == 'network':
+        bindings = quantumclient(request).list_network_profile_bindings(
+            **params).get('network_profile_bindings')
+    elif type_p == 'policy':
+        bindings = quantumclient(request).list_policy_profile_bindings(
+            **params).get('policy_profile_bindings')
     return [Profile(n) for n in bindings]
 
 
@@ -484,3 +501,21 @@ def router_add_gateway(request, router_id, network_id):
 
 def router_remove_gateway(request, router_id):
     quantumclient(request).remove_gateway_router(router_id)
+
+
+# Using this mechanism till a better plugin/sub-plugin detection
+# mechanism is available.
+# Using local_settings to detect if the "router" dashboard
+# should be turned on or not. When using specific plugins the
+# profile_support can be turned on if needed.
+# Since this is a temporary mechanism used to detect profile_support
+# @memorize is not being used. This is mainly used in the run_tests
+# environment to detect when to use profile_support neutron APIs.
+# TODO(absubram): Change this config variable check with
+# subplugin/plugin detection API when it becomes available.
+def is_port_profiles_supported():
+    #network_config = getattr(settings, 'OPENSTACK_NEUTRON_NETWORK', {})
+    # Can be used to check for vendor specific plugin
+    #profile_support = network_config.get('profile_support', None)
+    #if str(profile_support).lower() == 'cisco':
+    return True

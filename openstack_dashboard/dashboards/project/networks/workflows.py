@@ -42,30 +42,34 @@ class CreateNetworkInfoAction(workflows.Action):
                                help_text=_("Network Name. This field is "
                                            "optional."),
                                required=False)
-    n1kv_profile_id = forms.ChoiceField(label=_("Network Profile"))
+    if api.quantum.is_port_profiles_supported():
+        net_profile_id = forms.ChoiceField(label=_("Network Profile"))
     admin_state = forms.BooleanField(label=_("Admin State"),
                                      initial=True, required=False)
 
-    def __init__(self, request, *args, **kwargs):
-        super(CreateNetworkInfoAction, self).__init__(request, *args, **kwargs)
-        self.fields['n1kv_profile_id'].choices = self.get_network_profile_choices(request)
+    if api.quantum.is_port_profiles_supported():
+        def __init__(self, request, *args, **kwargs):
+            super(CreateNetworkInfoAction, self).__init__(request, 
+                                                          *args, **kwargs)
+            self.fields['n1kv_profile_id'].choices = (
+                self.get_network_profile_choices(request))
 
-    def get_network_profile_choices(self,request):
-        profile_choices = [('', _("Select a profile"))]
-        for profile in self._get_profiles(request, 'network'):
-            profile_choices.append((profile.id, profile.name))
-        return profile_choices
+            def get_network_profile_choices(self,request):
+                profile_choices = [('', _("Select a profile"))]
+                for profile in self._get_profiles(request, 'network'):
+                    profile_choices.append((profile.id, profile.name))
+                    return profile_choices
 
-    def _get_profiles(self, request, type_p):
-        try:
-            tenant_id = self.request.user.tenant_id
-            profiles = api.quantum.profile_list(request, type_p)
-        except:
-            profiles = []
-            msg = _('Network Profiles could not be retrieved.')
-            exceptions.handle(request, msg)
-        return profiles
-
+                def _get_profiles(self, request, type_p):
+                    try:
+                        profiles = api.quantum.profile_list(request, type_p)
+                    except:
+                        profiles = []
+                        msg = _('Network Profiles could not be retrieved.')
+                        exceptions.handle(request, msg)
+                    return profiles
+    # TODO(absubram): Add ability to view network profile information
+    # in the network detail if a profile is used.
                                         
     class Meta:
         name = _("Network")
@@ -77,7 +81,10 @@ class CreateNetworkInfoAction(workflows.Action):
 
 class CreateNetworkInfo(workflows.Step):
     action_class = CreateNetworkInfoAction
-    contributes = ("net_name", "admin_state", "n1kv_profile_id")
+    if api.quantum.is_port_profiles_supported():
+        contributes = ("net_name", "admin_state", "n1kv_profile_id")
+    else:
+        contributes = ("net_name", "admin_state")
 
 
 class CreateSubnetInfoAction(workflows.Action):
@@ -284,8 +291,9 @@ class CreateNetwork(workflows.Workflow):
     def _create_network(self, request, data):
         try:
             params = {'name': data['net_name'],
-                      'admin_state_up': data['admin_state'],
-                      'n1kv_profile_id': data['n1kv_profile_id']}
+                      'admin_state_up': data['admin_state']}
+            if api.quantum.is_port_profiles_supported():
+                params['net_profile_id'] = data['net_profile_id']
             network = api.quantum.network_create(request, **params)
             network.set_id_as_name_if_empty()
             self.context['net_id'] = network.id

@@ -425,10 +425,11 @@ class SetNetworkAction(workflows.Action):
                                                 " be specified.")},
                                         help_text=_("Launch instance with"
                                                     "these networks"))
-    profile = forms.ChoiceField(label=_("Policy Profiles"),
-                                         required=False,
-                                         help_text=_("Launch instance with "
-                                                     "this policy profile"))
+    if api.quantum.is_port_profiles_supported():
+        profile = forms.ChoiceField(label=_("Policy Profiles"),
+                                    required=False,
+                                    help_text=_("Launch instance with "
+                                                "this policy profile"))
 
 
     class Meta:
@@ -438,7 +439,6 @@ class SetNetworkAction(workflows.Action):
 
     def populate_network_choices(self, request, context):
         try:
-            LOG.error("ABISHEK ABISHEK ABISHEK HERE TOO!!\n")
             tenant_id = self.request.user.tenant_id
             networks = api.quantum.network_list_for_tenant(request, tenant_id)
             for n in networks:
@@ -455,9 +455,8 @@ class SetNetworkAction(workflows.Action):
             profiles = api.quantum.profile_list(request, 'policy')
 #            for p in profiles:
 #                p.set_id_as_name_if_empty()
-            LOG.error("ABISHEK getting here!!")
-            profile_list = [(p.id, p.name) for p in profiles]
-        except:
+            profile_list = [(profile.id, profile.name) for profile in profiles]
+        except Exception:
             profile_list = []
             exceptions.handle(request, _("Unable to retrieve profiles."))
         return profile_list
@@ -465,9 +464,14 @@ class SetNetworkAction(workflows.Action):
 
 class SetNetwork(workflows.Step):
     action_class = SetNetworkAction
-    #Commented out the next line in Grizzly till drag/drop issue is fixed.
-    #template_name = "project/instances/_update_networks.html"
-    contributes = ("network_id", "profile_id")
+    # Disabling the template drag/drop only in the case port profiles
+    # are used till the issue with the drag/drop affecting the
+    # profile_id detection is fixed.
+    if api.quantum.is_port_profiles_supported():
+        contributes = ("network_id", "profile_id",)
+    else:
+        template_name = "project/instances/_update_networks.html"
+        contributes = ("network_id",)
 
     def contribute(self, data, context):
         if data:
@@ -477,7 +481,8 @@ class SetNetwork(workflows.Step):
             networks = [n for n in networks if n != '']
             if networks:
                 context['network_id'] = networks
-            context['profile_id'] = data.get('profile', None)
+            if api.quantum.is_port_profiles_supported():
+                context['profile_id'] = data.get('profile', None)
         return context
 
 
@@ -519,24 +524,32 @@ class LaunchInstance(workflows.Workflow):
         else:
             dev_mapping = None
 
-        # Create port with Network Name and Port Profile
-        # quantum port-create <Network name> --n1kv:profile <Port Profile ID>
-        #for net_id in context['network_id']:
-
-        ## HACK: for now use first network
-        net_id = context['network_id'][0]
-        LOG.debug("Horizon->Create Port with %s %s" %
-                  (net_id,context['profile_id']))
-        port = api.quantum.port_create(request, net_id,
-                                       n1kv_profile_id=context['profile_id'])
         netids = context.get('network_id', None)
-        if port.id:
-            nics = [{"port-id":port.id}]
-        elif netids:
+        if netids:
             nics = [{"net-id": netid, "v4-fixed-ip": ""}
                     for netid in netids]
         else:
             nics = None
+
+        # Create port with Network Name and Port Profile
+        # for the use with the plugin supporting port profiles.
+        # quantum port-create <Network name> --n1kv:profile <Port Profile ID>
+        # for net_id in context['network_id']:
+        ## HACK: for now use first network
+        if api.quantum.is_port_profiles_supported():
+            net_id = context['network_id'][0]
+            LOG.debug(_("Horizon->Create Port with %(netid)s %(profile_id)s"),
+                      {'netid': net_id, 'profile_id': context['profile_id']})
+            try:
+                port = api.quantum.port_create(request, net_id,
+                                               policy_profile_id=
+                                               context['profile_id'])
+            except Exception:
+                msg = (_('Port not created for profile-id (%s).') %
+                       context['profile_id'])
+                exceptions.handle(request, msg)
+            if port and port.id:
+                nics = [{"port-id": port.id}]
 
         try:
             api.nova.server_create(request,
