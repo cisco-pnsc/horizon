@@ -51,8 +51,6 @@ class CreateNetworkInfoAction(workflows.Action):
         def __init__(self, request, *args, **kwargs):
             super(CreateNetworkInfoAction, self).__init__(request, 
                                                           *args, **kwargs)
-            self.fields['n1kv_profile_id'].choices = (
-                self.get_network_profile_choices(request))
 
             def get_network_profile_choices(self,request):
                 profile_choices = [('', _("Select a profile"))]
@@ -60,14 +58,18 @@ class CreateNetworkInfoAction(workflows.Action):
                     profile_choices.append((profile.id, profile.name))
                     return profile_choices
 
-                def _get_profiles(self, request, type_p):
-                    try:
-                        profiles = api.quantum.profile_list(request, type_p)
-                    except:
-                        profiles = []
-                        msg = _('Network Profiles could not be retrieved.')
-                        exceptions.handle(request, msg)
-                    return profiles
+            def _get_profiles(self, request, type_p):
+                try:
+                    profiles = api.quantum.profile_list(request, type_p)
+                except:
+                    profiles = []
+                    msg = _('Network Profiles could not be retrieved.')
+                    exceptions.handle(request, msg)
+                return profiles
+
+            self.fields['n1kv_profile_id'].choices = (
+                self.get_network_profile_choices(request))
+
     # TODO(absubram): Add ability to view network profile information
     # in the network detail if a profile is used.
                                         
@@ -403,20 +405,3 @@ class CreateNetwork(workflows.Workflow):
         else:
             self._delete_network(request, network)
             return False
-
-        def _get_profiles(self, request, type_p):
-            try:
-                profiles = api.quantum.profile_list(request, type_p)
-            except:
-                profiles = []
-                msg = _('Network Profiles could not be retrieved.')
-                exceptions.handle(request, msg)
-                if profiles:
-                    return profiles
-
-        def get_network_profile_choices(self,request):
-            profile_choices = [('', _("Select a profile"))]
-            for profile in _get_profiles(request, 'network'):
-                profile_choices.append((profile.id, profile.name))
-                return profile_choices
-

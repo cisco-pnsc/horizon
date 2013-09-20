@@ -535,21 +535,23 @@ class LaunchInstance(workflows.Workflow):
         # for the use with the plugin supporting port profiles.
         # quantum port-create <Network name> --n1kv:profile <Port Profile ID>
         # for net_id in context['network_id']:
-        ## HACK: for now use first network
         if api.quantum.is_port_profiles_supported():
-            net_id = context['network_id'][0]
-            LOG.debug(_("Horizon->Create Port with %(netid)s %(profile_id)s"),
-                      {'netid': net_id, 'profile_id': context['profile_id']})
-            try:
-                port = api.quantum.port_create(request, net_id,
-                                               policy_profile_id=
-                                               context['profile_id'])
-            except Exception:
-                msg = (_('Port not created for profile-id (%s).') %
-                       context['profile_id'])
-                exceptions.handle(request, msg)
-            if port and port.id:
-                nics = [{"port-id": port.id}]
+            net_ids = context['network_id']
+            nics = []
+            for nid in net_ids:
+                LOG.debug(_("Horizon->Create Port with %(nid)s %(profile_id)s"),
+                          {'nid': nid, 'profile_id': context['profile_id']})
+                try:
+                    port = api.quantum.port_create(request, nid,
+                                                   policy_profile_id=
+                                                   context['profile_id'])
+                except Exception:
+                    msg = (_('Port not created for profile-id (%s).') %
+                           context['profile_id'])
+                    exceptions.handle(request, msg)
+
+                if port and port.id:
+                    nics.append({"port-id": port.id})
 
         try:
             api.nova.server_create(request,
