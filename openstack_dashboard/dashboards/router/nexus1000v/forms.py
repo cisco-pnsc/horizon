@@ -173,8 +173,8 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                                        (attrs={'class': 'switched',
                                                'data-switch-on': 'segtype',
                                                'data-segtype-vlan':
-                                                   _("Physical Network")}))
-                                               #'readonly': 'readonly'}))
+                                                   _("Physical Network"),
+                                               'readonly': 'readonly'}))
     multicast_ip_range = forms.CharField(max_length=30,
                                          label=_("Multicast IP Range"),
                                          required=False,
@@ -192,19 +192,18 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
             profile = api.quantum.profile_modify(request, 
                                                  data['profile_id'],
                                                  name=data['name'],
-                                                 segment_type=
-                                                 data['segment_type'],
                                                  segment_range=
                                                  data['segment_range'],
-                                                 physical_network=
-                                                 data['physical_network'])
+                                                 multicast_ip_range=
+                                                 data['multicast_ip_range'])
             msg = _('Network Profile %s '
                     'was successfully updated.') % data['profile_id']
             LOG.debug(msg)
             messages.success(request, msg)
             return profile
         except Exception:
-            LOG.error(_('Failed to update network profile (%s).') %
-                      data['profile_id'])
+            msg = _('Failed to update network profile '
+                    '(%s).') % data['profile_id']
+            LOG.error(msg)
             redirect = reverse('horizon:router:nexus1000v:index')
             exceptions.handle(request, msg, redirect=redirect)
