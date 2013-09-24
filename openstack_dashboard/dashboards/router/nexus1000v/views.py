@@ -64,9 +64,10 @@ def _get_profiles(request, type_p):
                 for b in bindings:
                     if (p.id == b.profile_id):
                         tenant = tenant_dict.get(b.tenant_id, None)
-                        p.tenant_name = getattr(tenant, 'name', None)
+                        p.project_name = getattr(tenant, 'name', None)
 #            p.set_id_as_name_if_empty()
     return profiles
+
 
 class NetworkProfileIndexView(tables.DataTableView):
     table_class = profiletables.NetworkProfile
@@ -134,9 +135,23 @@ class UpdateNetworkProfileView(forms.ModalFormView):
 
     def get_initial(self):
         profile = self._get_object()
+        if profile:
+            tenant_dict = _get_tenant_list(self.request)
+            bindings = api.quantum.profile_bindings_list(self.request,
+                                                         'network')
+            # Set tenant name
+            if bindings:
+                for b in bindings:
+                    if (profile.id == b.profile_id):
+                        tenant = tenant_dict.get(b.tenant_id, None)
+                        profile.project_name = getattr(tenant, 'name', None)
+
         return {'profile_id': profile['id'],
                 'name': profile['name'],
                 'segment_range': profile['segment_range'],
                 'segment_type': profile['segment_type'],
-                'physical_network': profile['physical_network']}
+                'physical_network': profile['physical_network'],
+                'sub_type': profile['sub_type'],
+                'multicast_ip_range': profile['multicast_ip_range']}
+                #'project': profile['project_name']}
 

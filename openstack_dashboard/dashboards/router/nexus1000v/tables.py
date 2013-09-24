@@ -56,7 +56,7 @@ class EditNetworkProfile(tables.LinkAction):
 
 
 class NetworkProfile(tables.DataTable):
-    id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
+    id = tables.Column("id", verbose_name=_("Profile ID"), hidden=True)
     name = tables.Column("name", verbose_name=_("Network Profile"), )
     project = tables.Column("project_name", verbose_name=_("Project"))
     segment_type = tables.Column("segment_type",
@@ -84,9 +84,9 @@ class EditPolicyProfile(tables.LinkAction):
 
 
 class PolicyProfile(tables.DataTable):
-    id = tables.Column("profile_id", verbose_name=_("Profile ID"), hidden=True)
+    id = tables.Column("id", verbose_name=_("Profile ID"), hidden=True)
     name = tables.Column("name", verbose_name=_("Policy Profile"), )
-    project_id = tables.Column("project_name", verbose_name=_("Project"))
+    project = tables.Column("project_name", verbose_name=_("Project"))
 
     class Meta:
         name = "policy_profile"

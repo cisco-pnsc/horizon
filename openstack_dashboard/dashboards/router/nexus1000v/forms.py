@@ -144,17 +144,46 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
     name = forms.CharField(max_length=255,
                            label=_("Name"), required=True)
     segment_type = forms.ChoiceField(label=_('Segment Type'),
-                                     choices=[('vlan', 'VLAN'),
-                                              ('vxlan', 'VXLAN')],
+                                     choices=[('vlan', _('VLAN')),
+                                              ('vxlan', _('OVERLAY')),
+                                              ('trunk', _('TRUNK'))],
                                      widget=forms.Select
-                                     (attrs={'class': 'switchable'}))
+                                     (attrs={'class': 'switchable',
+                                             'data-slug': 'segtype',
+                                             'readonly': 'readonly'}))
+    sub_type = forms.ChoiceField(label=_('Sub Type'),
+                                 choices=[('none', _('NONE')),
+                                          ('vlan', _('VLAN')),
+                                          ('unicast', _('ENHANCED')),
+                                          ('multicast', _('NATIVE VXLAN')),
+                                          ('other', _('OTHER'))],
+                                 required=False,
+                                 widget=forms.Select
+                                 (attrs={'class': 'switchable',
+                                         'data-slug': 'subtype',
+                                         'readonly': 'readonly'}))
     segment_range = forms.CharField(max_length=255,
                                     label=_("Segment Range"),
-                                    required=True)
+                                    required=True,
+                                    help_text=_("1-4093 for VLAN"))
     physical_network = forms.CharField(max_length=255,
                                        label=_("Physical Network"),
-                                       required=False)
-    project_id = forms.CharField(label=_("Project"), required=False)
+                                       required=False,
+                                       widget=forms.TextInput
+                                       (attrs={'class': 'switched',
+                                               'data-switch-on': 'segtype',
+                                               'data-segtype-vlan':
+                                                   _("Physical Network")}))
+                                               #'readonly': 'readonly'}))
+    multicast_ip_range = forms.CharField(max_length=30,
+                                         label=_("Multicast IP Range"),
+                                         required=False,
+                                         widget=forms.TextInput
+                                         (attrs={'class': 'switched',
+                                                 'data-switch-on': 'subtype',
+                                                 'data-subtype-multicast':
+                                                     _("Multicast IP Range")}))
+    project = forms.CharField(label=_("Project"), required=False)
 
     def handle(self, request, data):
         try:
