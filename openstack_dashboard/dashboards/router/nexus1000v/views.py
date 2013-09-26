@@ -144,14 +144,13 @@ class UpdateNetworkProfileView(forms.ModalFormView):
                 for b in bindings:
                     if (profile.id == b.profile_id):
                         tenant = tenant_dict.get(b.tenant_id, None)
-                        profile.project_name = getattr(tenant, 'name', None)
-
+                        project_name = getattr(tenant, 'name', None)
         return {'profile_id': profile['id'],
                 'name': profile['name'],
                 'segment_range': profile['segment_range'],
                 'segment_type': profile['segment_type'],
                 'physical_network': profile['physical_network'],
                 'sub_type': profile['sub_type'],
-                'multicast_ip_range': profile['multicast_ip_range']}
-                #'project': profile['project_name']}
+                'multicast_ip_range': profile['multicast_ip_range'],
+                'project': project_name}
 

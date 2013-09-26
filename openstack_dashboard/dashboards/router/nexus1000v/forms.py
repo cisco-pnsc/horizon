@@ -95,12 +95,12 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                             (attrs={'class': 'switched',
                                     'data-switch-on': 'subtype',
                                     'data-subtype-other': _("Other")}))
-    project_id = forms.ChoiceField(label=_("Project"), 
-                                   required=False)
+    project = forms.ChoiceField(label=_("Project"), 
+                                required=False)
 
     def __init__(self, request, *args, **kwargs):
         super(CreateNetworkProfile, self).__init__(request, *args, **kwargs)
-        self.fields['project_id'].choices = get_tenant_choices(request)
+        self.fields['project'].choices = get_tenant_choices(request)
 
 #    def clean(self):
 #        selected_type = self.cleaned_data['segment_type']
@@ -183,7 +183,8 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                                                  'data-switch-on': 'subtype',
                                                  'data-subtype-multicast':
                                                      _("Multicast IP Range")}))
-    project = forms.CharField(label=_("Project"), required=False)
+    project = forms.CharField(label=_("Project"), 
+                              required=False)
 
     def handle(self, request, data):
         try:
