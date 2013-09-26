@@ -515,8 +515,8 @@ def router_remove_gateway(request, router_id):
 # TODO(absubram): Change this config variable check with
 # subplugin/plugin detection API when it becomes available.
 def is_port_profiles_supported():
-    #network_config = getattr(settings, 'OPENSTACK_NEUTRON_NETWORK', {})
+    network_config = getattr(settings, 'OPENSTACK_QUANTUM_NETWORK', {})
     # Can be used to check for vendor specific plugin
-    #profile_support = network_config.get('profile_support', None)
-    #if str(profile_support).lower() == 'cisco':
-    return True
+    profile_support = network_config.get('profile_support', None)
+    if str(profile_support).lower() == 'cisco':
+        return True
