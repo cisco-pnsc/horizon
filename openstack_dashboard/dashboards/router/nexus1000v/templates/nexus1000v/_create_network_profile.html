@@ -15,7 +15,12 @@
     </div>
     <div class="right">
         <h3>{% trans "Description" %}:</h3>
-        <p>{% trans "Select a name for your network."%}</p>
+        <p>{% trans "Select a name for your network. <br>"%}</p>
+	<p>{% trans "<br>Segment types available are VLAN and OVERLAY <br>"%}</p>
+	<p>{% trans "<br>Sub types available are for the Overlay segment."%}</p>
+	<p>{% trans "Available sub-types for overlay: native, enhanced, other."%}</p>
+	<p>{% trans "Available sub-types for trunk: vlan."%}</p>
+	<p>{% trans "<br>Segment Ranges are 1-4093 for VLAN and above 5000 for enhanced overlay."%}</p>
     </div>
 {% endblock %}
 
