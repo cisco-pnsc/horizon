@@ -49,27 +49,25 @@ class CreateNetworkInfoAction(workflows.Action):
 
     if api.quantum.is_port_profiles_supported():
         def __init__(self, request, *args, **kwargs):
-            super(CreateNetworkInfoAction, self).__init__(request, 
+            super(CreateNetworkInfoAction, self).__init__(request,
                                                           *args, **kwargs)
-
-            def get_network_profile_choices(self,request):
-                profile_choices = [('', _("Select a profile"))]
-                for profile in self._get_profiles(request, 'network'):
-                    profile_choices.append((profile.id, profile.name))
-                    return profile_choices
-
-            def _get_profiles(self, request, type_p):
-                try:
-                    profiles = api.quantum.profile_list(request, type_p)
-                except:
-                    profiles = []
-                    msg = _('Network Profiles could not be retrieved.')
-                    exceptions.handle(request, msg)
-                return profiles
-
-            self.fields['n1kv_profile_id'].choices = (
+            self.fields['net_profile_id'].choices = (
                 self.get_network_profile_choices(request))
 
+        def get_network_profile_choices(self, request):
+            profile_choices = [('', _("Select a profile"))]
+            for profile in self._get_profiles(request, 'network'):
+                profile_choices.append((profile.id, profile.name))
+            return profile_choices
+
+        def _get_profiles(self, request, type_p):
+            try:
+                profiles = api.quantum.profile_list(request, type_p)
+            except Exception:
+                profiles = []
+                msg = _('Network Profiles could not be retrieved.')
+                exceptions.handle(request, msg)
+            return profiles
     # TODO(absubram): Add ability to view network profile information
     # in the network detail if a profile is used.
                                         
@@ -84,7 +82,7 @@ class CreateNetworkInfoAction(workflows.Action):
 class CreateNetworkInfo(workflows.Step):
     action_class = CreateNetworkInfoAction
     if api.quantum.is_port_profiles_supported():
-        contributes = ("net_name", "admin_state", "n1kv_profile_id")
+        contributes = ("net_name", "admin_state", "net_profile_id")
     else:
         contributes = ("net_name", "admin_state")
 
