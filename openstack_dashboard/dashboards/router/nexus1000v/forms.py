@@ -122,7 +122,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                                  sub_type=data['sub_type'],
                                                  multicast_ip_range=
                                                  data['multicast_ip_range'],
-                                                 tenant_id=data['project_id'])
+                                                 tenant_id=data['project'])
             msg = _('Network Profile %s '
                     'was successfully created.') % data['name']
             LOG.debug(msg)
