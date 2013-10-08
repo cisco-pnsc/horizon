@@ -33,7 +33,7 @@ def get_tenant_choices(request):
     tenant_choices = [('', _("Select a tenant"))]
     tenants = []
     try:
-        tenants = api.keystone.tenant_list(request)
+        tenants = api.keystone.tenant_list(request, admin=True)
     except Exception:
         msg = _('Projects could not be retrieved.')
         exceptions.handle(request, msg)
