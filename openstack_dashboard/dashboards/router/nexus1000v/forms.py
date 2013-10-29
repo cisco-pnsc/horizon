@@ -69,7 +69,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                          'data-slug': 'subtype'}))
     segment_range = forms.CharField(max_length=255,
                                     label=_("Segment Range"),
-                                    required=True,
+                                    required=False,
                                     help_text=_("1-4093 for VLAN"))
     # TODO(absubram): Update help text for VXLAN segment range value.
     physical_network = forms.CharField(max_length=255,
