@@ -234,6 +234,49 @@ class CreateSubnetDetail(workflows.Step):
     contributes = ("enable_dhcp", "allocation_pools",
                    "dns_nameservers", "host_routes")
 
+class CreateConfigProfileInfoAction(workflows.Action):
+    config_profile = forms.DynamicChoiceField(label = _("Config Profile"))
+    forwarding_mode = ''
+    gateway_mac = ''
+
+    class Meta:
+        name = _("Config Profile")
+        help_text = _('You can select a config profile for the network.')
+
+    def populate_config_profile_choices(self, request, context):
+        msg = "populate_config_profile_choices:request={1} context={0}".format(context, request)
+        LOG.debug(msg)
+        choices = api.cisco_dfa_rest.config_profile_list(request, context)
+        msg = "populate_config_profile_choices: choices = {0}".\
+                                            format(choices)
+        LOG.debug(msg)
+        self.fields['config_profile'].choices =  sorted(choices)
+        return sorted(choices)
+
+    def _forwarding_mode_get(self, cfg_profile):
+        fwd_mode = api.cisco_dfa_rest.config_profile_fwding_mode_get(cfg_profile)
+        return fwd_mode
+
+    def _gateway_mac_get(self):
+        fwd_mode = api.cisco_dfa_rest.gateway_mac_get()
+        return fwd_mode
+
+    def clean(self):
+        cleaned_data = super(CreateConfigProfileInfoAction, self).clean()
+        fwd_mode = self._forwarding_mode_get(
+                                       cleaned_data.get('config_profile'))
+        gw_mac = self._gateway_mac_get()
+        cleaned_data['forwarding_mode'] = fwd_mode
+        cleaned_data['gateway_mac'] = gw_mac
+        msg = "CreateConfigProfileInfoAction: clean_data = {0}".\
+                                            format(cleaned_data)
+        LOG.debug(msg)
+        return cleaned_data
+
+
+class CreateConfigProfileInfo(workflows.Step):
+    action_class = CreateConfigProfileInfoAction
+    contributes = ("config_profile", "forwarding_mode", "gateway_mac")
 
 class CreateNetwork(workflows.Workflow):
     slug = "create_network"
@@ -243,7 +286,8 @@ class CreateNetwork(workflows.Workflow):
     failure_message = _('Unable to create network "%s".')
     default_steps = (CreateNetworkInfo,
                      CreateSubnetInfo,
-                     CreateSubnetDetail)
+                     CreateSubnetDetail,
+                     CreateConfigProfileInfo)
 
     def get_success_url(self):
         return reverse("horizon:project:networks:index")
@@ -257,11 +301,23 @@ class CreateNetwork(workflows.Workflow):
 
     def _create_network(self, request, data):
         try:
+            LOG.debug("_create_network: data={0}".format(data))
             params = {'name': data['net_name'],
-                      'admin_state_up': data['admin_state']}
+                      'admin_state_up': data['admin_state'],
+                      'config_profile': data['config_profile'],
+                      'forwarding_mode': data['forwarding_mode'],
+                      'gateway_mac': data['gateway_mac'],
+                     }
             network = api.quantum.network_create(request, **params)
             network.set_id_as_name_if_empty()
             self.context['net_id'] = network.id
+            LOG.debug("_create_network: network={0}".format(network))
+            LOG.debug("_create_network: context={0}".format(self.context))
+            tn = api.keystone.tenant_get(request,
+                                         network.tenant_id,
+                                         True).name
+            LOG.debug("_create_network: tenant_name={0}".format(tn))
+            api.cisco_dfa_rest.create_network(self.context, tn, network)
             msg = _('Network "%s" was successfully created.') % network.name
             LOG.debug(msg)
             return network
