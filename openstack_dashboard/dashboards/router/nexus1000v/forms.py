@@ -164,7 +164,7 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                                          'readonly': 'readonly'}))
     segment_range = forms.CharField(max_length=255,
                                     label=_("Segment Range"),
-                                    required=True,
+                                    required=False,
                                     help_text=_("1-4093 for VLAN"))
     physical_network = forms.CharField(max_length=255,
                                        label=_("Physical Network"),
