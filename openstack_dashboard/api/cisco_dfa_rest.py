@@ -46,14 +46,16 @@ class DFARESTClient(object):
         payload = {}
 
         LOG.debug('url = {0}'.format(url))
-        return (self._send_request('GET', url, payload, 'config-profile'))
+        res = self._send_request('GET', url, payload, 'config-profile')
+        return res.json()
 
     def config_profile_list(self):
         url = 'http://%s/rest/auto-config/profiles' % (self._ip)
         payload = {}
 
         LOG.debug('url = {0}'.format(url))
-        return (self._send_request('GET', url, payload, 'config-profile'))
+        res = self._send_request('GET', url, payload, 'config-profile')
+        return res.json()
 
     def create_org(self, name, desc):
         url = 'http://%s/rest/auto-config/organizations' % (self._ip)
@@ -160,7 +162,7 @@ class DFARESTClient(object):
             LOG.exception(str(e))
             raise
 
-        return res.json()
+        return res
 
 
 ''' Read initial configuration file'''
@@ -234,19 +236,24 @@ def create_network(context, tenant_name, network):
     subnet_ip_mask = context['cidr'].split('/')
     gw_ip = '.'.join(subnet_ip_mask[0].split('.')[0:3]) + '.1'
     cfg_args = []
+    cfg_args.append("$segmentId=" + str(network.provider__segmentation_id + 5000))
     cfg_args.append("$netMaskLength=" + subnet_ip_mask[1])
     cfg_args.append("$gatewayIpAddress=" + gw_ip)
     cfg_args.append("networkName=" + network.name)
+    cfg_args.append("$vlanId=0")
+    cfg_args.append("$vrfName=" + tenant_name + ':' + tenant_name)
     cfg_args = ';'.join(cfg_args)
 
     network_info = {
-          "networkName" : network.name,
-          "segmentId" : str(network.provider__segmentation_id),
-          "description" : network.name,
+          "segmentId" : str(network.provider__segmentation_id + 5000),
+          "vlanId"    : "0",
+          "mobilityDomainId":"None",
           "profileName" : network.config_profile,
-          'forwardingMode': network.forwarding_mode,
+          "networkName" : network.name,
           "configArg" : cfg_args,
-          "partitionName" : tenant_name
+          "organizationName": tenant_name,
+          "partitionName" : tenant_name,
+          "description" : network.name,
     }
 
     LOG.debug("network_info={0}".format(network_info))
