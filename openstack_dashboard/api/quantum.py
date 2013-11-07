@@ -31,6 +31,8 @@ from horizon.conf import HORIZON_CONFIG
 from openstack_dashboard.api.base import APIDictWrapper, url_for
 from openstack_dashboard.api import network
 from openstack_dashboard.api import nova
+from openstack_dashboard.api import keystone
+from openstack_dashboard.api import cisco_dfa_rest
 
 
 LOG = logging.getLogger(__name__)
@@ -290,6 +292,12 @@ def network_modify(request, network_id, **kwargs):
 
 def network_delete(request, network_id):
     LOG.debug("network_delete(): netid=%s" % network_id)
+    net = network_get(request, network_id)
+    tenant = keystone.tenant_get(request, net.tenant_id, admin=True)
+    LOG.debug("network_delete(): tenant={0} name={1}".\
+                     format(tenant, tenant.name))
+    cisco_dfa_rest.delete_network(tenant.name, net)
+
     quantumclient(request).delete_network(network_id)
 
 

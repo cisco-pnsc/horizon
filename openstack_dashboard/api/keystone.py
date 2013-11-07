@@ -146,6 +146,8 @@ def tenant_get(request, tenant_id, admin=False):
 
 
 def tenant_delete(request, tenant_id):
+    tn = tenant_get(request, tenant_id, admin=True).name
+    cisco_dfa_rest.delete_tenant(tn)
     keystoneclient(request, admin=True).tenants.delete(tenant_id)
 
 

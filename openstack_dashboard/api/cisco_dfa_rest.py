@@ -80,6 +80,26 @@ class DFARESTClient(object):
         LOG.debug('create_partition: url = {0}'.format(url))
         return (self._send_request('POST', url, payload, 'partition'))
 
+    def delete_org(self, org_name):
+        url = 'http://%s/rest/auto-config/organizations/%s' % \
+                                            (self._ip, org_name)
+        self._send_request('DELETE', url, '', 'organization')
+ 
+    def delete_partition(self, org_name, partition_name):
+        url = 'http://%s/rest/auto-config/organizations/%s/partitions/%s' % \
+                                (self._ip, org_name, partition_name)
+        self._send_request('DELETE', url, '', 'partition')
+
+    def delete_network(self, network_info):
+        org_name = network_info.get('organizationName', '')
+        part_name = network_info.get('partitionName', '')
+        segment_id = network_info['segmentId']
+        url_1 = 'http://%s/rest/auto-config/organizations/' % self._ip
+        url_2 = '%s/partitions/%s/networks/segment/%s' % \
+                                       (org_name, part_name, segment_id)
+        url = url_1 + url_2
+        self._send_request('DELETE', url, '', 'network')
+
     def _login(self):
         url_login = 'http://%s/rest/logon' % (self._ip)
         expiration_time = 100000
@@ -227,25 +247,35 @@ def gateway_mac_get():
     dfa_rest_client = DFARESTClient()
     return dfa_rest_client.gateway_mac_get()
 
-def create_network(context, tenant_name, network):
+def create_network(tenant_name, network, subnet):
     network_info = {}
     LOG.debug("tenant_id={0} tenant_name={1}\
                segmentation_id={2}".\
                format(network.tenant_id, tenant_name,
                network.provider__segmentation_id))
-    subnet_ip_mask = context['cidr'].split('/')
-    gw_ip = '.'.join(subnet_ip_mask[0].split('.')[0:3]) + '.1'
+    subnet_ip_mask = subnet.cidr.split('/')
+    gw_ip = subnet.gateway_ip
     cfg_args = []
-    cfg_args.append("$segmentId=" + str(network.provider__segmentation_id + 5000))
+    seg_id = str(network.provider__segmentation_id + 5000)
+    cfg_args.append("$segmentId=" + seg_id)
     cfg_args.append("$netMaskLength=" + subnet_ip_mask[1])
     cfg_args.append("$gatewayIpAddress=" + gw_ip)
-    cfg_args.append("networkName=" + network.name)
+    cfg_args.append("$networkName=" + network.name)
     cfg_args.append("$vlanId=0")
     cfg_args.append("$vrfName=" + tenant_name + ':' + tenant_name)
     cfg_args = ';'.join(cfg_args)
 
+    ip_range = ""
+    for ip_pool in subnet.allocation_pools:
+        ip_range += "%s-%s," % (ip_pool['start'], ip_pool['end'])
+
+    dhcp_scopes = {'ipRange': ip_range,
+                   'subnet': subnet.cidr,
+                   'gateway': gw_ip,
+                  }
+
     network_info = {
-          "segmentId" : str(network.provider__segmentation_id + 5000),
+          "segmentId" : seg_id,
           "vlanId"    : "0",
           "mobilityDomainId":"None",
           "profileName" : network.config_profile,
@@ -253,7 +283,8 @@ def create_network(context, tenant_name, network):
           "configArg" : cfg_args,
           "organizationName": tenant_name,
           "partitionName" : tenant_name,
-          "description" : network.name,
+          "description"   : network.name,
+          "dhcpScope"     : dhcp_scopes,
     }
 
     LOG.debug("network_info={0}".format(network_info))
@@ -262,4 +293,22 @@ def create_network(context, tenant_name, network):
     dfa_rest_client.create_network(network_info)
     return
 
+def delete_network(tenant_name, network):
+    network_info = {}
+    LOG.debug("tenant_name={0} segmentation_id={1}".\
+               format(tenant_name, network.provider__segmentation_id + 5000))
+    network_info = {
+        'organizationName': tenant_name,
+        'partitionName'   : tenant_name,
+        'segmentId'       : network.provider__segmentation_id + 5000,
+    }
+
+    dfa_rest_client = DFARESTClient()
+    dfa_rest_client.delete_network(network_info)
+    return
+
+def delete_tenant(tenant_name):
+    dfa_rest_client = DFARESTClient()
+    dfa_rest_client.delete_partition(tenant_name, tenant_name)
+    dfa_rest_client.delete_org(tenant_name)
 

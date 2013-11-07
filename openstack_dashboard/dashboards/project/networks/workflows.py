@@ -313,11 +313,6 @@ class CreateNetwork(workflows.Workflow):
             self.context['net_id'] = network.id
             LOG.debug("_create_network: network={0}".format(network))
             LOG.debug("_create_network: context={0}".format(self.context))
-            tn = api.keystone.tenant_get(request,
-                                         network.tenant_id,
-                                         True).name
-            LOG.debug("_create_network: tenant_name={0}".format(tn))
-            api.cisco_dfa_rest.create_network(self.context, tn, network)
             msg = _('Network "%s" was successfully created.') % network.name
             LOG.debug(msg)
             return network
@@ -328,6 +323,16 @@ class CreateNetwork(workflows.Workflow):
             redirect = self.get_failure_url()
             exceptions.handle(request, msg, redirect=redirect)
             return False
+
+    def _create_dfa_network(self, request, network, subnet):
+        tn = api.keystone.tenant_get(request,
+                                     network.tenant_id,
+                                     True).name
+        LOG.debug("_create_dfa_network: tenant_name={0}".format(tn))
+        api.cisco_dfa_rest.create_network(tn, network, subnet)
+        msg = _('Network "%s" was successfully created.') % network.name
+        LOG.debug(msg)
+        return True
 
     def _setup_subnet_parameters(self, params, data, is_create=True):
         """Setup subnet parameters
@@ -420,6 +425,7 @@ class CreateNetwork(workflows.Workflow):
             return True
         subnet = self._create_subnet(request, data, network, no_redirect=True)
         if subnet:
+            self._create_dfa_network(request, network, subnet)
             return True
         else:
             self._delete_network(request, network)
