@@ -455,8 +455,8 @@ class InstancesTable(tables.DataTable):
                          link=("horizon:project:instances:detail"),
                          verbose_name=_("Instance Name"))
     '''
-    Temprary removing it, till fix for updating ip address in database become
-    availabe (when dhcp is disabled).
+    Temporary removing it, till fix for updating ip address in database become
+    available (when dhcp is disabled).
     '''
     #ip = tables.Column(get_ips, verbose_name=_("IP Address"))
     size = tables.Column(get_size,

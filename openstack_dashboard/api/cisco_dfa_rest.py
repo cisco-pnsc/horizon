@@ -34,6 +34,8 @@ class DFARESTClient(object):
         config_params = read_config_file("/etc/vinci.ini")
         params_dcnm = config_params.get('DCNM')
         params_tenant = config_params.get('Tenant')
+        params_os = config_params.get('openstack')
+        self._tun_base = params_os.get('dfa_tunnel_base')
         self._ip = params_dcnm.get('ip')
         self._user = params_dcnm.get('user')
         self._pwd = params_dcnm.get('password')
@@ -51,6 +53,9 @@ class DFARESTClient(object):
 
     def gateway_mac_get(self):
         return self._gw_mac
+
+    def dfa_tun_base_get(self):
+        return int(self._tun_base)
 
     def create_network(self, network_info):
         url = 'http://%s/rest/auto-config/organizations/%s/partitions/%s/networks' \
@@ -283,14 +288,15 @@ def gateway_mac_get():
 
 def create_network(tenant_name, network, subnet):
     network_info = {}
+    dfa_rest_client = DFARESTClient()
+    tun_base = dfa_rest_client.dfa_tun_base_get()
+    seg_id = str(network.provider__segmentation_id + tun_base)
     LOG.debug("tenant_id={0} tenant_name={1}\
                segmentation_id={2}".\
-               format(network.tenant_id, tenant_name,
-               network.provider__segmentation_id))
+               format(network.tenant_id, tenant_name, seg_id))
     subnet_ip_mask = subnet.cidr.split('/')
     gw_ip = subnet.gateway_ip
     cfg_args = []
-    seg_id = str(network.provider__segmentation_id + 5000)
     cfg_args.append("$segmentId=" + seg_id)
     cfg_args.append("$netMaskLength=" + subnet_ip_mask[1])
     cfg_args.append("$gatewayIpAddress=" + gw_ip)
@@ -323,21 +329,22 @@ def create_network(tenant_name, network, subnet):
 
     LOG.debug("network_info={0}".format(network_info))
 
-    dfa_rest_client = DFARESTClient()
     dfa_rest_client.create_network(network_info)
     return
 
 def delete_network(tenant_name, network):
     network_info = {}
-    LOG.debug("tenant_name={0} segmentation_id={1}".\
-               format(tenant_name, network.provider__segmentation_id + 5000))
+    dfa_rest_client = DFARESTClient()
+    tun_base = dfa_rest_client.dfa_tun_base_get()
+    seg_id = network.provider__segmentation_id + tun_base
+    LOG.debug("tenant_name={0} segmentation_id={1}".format(tenant_name, seg_id)
+
     network_info = {
         'organizationName': tenant_name,
         'partitionName'   : tenant_name,
-        'segmentId'       : network.provider__segmentation_id + 5000,
+        'segmentId'       : seg_id,
     }
 
-    dfa_rest_client = DFARESTClient()
     dfa_rest_client.delete_network(network_info)
     return
 
