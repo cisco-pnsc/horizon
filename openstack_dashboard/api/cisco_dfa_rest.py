@@ -224,6 +224,19 @@ def read_config_file(config_file):
     return config_params
 
 
+def check_for_supported_profile(thisprofile):
+    '''
+    Filter those profiles that are not currently supported.
+    '''
+    if thisprofile.endswith('Ipv4TfProfile') or \
+       thisprofile.endswith('Ipv4EfProfile') or \
+       'defaultNetworkL2Profile' in thisprofile:
+        return True
+    else:
+        return False
+
+
+
 def get_config_profile_list():
     profile_list = []
     these_profiles = []
@@ -234,7 +247,8 @@ def get_config_profile_list():
     if len(these_profiles) > 0:
         for i in range(0, len(these_profiles)):
             p = these_profiles[i].get("profileName")
-            profile_list.append((p, p))
+            if check_for_supported_profile(p):
+                profile_list.append((p, p))
 
     return profile_list
 
