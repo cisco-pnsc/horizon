@@ -337,7 +337,7 @@ def delete_network(tenant_name, network):
     dfa_rest_client = DFARESTClient()
     tun_base = dfa_rest_client.dfa_tun_base_get()
     seg_id = network.provider__segmentation_id + tun_base
-    LOG.debug("tenant_name={0} segmentation_id={1}".format(tenant_name, seg_id)
+    LOG.debug("tenant_name={0} segmentation_id={1}".format(tenant_name, seg_id))
 
     network_info = {
         'organizationName': tenant_name,
