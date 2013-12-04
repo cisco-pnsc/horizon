@@ -140,7 +140,7 @@ class DFARESTClient(object):
         LOG.debug('[DFARESTClient] Login response: %s' % (res.content))
         session_id = ''
         if res and res.status_code >= 200:
-            session_id = res.json().get('token')
+            session_id = res.json().get('Dcnm-Token')
         # update global request header  
         self._req_headers.update({'Dcnm-Token': session_id })
 
