@@ -53,10 +53,18 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                            required=True)
     segment_type = forms.ChoiceField(label=_('Segment Type'),
                                      choices=[('vlan', _('VLAN')),
-                                              ('vxlan', _('VXLAN'))],
+                                              ('overlay', _('VXLAN'))],
                                      widget=forms.Select
                                      (attrs={'class': 'switchable',
                                              'data-slug': 'segtype'}))
+    sub_type = forms.ChoiceField(max_length=255,
+                                 label=_('Sub Type'),
+                                 required=False,
+                                 widget=forms.TextInput
+                                 (attrs={'class': 'switched',
+                                         'data-switch-on': 'segtype',
+                                         'data-segtype-overlay':
+                                             _("Sub Type")}))
     segment_range = forms.CharField(max_length=255,
                                     label=_("Segment Range"),
                                     required=True,
@@ -69,7 +77,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                          (attrs={'class': 'switched',
                                                  'data-switch-on':
                                                      'segtype',
-                                                 'data-segtype-vxlan':
+                                                 'data-segtype-overlay':
                                                      _("Multicast IP Range")}))
     physical_network = forms.CharField(max_length=255,
                                        label=_("Physical Network"),
@@ -94,6 +102,8 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                                  name=data['name'],
                                                  segment_type=
                                                  data['segment_type'],
+                                                 sub_type=
+                                                 data['sub_type'],
                                                  segment_range=
                                                  data['segment_range'],
                                                  physical_network=
