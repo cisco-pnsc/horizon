@@ -59,12 +59,12 @@ def _get_profiles(request, type_p):
         tenant_dict = _get_tenant_list(request)
         bindings = api.neutron.profile_bindings_list(request, type_p)
         for p in profiles:
-        # Set tenant name
+        # Set project name
             if bindings:
                 for b in bindings:
                     if (p.id == b.profile_id):
-                        tenant = tenant_dict.get(b.tenant_id, None)
-                        p.tenant_name = getattr(tenant, 'name', None)
+                        project = tenant_dict.get(b.tenant_id, None)
+                        p.project_name = getattr(project, 'name', None)
     return profiles
 
 
