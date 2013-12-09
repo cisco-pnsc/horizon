@@ -87,12 +87,12 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                                'data-switch-on': 'segtype',
                                                'data-segtype-vlan':
                                                    _("Physical Network")}))
-    project_id = forms.ChoiceField(label=_("Project"),
-                                  required=False)
+    project = forms.ChoiceField(label=_("Project"),
+                                required=False)
 
     def __init__(self, request, *args, **kwargs):
         super(CreateNetworkProfile, self).__init__(request, *args, **kwargs)
-        self.fields['project_id'].choices = get_tenant_choices(request)
+        self.fields['project'].choices = get_tenant_choices(request)
 
     def handle(self, request, data):
         try:
@@ -167,7 +167,7 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                                                  'data-switch-on': 'segtype',
                                                  'data-segtype-overlay':
                                                      _("Multicast IP Range")}))
-    project_id = forms.CharField(label=_("Project"), required=False)
+    project = forms.CharField(label=_("Project"), required=False)
 
     def handle(self, request, data):
         try:
