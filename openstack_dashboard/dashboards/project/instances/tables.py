@@ -13,6 +13,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+#
+#    Modified by Nader Lahouti, Cisco Systems, Inc. Dec. 2013:
+#       - Commented IP address column, till the fix for updating the subnet
+#         database becomes available.
+#
+
 
 import logging
 
@@ -455,8 +461,8 @@ class InstancesTable(tables.DataTable):
                          link=("horizon:project:instances:detail"),
                          verbose_name=_("Instance Name"))
     '''
-    Temporary removing it, till fix for updating ip address in database become
-    available (when dhcp is disabled).
+    Temporary commenting it, till fix for updating ip address in database 
+    becomes available.
     '''
     #ip = tables.Column(get_ips, verbose_name=_("IP Address"))
     size = tables.Column(get_size,

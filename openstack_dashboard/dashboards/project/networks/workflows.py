@@ -13,6 +13,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+#
+#    Modified by Nader Lahouti, Cisco Systems, Inc. Dec. 2013:
+#       - To support network creation for DFA,
+#       - To support config profile when creating the network.
+#
+
 
 
 import logging
