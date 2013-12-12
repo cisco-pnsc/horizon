@@ -53,18 +53,19 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                            required=True)
     segment_type = forms.ChoiceField(label=_('Segment Type'),
                                      choices=[('vlan', _('VLAN')),
-                                              ('overlay', _('VXLAN'))],
+                                              ('overlay', _('OVERLAY')),
+                                              ('trunk', _('TRUNK'))],
                                      widget=forms.Select
                                      (attrs={'class': 'switchable',
                                              'data-slug': 'segtype'}))
-    sub_type = forms.ChoiceField(max_length=255,
-                                 label=_('Sub Type'),
-                                 required=False,
-                                 widget=forms.TextInput
-                                 (attrs={'class': 'switched',
-                                         'data-switch-on': 'segtype',
-                                         'data-segtype-overlay':
-                                             _("Sub Type")}))
+    sub_type = forms.CharField(max_length=255,
+                               label=_('Sub Type'),
+                               required=False)
+                               #widget=forms.TextInput
+                               #(attrs={'class': 'switched',
+                               #        'data-switch-on': 'segtype',
+                               #        'data-segtype-overlay':
+                               #            _("Sub Type")}))
     segment_range = forms.CharField(max_length=255,
                                     label=_("Segment Range"),
                                     required=False,
@@ -79,6 +80,15 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                                      'segtype',
                                                  'data-segtype-overlay':
                                                      _("Multicast IP Range")}))
+    other = forms.CharField(max_length=30,
+                            label=_("Other"),
+                            required=False,
+                            widget=forms.TextInput
+                            (attrs={'class': 'switched',
+                                    'data-switch-on':
+                                        'segtype',
+                                    'data-segtype-overlay':
+                                        _("Other")}))
     physical_network = forms.CharField(max_length=255,
                                        label=_("Physical Network"),
                                        required=False,
@@ -133,19 +143,21 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                            label=_("Name"), required=True)
     segment_type = forms.ChoiceField(label=_('Segment Type'),
                                      choices=[('vlan', 'VLAN'),
-                                              ('overlay', 'OVERLAY')],
+                                              ('overlay', 'OVERLAY'),
+                                              ('trunk', 'TRUNK')],
                                      widget=forms.Select
                                      (attrs={'class': 'switchable',
                                              'data-slug': 'segtype',
                                              'readonly': 'readonly'}))
-    sub_type = forms.CharField(label=_('Sub Type'),
-                               required=False,
-                               widget=forms.Select
-                               (attrs={'class': 'switched',
-                                       'data-switch-on': 'segtype',
-                                       'data-segtype-overlay':
-                                           _("Sub Type"),
-                                       'readonly': 'readonly'}))
+    sub_type = forms.CharField(max_length=255,
+                               label=_('Sub Type'),
+                               required=False)
+                               #widget=forms.Select
+                               #(attrs={'class': 'switched',
+                               #        'data-switch-on': 'segtype',
+                               #        'data-segtype-overlay':
+                               #            _("Sub Type"),
+                               #        'readonly': 'readonly'}))
     segment_range = forms.CharField(max_length=255,
                                     label=_("Segment Range"),
                                     required=False,
