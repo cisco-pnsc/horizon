@@ -60,12 +60,12 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                              'data-slug': 'segtype'}))
     sub_type = forms.CharField(max_length=255,
                                label=_('Sub Type'),
-                               required=False)
-                               #widget=forms.TextInput
-                               #(attrs={'class': 'switched',
-                               #        'data-switch-on': 'segtype',
-                               #        'data-segtype-overlay':
-                               #            _("Sub Type")}))
+                               required=False,
+                               widget=forms.TextInput(attrs={
+                                       'class': 'switched',
+                                       'data-switch-on': 'segtype',
+                                       'data-segtype-overlay': _("Sub Type"),
+                                       'data-segtype-trunk': _("Sub Type")}))
     segment_range = forms.CharField(max_length=255,
                                     label=_("Segment Range"),
                                     required=False,
@@ -151,7 +151,9 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                                              'readonly': 'readonly'}))
     sub_type = forms.CharField(max_length=255,
                                label=_('Sub Type'),
-                               required=False)
+                               required=False, 
+                               widget=forms.TextInput(attrs={
+                                      'readonly': 'readonly'}))
                                #widget=forms.Select
                                #(attrs={'class': 'switched',
                                #        'data-switch-on': 'segtype',
@@ -179,7 +181,8 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                                                  'data-switch-on': 'segtype',
                                                  'data-segtype-overlay':
                                                      _("Multicast IP Range")}))
-    project = forms.CharField(label=_("Project"), required=False)
+    project = forms.CharField(label=_("Project"), required=False, 
+                              widget=forms.TextInput(attrs={'readonly': 'readonly'}))
 
     def handle(self, request, data):
         try:
@@ -191,7 +194,8 @@ class UpdateNetworkProfile(forms.SelfHandlingForm):
                                                  segment_range=
                                                  data['segment_range'],
                                                  multicast_ip_range=
-                                                 data['physical_network'])
+                                                 data['multicast_ip_range'],
+                                                 )
             msg = _('Network Profile %s '
                     'was successfully updated.') % data['profile_id']
             LOG.debug(msg)
