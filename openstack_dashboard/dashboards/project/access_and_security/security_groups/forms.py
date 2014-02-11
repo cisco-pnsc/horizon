@@ -116,6 +116,8 @@ class AddRule(forms.SelfHandlingForm):
     dscp = forms.CharField(
         label=_('DSCP'),
         required=False,
+        help_text=_("Enter an integer value "
+                    "between 0 and 63."),
         widget=forms.TextInput(attrs={
             'class': 'switched',
             'data-switch-on': 'rule_menu',
