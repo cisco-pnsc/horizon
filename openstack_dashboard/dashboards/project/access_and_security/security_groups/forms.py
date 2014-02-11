@@ -113,6 +113,17 @@ class AddRule(forms.SelfHandlingForm):
             'data-rule_menu-all_icmp': _('Direction'),
         }))
 
+    dscp = forms.CharField(
+        label=_('DSCP'),
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'switched',
+            'data-switch-on': 'rule_menu',
+            'data-rule_menu-tcp': _('DSCP'),
+            'data-rule_menu-udp': _('DSCP'),
+            'data-rule_menu-icmp': _('DSCP'),
+            }))
+
     ip_protocol = forms.IntegerField(
         label=_('IP Protocol'), required=False,
         help_text=_("Enter an integer value between 0 and 255 "
@@ -265,6 +276,7 @@ class AddRule(forms.SelfHandlingForm):
         else:
             # direction and ethertype are not supported in Nova secgroup.
             self.fields['direction'].widget = forms.HiddenInput()
+            self.fields['dscp'].widget = forms.HiddenInput()
             self.fields['ethertype'].widget = forms.HiddenInput()
             # ip_protocol field is to specify arbitrary protocol number
             # and it is available only for neutron security group.
@@ -363,6 +375,7 @@ class AddRule(forms.SelfHandlingForm):
                 request,
                 filters.get_int_or_uuid(data['id']),
                 data['direction'],
+                data['dscp'],
                 data['ethertype'],
                 data['ip_protocol'],
                 data['from_port'],

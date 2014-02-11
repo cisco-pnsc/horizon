@@ -158,6 +158,7 @@ class SecurityGroupRule(NeutronAPIDictWrapper):
             'id': sgr['id'],
             'parent_group_id': sgr['security_group_id'],
             'direction': sgr['direction'],
+            'dscp': sgr['dscp'],
             'ethertype': sgr['ethertype'],
             'ip_protocol': sgr['protocol'],
             'from_port': sgr['port_range_min'],
@@ -248,7 +249,7 @@ class SecurityGroupManager(network_base.SecurityGroupManager):
         self.client.delete_security_group(sg_id)
 
     def rule_create(self, parent_group_id,
-                    direction=None, ethertype=None,
+                    direction=None, dscp=None, ethertype=None,
                     ip_protocol=None, from_port=None, to_port=None,
                     cidr=None, group_id=None):
         if not cidr:
@@ -263,6 +264,7 @@ class SecurityGroupManager(network_base.SecurityGroupManager):
         body = {'security_group_rule':
                     {'security_group_id': parent_group_id,
                      'direction': direction,
+                     'dscp': dscp,
                      'ethertype': ethertype,
                      'protocol': ip_protocol,
                      'port_range_min': from_port,

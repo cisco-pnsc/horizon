@@ -153,6 +153,8 @@ class RulesTable(tables.DataTable):
     direction = tables.Column("direction",
                               verbose_name=_("Direction"),
                               filters=(filter_direction,))
+    dscp = tables.Column("dscp",
+                         verbose_name=_("DSCP"))
     ethertype = tables.Column("ethertype",
                               verbose_name=_("Ether Type"))
     protocol = tables.Column("ip_protocol",
