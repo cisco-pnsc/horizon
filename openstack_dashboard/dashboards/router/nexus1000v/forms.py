@@ -59,14 +59,26 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                      widget=forms.Select
                                      (attrs={'class': 'switchable',
                                              'data-slug': 'segtype'}))
-    sub_type = forms.CharField(max_length=255,
-                               label=_('Sub Type'),
-                               required=False,
-                               widget=forms.TextInput(attrs={
-                                       'class': 'switched',
-                                       'data-switch-on': 'segtype',
-                                       'data-segtype-overlay': _("Sub Type"),
-                                       'data-segtype-trunk': _("Sub Type")}))
+    sub_type = forms.ChoiceField(label=_('Sub Type'), 
+                                 choices=[('native_vxlan', _('native_vxlan')),
+                                          ('enhanced', _('enhanced')),
+                                          ('other', _('other'))],
+                                 widget=forms.Select(
+                                            attrs={'class': 'switched',
+                                                   'data-switch-on': 'segtype',
+                                                   'data-segtype-overlay':
+                                                       _('Sub Type'),
+                                                   'data-segtype-trunk':
+                                                       _('Sub Type'),}))
+    other = forms.CharField(max_length=30,
+                            label=_("Other"),
+                            required=False,
+                            help_text=_('applicable only for sub_type other'),
+                            widget=forms.TextInput
+                            (attrs={'class': 'switched',
+                                    'data-switch-on': 'segtype',
+                                    'data-segtype-overlay': _('Other'),
+                                    'data-segtype-trunk': _('Other')}))
     segment_range = forms.CharField(max_length=255,
                                     label=_("Segment Range"),
                                     required=False,
@@ -81,15 +93,7 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                                      'segtype',
                                                  'data-segtype-overlay':
                                                      _("Multicast IP Range")}))
-    other = forms.CharField(max_length=30,
-                            label=_("Other"),
-                            required=False,
-                            widget=forms.TextInput
-                            (attrs={'class': 'switched',
-                                    'data-switch-on':
-                                        'segtype',
-                                    'data-segtype-overlay':
-                                        _("Other")}))
+    
     physical_network = forms.CharField(max_length=255,
                                        label=_("Physical Network"),
                                        required=False,
@@ -99,7 +103,8 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
                                                'data-segtype-vlan':
                                                    _("Physical Network")}))
     project = forms.MultipleChoiceField(label=_("Project"),
-                                        required=False,widget=forms.CheckboxSelectMultiple)
+                                        required=False,
+                                        widget=forms.CheckboxSelectMultiple)
 
     def __init__(self, request, *args, **kwargs):
         super(CreateNetworkProfile, self).__init__(request, *args, **kwargs)
@@ -109,6 +114,10 @@ class CreateNetworkProfile(forms.SelfHandlingForm):
         try:
             LOG.debug('request = %(req)s, params = %(params)s',
                       {'req': request, 'params': data})
+            if data['sub_type'] == 'other':
+                data['sub_type'] = data['other']
+#            msg = _('sub_type value %s') % data['sub_type']
+#            messages.info(request, msg)
             profile = api.neutron.profile_create(request,
                                                  name=data['name'],
                                                  segment_type=
