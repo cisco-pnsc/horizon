@@ -1,0 +1,28 @@
+{% extends "horizon/common/_modal_form.html" %}
+{% load i18n horizon humanize %}
+{% load url from future %}
+{% load staticfiles %}
+
+{% block form_id %}{% endblock %}
+{% block form_action %}{% url 'horizon:plugins:lan:vlans:create' %}?{{ request.GET.urlencode }}{% endblock %}
+
+{% block modal_id %}create_lan_modal{% endblock %}
+{% block modal-header %}{% trans "Create Vlan" %}{% endblock %}
+
+{% block modal-body %}
+
+<script src="{% static "dashboard/js/plugins/lan.js" %}"></script>
+  <div class="left">
+    <fieldset>
+      {% include "horizon/common/_form_fields.html" %}
+    </fieldset>
+  </div>
+  
+  
+
+{% endblock %}
+
+{% block modal-footer %}
+  <input name="create_vlan" class="btn btn-primary pull-right" type="submit" value="{% trans "Create Vlan" %}" />
+  <a href="{% url 'horizon:plugins:lan:index' %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
+{% endblock %}

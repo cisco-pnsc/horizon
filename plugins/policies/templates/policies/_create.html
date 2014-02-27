@@ -1,0 +1,49 @@
+{% extends "horizon/common/_modal_form.html" %}
+{% load i18n horizon humanize %}
+{% load url from future %}
+{% load policies_extra%}
+{% load staticfiles %}
+
+{% block form_id %}{% endblock %}
+
+{% block form_action %}{% url 'horizon:plugins:policies:create' %}?{{ request.GET.urlencode }}{% endblock %}
+
+{% block modal_id %}create_policy_modal{% endblock %}
+{% block modal-header %}{% trans "Create Policy" %}{% endblock %}
+
+{% block modal-body %}
+{% get_all_tags as tags %}
+<script>
+var tagsCount = {{tags|length}}
+</script>
+<script src="{% static "dashboard/js/plugins/jquery-1.10.2.min.js" %}"></script>
+<script src="{% static "dashboard/js/plugins/policies.js" %}"></script>
+
+  <div class="left">
+    <fieldset>
+      {% include "horizon/common/_form_fields.html" %}
+       
+
+    <div class="control-group form-field clearfix ">
+      <label>Tags</label>
+      <a href="#" id="add_tag" class="info">Add Another Tag</a>&nbsp;|
+      <a href="#" id="add_new_tag" class="info">Add New Tag</a>
+	<div>
+         <select name="tags_names" id="tags_names" data-original-title="">
+         {% for tag in tags %}
+		<option value="{{tag}}">{{tag}}</option>
+         {% endfor %}
+         </select>
+        </div>
+	
+      <div id="tags_wrapper">
+	  
+      </div>
+    </fieldset>
+  </div>
+{% endblock %}
+
+{% block modal-footer %}
+  <input name="create_policy" class="btn btn-primary pull-right" type="submit" value="{% trans "Create Policy" %}" />
+  <a href="{% url 'horizon:plugins:policies:index' %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
+{% endblock %}

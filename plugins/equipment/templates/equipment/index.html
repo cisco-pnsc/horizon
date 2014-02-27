@@ -1,0 +1,55 @@
+{% extends 'plugins/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block title %}{% trans "Equipment" %}{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Equipment") %}
+{% endblock page_header %}
+
+
+{% block plugins_main %}
+<script>
+window.onload = function(){
+	document.getElementById('servers__action_associate_multiple').innerHTML = '<i class="icon-cog"></i>' + "Associate Multiple Service Profiles";
+	$('a[id$="action_kvm_console"]').each(function(){ $(this).attr('target', '_blank');});
+	
+	$('#servers__action_download_data').attr('disabled', 'disabled');
+	$('#servers__action_associate_multiple').attr('disabled', 'disabled');
+	
+	$('input[type=checkbox]').change(function(event){ 
+		
+		var special =  $(this).val() == 'on';
+		var checked = $(this).prop('checked');
+		var all_checked = $('input:checked').length;
+		
+		if (special && checked){
+			$('#servers__action_download_data').removeAttr('disabled');
+			$('#servers__action_associate_multiple').removeAttr('disabled');
+		}
+		else if (special && !checked){
+			$('#servers__action_download_data').attr('disabled', 'disabled');
+			$('#servers__action_associate_multiple').attr('disabled', 'disabled');
+		}
+		else if (all_checked > 0){
+			$('#servers__action_download_data').removeAttr('disabled');
+			$('#servers__action_associate_multiple').removeAttr('disabled');
+		}
+		else{
+			$('#servers__action_download_data').attr('disabled', 'disabled');
+			$('#servers__action_associate_multiple').attr('disabled', 'disabled');
+		}
+			
+			event.preventDefault();
+	});
+	
+	
+};
+
+
+</script>
+<input type='hidden' id='checked_servers'/>
+{{ table.render }}
+{% endblock %}
+
+

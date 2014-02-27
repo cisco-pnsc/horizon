@@ -1,0 +1,40 @@
+{% extends "horizon/common/_modal_form.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block form_id %}downlad_form{% endblock %}
+{% block form_action %}{% url 'horizon:plugins:equipment:download' %}{% endblock %}
+
+{% block modal-header %}{% trans "Download Data Summary" %}{% endblock %}
+
+{% block modal-body %}
+<script>
+arr = $('input[name="object_ids"]').map(function(){
+	 if ($(this).attr('checked')) 
+	    return this.value;
+}).get();
+		
+$('#id_servers').val(JSON.stringify(arr)); 
+$('input[type=checkbox]').each(function(){$(this).prop('checked',false);});
+
+
+</script>
+<div class="left">
+    <fieldset>
+    {% include "horizon/common/_form_fields.html" %}
+    </fieldset>
+</div>
+<div class="right">
+
+    <h3>{% trans "Description:" %}</h3>
+    <p>{% trans "You may choose summary data file format." %}</p>
+</div>
+
+
+
+{% endblock %}
+
+{% block modal-footer %}
+  <input class="btn btn-primary pull-right" type="submit" value="{% trans "Download" %}" />
+  <a href="{% url 'horizon:plugins:equipment:index' %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
+{% endblock %}

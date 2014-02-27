@@ -1,0 +1,29 @@
+{% extends "horizon/common/_modal_form.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block form_id %}assign_form{% endblock %}
+{% block form_action %}{% url 'horizon:plugins:equipment:associate' server_id %}{% endblock %}
+
+{% block modal-header %}{% trans "Assign Profile" %}{% endblock %}
+
+{% block modal-body %}
+<div class="left">
+    <fieldset>
+    {% include "horizon/common/_form_fields.html" %}
+    </fieldset>
+</div>
+<div class="right">
+
+    <h3>{% trans "Description:" %}</h3>
+    <p>{% trans "You may associate a profile to a server." %}</p>
+</div>
+
+
+
+{% endblock %}
+
+{% block modal-footer %}
+  <input class="btn btn-primary pull-right" type="submit" value="{% trans "Associate" %}" />
+  <a href="{% url 'horizon:plugins:equipment:index' %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
+{% endblock %}

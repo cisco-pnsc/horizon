@@ -1,0 +1,17 @@
+{% load i18n %}
+{% trans "Chassis" %},{% trans "Slot" %},{% trans "Name" %},{% trans "MAC" %}
+{% for server,server_details in all_servers_info.items %}{{ server_details.chassis_id }},{{ server_details.slot_id }},{{ server_details.name }},{{ server_details.mac }}
+{% endfor %}
+
+
+{% for server,server_details in all_servers_info.items %}
+load-balancer{{forloop.counter}}:
+  hostname: "load-balancer01.cisco.com"
+  power-address: "192.168.2.102"
+  interfaces:
+    eth0:
+      mac-address: "{{ server_details.mac }}"
+      dns-name: "load-balancer01.cisco.com"
+      ip-address: "{{ server_details.ip_address }}"
+      static: "0"
+{% endfor %}

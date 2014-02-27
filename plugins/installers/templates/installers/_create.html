@@ -1,0 +1,58 @@
+{% extends "horizon/common/_modal_form.html" %}
+{% load i18n horizon humanize %}
+{% load url from future %}
+{% load staticfiles %}
+
+
+{% block form_id %}{% endblock %}
+{% block form_action %}{% url 'horizon:plugins:installers:index' %}?{{ request.GET.urlencode }}{% endblock %}
+
+{% block modal_id %}create_installer_modal{% endblock %}
+{% block modal-header %}{% trans "Create Installer" %}{% endblock %}
+
+
+
+{% block modal-body %}
+<script src="{% static "dashboard/js/plugins/jquery-1.10.2.min.js" %}"></script>
+<script src="{% static "dashboard/js/plugins/installers.js" %}"></script>
+ <div class="left">
+    <fieldset>
+      {% include "horizon/common/_form_fields.html" %}
+
+
+
+
+<div class="control-group form-field clearfix ">
+    <label>Boot Seq</label>
+    <a href="#" id="add_new_seq" class="info">Add Another Boot Seq</a>
+    <div id="boot_seq_wrapper">
+
+
+    <div>
+	<label for="default" style="font-size:85%">Default</label>
+       <input id="default" name="default" data-original-title="" value="boot_local">
+    </div>
+
+  </div>
+
+<br/>
+  <div class="control-group form-field clearfix ">
+    <label>Templates</label>
+     <div id="template_wrapper">
+     </div>
+  </div>
+
+
+ </div>
+
+    </fieldset>
+  </div>
+{% endblock %}
+
+{% block modal-footer %}
+  <input name="create_installer" class="btn btn-primary pull-right" type="submit" value="{% trans "Create Installer" %}" />
+  <a href="{% url 'horizon:plugins:installers:index' %}" class="btn secondary cancel close">{% trans "Cancel" %}</a>
+{% endblock %}
+
+
+

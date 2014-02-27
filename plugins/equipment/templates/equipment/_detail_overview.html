@@ -1,0 +1,96 @@
+{% load i18n sizeformat %}
+{% load url from future %}
+
+<h3>{% trans "Server Overview" %}</h3>
+
+<div class="status row-fluid detail">
+  <h4>{% trans "General" %}</h4>
+  <hr class="header_rule">
+  <dl>
+  	<dt>{% trans "ID" %}</dt>
+    <dd>{{ server.id }}</dd>
+    <dt>{% trans "Name" %}</dt>
+    <dd>{{ server.name }}</dd>
+    <dt>{% trans "Association Status" %}</dt>
+    <dd>{{ server.associate|yesno:'Associate,Disassociate' }}</dd>
+  </dl>
+</div>
+
+<h3>{% trans "Inventory" %}</h3>
+<div class="status row-fluid detail">
+  <h4>{% trans "Motherboard" %}</h4>
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "CPU Model" %}</dt>
+    <dd>{{ server.cpu_model }}</dd>
+    <dt>{% trans "Number of CPUs" %}</dt>
+    <dd>{{ server.cpu }}</dd>
+    <dt>{% trans "Number of Cores" %}</dt>
+    <dd>{{ server.cores }}</dd>
+  </dl>
+</div>
+<div class="status row-fluid detail">
+  <h4>{% trans "CIMC" %}</h4>
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "IP Address" %}</dt>
+    <dd>{{ server.ip_address }}</dd>
+    <dt>{% trans "MAC Address" %}</dt>
+    <dd>{{ server.mac }}</dd>
+    <dt>{% trans "Subnet Mask" %}</dt>
+    <dd>{{ server.subnet_mask }}</dd>
+    <dt>{% trans "Default Getway" %}</dt>
+    <dd>{{ server.default_gw }}</dd>
+  </dl>
+</div>
+<div class="status row-fluid detail">
+  <h4>{% trans "Memory" %}</h4>
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "RAM" %}</dt>
+    <dd>{{ server.ram }}</dd>
+  </dl>
+</div>
+
+<h3>{% trans "Firmware" %}</h3>
+<div class="status row-fluid detail">
+  <h4>{% trans "Bios" %}</h4>
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "Bios Model" %}</dt>
+    <dd>{{ server.bios_model }}</dd>
+    <dt>{% trans "Running Firmware Version" %}</dt>
+    <dd>{{ server.bios_running_firmware }}</dd>
+    <dt>{% trans "Startup Version" %}</dt>
+    <dd>{{ server.bios_setup_version }}</dd>
+    <dt>{% trans "Backup Version" %}</dt>
+    <dd>{{ server.bios_backup_version }}</dd>
+  </dl>
+</div>
+<div class="status row-fluid detail">
+  <h4>{% trans "Board Controller" %}</h4>
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "Board Controller Model" %}</dt>
+    <dd>{{ server.bc_model }}</dd>
+    <dt>{% trans "Running Firmware Version" %}</dt>
+    <dd>{{ server.bc_running_version }}</dd>
+    <dt>{% trans "Startup Version" %}</dt>
+    <dd>{{ server.bc_setup_version }}</dd>
+  </dl>
+</div>
+<div class="status row-fluid detail">
+  <h4>{% trans "CIMC" %}</h4>
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "CIMC Model" %}</dt>
+    <dd>{{ server.cimc_model }}</dd>
+    <dt>{% trans "Running Firmware Version" %}</dt>
+    <dd>{{ server.cimc_running_version }}</dd>
+    <dt>{% trans "Startup Version" %}</dt>
+    <dd>{{ server.cimc_setup_version }}</dd>
+    <dt>{% trans "Backup Version" %}</dt>
+    <dd>{{ server.cimc_backup_version }}</dd>
+  </dl>
+</div>
+

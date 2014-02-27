@@ -1,0 +1,24 @@
+{% load i18n sizeformat %}
+{% load url from future %}
+
+<h3>{% trans "Node Overview" %}</h3>
+
+<div class="status row-fluid detail">
+  <h4>{% trans "Info" %}</h4>
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "Name" %}</dt>
+    <dd>{{ node.name }}</dd>
+    <dt>{% trans "Status" %}</dt>
+    <dd>{{ node.status }}</dd>
+    <dt>{% trans "IP Address" %}</dt>
+    <dd>{{ node.ipaddress }}</dd>
+    <dt>{% trans "Policy" %}</dt>
+    <dd>{{ node.policy }}</dd>
+    <dt>{% trans "Tags" %}</dt>
+    <dd>{% for tag in node.tags %}
+	<li>{{tag}}</li>
+	{%endfor%}
+    </dd>
+  </dl>
+</div>

@@ -1,0 +1,18 @@
+{% extends 'plugins/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Policies" %}{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Policies") %}
+{% endblock page_header %}
+
+{% block plugins_main %}
+<script>
+window.onload = function(){
+	document.getElementById('policies__action_create').innerHTML = '<i class="icon-plus"></i>' + "Create Policy";
+};
+</script>
+{{ table.render }}
+{% endblock %}
+
+

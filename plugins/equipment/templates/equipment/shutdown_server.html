@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Power Server Off" %}{% endblock %}
+
+{% block page_header %}
+  {% include "horizon/common/_page_header.html" with title=_("Power Server Off") %}
+{% endblock page_header %}
+
+{% block main %}
+  {% include 'plugins/equipment/_shutdown_server.html' %}
+ 
+{% endblock %}
