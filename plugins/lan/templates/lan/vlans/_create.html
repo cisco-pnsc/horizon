@@ -11,8 +11,36 @@
 
 {% block modal-body %}
 
-<script src="{% static "dashboard/js/plugins/lan.js" %}"></script>
-  <div class="left">
+<script>
+function get_checked_conf(){
+	checked = $('input[name="configuration"]').map(function(){
+        if ($(this).attr('checked'))
+            return $(this).val();
+    }).get();
+	
+	return checked[0];
+}
+
+function check_click(){
+	
+	if (get_checked_conf() == 'Both')
+	{
+		$("#id_id_b").val('');
+		$("label[for='id_id_b']").parent('div').show();
+		$("label[for='id_sharing_type_b_0']").parent('div').show();
+	}
+	else
+	{
+		$("#id_id_b").val('*');
+		$("label[for='id_id_b']").parent('div').hide();
+		$("label[for='id_sharing_type_b_0']").parent('div').hide();
+	
+	}
+}
+
+check_click();
+</script>
+ <div class="left">
     <fieldset>
       {% include "horizon/common/_form_fields.html" %}
     </fieldset>
