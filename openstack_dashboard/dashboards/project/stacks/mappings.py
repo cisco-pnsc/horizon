@@ -15,10 +15,10 @@
 import json
 import logging
 import re
-import urlparse
 
-from django.core.urlresolvers import reverse  # noqa
+from django.core.urlresolvers import reverse
 from django.template.defaultfilters import register  # noqa
+import six.moves.urllib.parse as urlparse
 
 from openstack_dashboard.api import swift
 
@@ -140,9 +140,7 @@ def get_resource_status(status):
 
 
 def get_resource_image(status, type):
-    '''
-    Sets the image url and in_progress action sw based on status.
-    '''
+    """Sets the image url and in_progress action sw based on status."""
     resource_type = get_resource_type(type)
     resource_status = get_resource_status(status)
     resource_state = resource_type + "_" + resource_status

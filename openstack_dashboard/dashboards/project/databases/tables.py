@@ -16,7 +16,7 @@
 
 from django.core import urlresolvers
 from django.template.defaultfilters import title  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import tables
@@ -34,7 +34,7 @@ ACTIVE_STATES = ("ACTIVE",)
 class TerminateInstance(tables.BatchAction):
     name = "terminate"
     action_present = _("Terminate")
-    action_past = _("Scheduled termination of")
+    action_past = _("Scheduled termination of %(data_type)s")
     data_type_singular = _("Instance")
     data_type_plural = _("Instances")
     classes = ('btn-danger', 'btn-terminate')
@@ -105,7 +105,8 @@ class CreateBackup(tables.LinkAction):
     classes = ("ajax-modal", "btn-camera")
 
     def allowed(self, request, instance=None):
-        return request.user.has_perm('openstack.services.object-store')
+        return (instance.status in ACTIVE_STATES and
+                request.user.has_perm('openstack.services.object-store'))
 
     def get_link_url(self, datam):
         url = urlresolvers.reverse(self.url)
@@ -123,13 +124,6 @@ class UpdateRow(tables.Row):
         except Exception:
             pass
         return instance
-
-
-def get_ips(instance):
-    if hasattr(instance, "ip"):
-        if len(instance.ip):
-            return instance.ip[0]
-    return _("Not Assigned")
 
 
 def get_size(instance):
@@ -160,7 +154,7 @@ class InstancesTable(tables.DataTable):
     name = tables.Column("name",
                          link=("horizon:project:databases:detail"),
                          verbose_name=_("Database Name"))
-    ip = tables.Column(get_ips, verbose_name=_("IP Address"))
+    host = tables.Column("host", verbose_name=_("Host"))
     size = tables.Column(get_size,
                          verbose_name=_("Size"),
                          attrs={'data-type': 'size'})

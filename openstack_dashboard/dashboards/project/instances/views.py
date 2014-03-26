@@ -21,17 +21,18 @@
 """
 Views for managing instances.
 """
-from django.core.urlresolvers import reverse  # noqa
-from django.core.urlresolvers import reverse_lazy  # noqa
+from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse_lazy
 from django import http
 from django import shortcuts
-from django.utils.datastructures import SortedDict  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.datastructures import SortedDict
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
 from horizon import tables
 from horizon import tabs
+from horizon.utils import memoized
 from horizon import workflows
 
 from openstack_dashboard import api
@@ -66,8 +67,17 @@ class IndexView(tables.DataTableView):
             instances = []
             exceptions.handle(self.request,
                               _('Unable to retrieve instances.'))
-        # Gather our flavors and images and correlate our instances to them
+
         if instances:
+            try:
+                api.network.servers_update_addresses(self.request, instances)
+            except Exception:
+                exceptions.handle(
+                    self.request,
+                    message=_('Unable to retrieve IP addresses from Neutron.'),
+                    ignore=True)
+
+            # Gather our flavors and images and correlate our instances to them
             try:
                 flavors = api.nova.flavor_list(self.request)
             except Exception:
@@ -88,9 +98,15 @@ class IndexView(tables.DataTableView):
 
             # Loop through instances to get flavor info.
             for instance in instances:
-                if (hasattr(instance, 'image')
-                        and instance.image['id'] in image_map):
-                    instance.image = image_map[instance.image['id']]
+                if hasattr(instance, 'image'):
+                    # Instance from image returns dict
+                    if isinstance(instance.image, dict):
+                        if instance.image.get('id') in image_map:
+                            instance.image = image_map[instance.image['id']]
+                    else:
+                        # Instance from volume returns a string
+                        instance.image = {'name':
+                                instance.image if instance.image else _("-")}
 
                 try:
                     flavor_id = instance.flavor["id"]
@@ -127,7 +143,7 @@ def console(request, instance_id):
     except Exception:
         data = _('Unable to get log for instance "%s".') % instance_id
         exceptions.handle(request, ignore=True)
-    response = http.HttpResponse(mimetype='text/plain')
+    response = http.HttpResponse(content_type='text/plain')
     response.write(data)
     response.flush()
     return response
@@ -166,16 +182,15 @@ class UpdateView(workflows.WorkflowView):
         context["instance_id"] = self.kwargs['instance_id']
         return context
 
+    @memoized.memoized_method
     def get_object(self, *args, **kwargs):
-        if not hasattr(self, "_object"):
-            instance_id = self.kwargs['instance_id']
-            try:
-                self._object = api.nova.server_get(self.request, instance_id)
-            except Exception:
-                redirect = reverse("horizon:project:instances:index")
-                msg = _('Unable to retrieve instance details.')
-                exceptions.handle(self.request, msg, redirect=redirect)
-        return self._object
+        instance_id = self.kwargs['instance_id']
+        try:
+            return api.nova.server_get(self.request, instance_id)
+        except Exception:
+            redirect = reverse("horizon:project:instances:index")
+            msg = _('Unable to retrieve instance details.')
+            exceptions.handle(self.request, msg, redirect=redirect)
 
     def get_initial(self):
         initial = super(UpdateView, self).get_initial()
@@ -192,6 +207,7 @@ class RebuildView(forms.ModalFormView):
     def get_context_data(self, **kwargs):
         context = super(RebuildView, self).get_context_data(**kwargs)
         context['instance_id'] = self.kwargs['instance_id']
+        context['can_set_server_password'] = api.nova.can_set_server_password()
         return context
 
     def get_initial(self):
@@ -201,33 +217,40 @@ class RebuildView(forms.ModalFormView):
 class DetailView(tabs.TabView):
     tab_group_class = project_tabs.InstanceDetailTabs
     template_name = 'project/instances/detail.html'
+    redirect_url = 'horizon:project:instances:index'
 
     def get_context_data(self, **kwargs):
         context = super(DetailView, self).get_context_data(**kwargs)
         context["instance"] = self.get_data()
         return context
 
+    @memoized.memoized_method
     def get_data(self):
-        if not hasattr(self, "_instance"):
-            try:
-                instance_id = self.kwargs['instance_id']
-                instance = api.nova.server_get(self.request, instance_id)
-                instance.volumes = api.nova.instance_volumes_list(self.request,
-                                                                  instance_id)
-                # Sort by device name
-                instance.volumes.sort(key=lambda vol: vol.device)
-                instance.full_flavor = api.nova.flavor_get(
-                    self.request, instance.flavor["id"])
-                instance.security_groups = api.network.server_security_groups(
-                    self.request, instance_id)
-            except Exception:
-                redirect = reverse('horizon:project:instances:index')
-                exceptions.handle(self.request,
-                                  _('Unable to retrieve details for '
-                                    'instance "%s".') % instance_id,
-                                    redirect=redirect)
-            self._instance = instance
-        return self._instance
+        try:
+            instance_id = self.kwargs['instance_id']
+            instance = api.nova.server_get(self.request, instance_id)
+            instance.volumes = api.nova.instance_volumes_list(self.request,
+                                                              instance_id)
+            # Sort by device name
+            instance.volumes.sort(key=lambda vol: vol.device)
+            instance.full_flavor = api.nova.flavor_get(
+                self.request, instance.flavor["id"])
+            instance.security_groups = api.network.server_security_groups(
+                self.request, instance_id)
+        except Exception:
+            redirect = reverse(self.redirect_url)
+            exceptions.handle(self.request,
+                              _('Unable to retrieve details for '
+                                'instance "%s".') % instance_id,
+                                redirect=redirect)
+        try:
+            api.network.servers_update_addresses(self.request, [instance])
+        except Exception:
+            exceptions.handle(
+                self.request,
+                _('Unable to retrieve IP addresses from Neutron for instance '
+                  '"%s".') % instance_id, ignore=True)
+        return instance
 
     def get_tabs(self, request, *args, **kwargs):
         instance = self.get_data()
@@ -243,35 +266,33 @@ class ResizeView(workflows.WorkflowView):
         context["instance_id"] = self.kwargs['instance_id']
         return context
 
+    @memoized.memoized_method
     def get_object(self, *args, **kwargs):
-        if not hasattr(self, "_object"):
-            instance_id = self.kwargs['instance_id']
-            try:
-                self._object = api.nova.server_get(self.request, instance_id)
-                flavor_id = self._object.flavor['id']
-                flavors = self.get_flavors()
-                if flavor_id in flavors:
-                    self._object.flavor_name = flavors[flavor_id].name
-                else:
-                    flavor = api.nova.flavor_get(self.request, flavor_id)
-                    self._object.flavor_name = flavor.name
-            except Exception:
-                redirect = reverse("horizon:project:instances:index")
-                msg = _('Unable to retrieve instance details.')
-                exceptions.handle(self.request, msg, redirect=redirect)
-        return self._object
+        instance_id = self.kwargs['instance_id']
+        try:
+            instance = api.nova.server_get(self.request, instance_id)
+            flavor_id = instance.flavor['id']
+            flavors = self.get_flavors()
+            if flavor_id in flavors:
+                instance.flavor_name = flavors[flavor_id].name
+            else:
+                flavor = api.nova.flavor_get(self.request, flavor_id)
+                instance.flavor_name = flavor.name
+        except Exception:
+            redirect = reverse("horizon:project:instances:index")
+            msg = _('Unable to retrieve instance details.')
+            exceptions.handle(self.request, msg, redirect=redirect)
+        return instance
 
+    @memoized.memoized_method
     def get_flavors(self, *args, **kwargs):
-        if not hasattr(self, "_flavors"):
-            try:
-                flavors = api.nova.flavor_list(self.request)
-                self._flavors = SortedDict([(str(flavor.id), flavor)
-                                        for flavor in flavors])
-            except Exception:
-                redirect = reverse("horizon:project:instances:index")
-                exceptions.handle(self.request,
-                    _('Unable to retrieve flavors.'), redirect=redirect)
-        return self._flavors
+        try:
+            flavors = api.nova.flavor_list(self.request)
+            return SortedDict((str(flavor.id), flavor) for flavor in flavors)
+        except Exception:
+            redirect = reverse("horizon:project:instances:index")
+            exceptions.handle(self.request,
+                _('Unable to retrieve flavors.'), redirect=redirect)
 
     def get_initial(self):
         initial = super(ResizeView, self).get_initial()

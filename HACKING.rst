@@ -1,16 +1,31 @@
-OpenStack Style Commandments
-============================
+Horizon Style Commandments
+==========================
 
-- Step 1: Read http://www.python.org/dev/peps/pep-0008/
-- Step 2: Read http://www.python.org/dev/peps/pep-0008/ again
-- Step 3: Read https://github.com/openstack-dev/hacking/blob/master/HACKING.rst
+- Step 1: Read the OpenStack Style Commandments
+  http://docs.openstack.org/developer/hacking/
+- Step 2: The following names can be imported directly, without triggering the
+  "H302: import only modules" flake8 warning::
 
-The OpenStack Style Commandments live here:
+    collections.defaultdict,
+    django.conf.settings,
+    django.core.urlresolvers.reverse,
+    django.core.urlresolvers.reverse_lazy,
+    django.template.loader.render_to_string,
+    django.utils.datastructures.SortedDict,
+    django.utils.encoding.force_unicode,
+    django.utils.html.conditional_escape,
+    django.utils.html.escape,
+    django.utils.http.urlencode,
+    django.utils.safestring.mark_safe,
+    django.utils.translation.pgettext_lazy,
+    django.utils.translation.ugettext_lazy,
+    django.utils.translation.ungettext_lazy,
+    operator.attrgetter,
+    StringIO.StringIO
 
-  https://github.com/openstack-dev/hacking/blob/master/HACKING.rst
+- Step 3: Read on
 
-local-checks
-------------
+Horizon Specific Commandments
+-----------------------------
 
-None so far
-
+- Read the Horizon contributing documentation at http://docs.openstack.org/developer/horizon/contributing.html

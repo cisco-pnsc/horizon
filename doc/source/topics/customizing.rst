@@ -10,7 +10,7 @@ can be overwritten by adding the attribute ``SITE_BRANDING``
 to ``local_settings.py`` with the value being the desired name.
 
 The file ``local_settings.py`` can be found at the Horizon directory path of
-``horizon/openstack-dashboard/local/local_settings.py``.
+``openstack_dashboard/local/local_settings.py``.
 
 Changing the Logo
 =================
@@ -24,9 +24,17 @@ The OpenStack Logo is pulled in through ``style.css``::
         background: url(../images/logo.png) top left no-repeat;
 
 To override the OpenStack Logo image, replace the image at the directory path
-``horizon/openstack-dashboard/dashboard/static/dashboard/images/logo.png``.
+``openstack_dashboard/static/dashboard/img/logo.png``.
 
 The dimensions should be ``width: 108px, height: 121px``.
+
+Changing the Brand Link
+=======================
+
+The logo also acts as a hyperlink. The default behavior is to redirect to
+``horizon:user_home``. By adding the attribute ``SITE_BRANDING_LINK`` with
+the desired url target e.g., ``http://sample-company.com`` in
+``local_settings.py``, the target of the hyperlink can be changed.
 
 Modifying Existing Dashboards and Panels
 ========================================
@@ -154,8 +162,8 @@ Custom Stylesheets
 ==================
 
 It is possible to define custom stylesheets for your dashboards. Horizon's base
-template ``horizon/templates/horizon/base.html`` defines multiple blocks that
-can be overriden.
+template ``horizon/templates/base.html`` defines multiple blocks that
+can be overridden.
 
 To define custom css files that apply only to a specific dashboard, create
 a base template in your dashboard's templates folder, which extends Horizon's
@@ -198,7 +206,7 @@ partial template, which is included in Horizon's base template in ``block js``.
 To add custom javascript files, create an ``_scripts.html`` partial template in
 your dashboard ``openstack_dashboard/dashboards/my_custom_dashboard/
 templates/my_custom_dashboard/_scripts.html`` which extends
-``horizon/_scripts.html.``. In this template override the
+``horizon/_scripts.html``. In this template override the
 ``block custom_js_files`` including your custom javascript files::
 
     {% extends 'horizon/_scripts.html' %}
@@ -219,7 +227,24 @@ my_custom_dashboard/templates/my_custom_dashboard/base.html`` override
 The result is a single compressed js file consisting both Horizon and
 dashboard's custom scripts.
 
+Additionally, some marketing and analytics scripts require you to place them
+within the page's <head> tag. To do this, place them within the
+``horizon/_custom_head_js.html`` file. Similar to the ``_scripts.html`` file
+mentioned above, you may link to an existing file::
+
+    <script src='{{ STATIC_URL }}/my_custom_dashboard/js/my_marketing_js.js' type='text/javascript' charset='utf-8'></script>
+
+or you can paste your script directly in the file, being sure to use
+appropriate tags::
+
+  <script type="text/javascript">
+  //some javascript
+  </script>
 
 
+Customizing Meta Attributes
+===========================
 
-
+To add custom metadata attributes to your project's base template, include
+them in the ``horizon/_custom_meta.html`` file. The contents of this file will be
+inserted into the page's <head> just after the default Horizon meta tags.

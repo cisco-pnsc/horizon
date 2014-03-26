@@ -19,9 +19,9 @@
 #    under the License.
 
 
-from django.conf import settings  # noqa
-from django.core.urlresolvers import reverse  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -105,7 +105,8 @@ class CreateProjectInfoAction(workflows.Action):
     domain_name = forms.CharField(label=_("Domain Name"),
                                   required=False,
                                   widget=forms.HiddenInput())
-    name = forms.CharField(label=_("Name"))
+    name = forms.CharField(label=_("Name"),
+                           max_length=64)
     description = forms.CharField(widget=forms.widgets.Textarea(),
                                   label=_("Description"),
                                   required=False)

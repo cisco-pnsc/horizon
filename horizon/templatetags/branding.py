@@ -22,9 +22,10 @@
 Template tags for customizing Horizon.
 """
 
-from django.conf import settings  # noqa
+from django.conf import settings
+from django.core.urlresolvers import reverse
 from django import template
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 
 register = template.Library()
@@ -43,6 +44,12 @@ def site_branding(parser, token):
 @register.tag
 def site_title(parser, token):
     return settings.SITE_BRANDING
+
+
+@register.simple_tag
+def site_branding_link():
+    return getattr(settings, "SITE_BRANDING_LINK",
+                   reverse("horizon:user_home"))
 
 
 # TODO(jeffjapan): This is just an assignment tag version of the above, replace

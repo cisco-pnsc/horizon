@@ -20,9 +20,9 @@
 
 import json
 
-from django.conf import settings  # noqa
-from django.core.urlresolvers import reverse  # noqa
-from django.core.urlresolvers import reverse_lazy  # noqa
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponse  # noqa
 from django.views.generic import TemplateView  # noqa
 from django.views.generic import View  # noqa
@@ -211,7 +211,7 @@ class JSONView(View):
                                                 router['id'],
                                                 external_network):
                 continue
-            fake_port = {'id': 'fake%s' % external_network,
+            fake_port = {'id': 'gateway%s' % external_network,
                          'network_id': external_network,
                          'device_id': router['id'],
                          'fixed_ips': []}
@@ -220,4 +220,4 @@ class JSONView(View):
         self.add_resource_url('horizon:project:routers:detail',
                               data['routers'])
         json_string = json.dumps(data, ensure_ascii=False)
-        return HttpResponse(json_string, mimetype='text/json')
+        return HttpResponse(json_string, content_type='text/json')

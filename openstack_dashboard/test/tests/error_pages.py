@@ -17,13 +17,13 @@
 
 from os import path
 
-from django.conf import settings  # noqa
+from django.conf import settings
 
 from openstack_dashboard.test import helpers as test
 
 
 class ErrorPageTests(test.TestCase):
-    """ Tests for error pages """
+    """Tests for error pages."""
     urls = 'openstack_dashboard.test.error_pages_urls'
 
     def test_500_error(self):

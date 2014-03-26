@@ -21,11 +21,11 @@
 Context processors used by Horizon.
 """
 
-from django.conf import settings  # noqa
+from django.conf import settings
 
 
 def openstack(request):
-    """ Context processor necessary for OpenStack Dashboard functionality.
+    """Context processor necessary for OpenStack Dashboard functionality.
 
     The following variables are added to the request context:
 

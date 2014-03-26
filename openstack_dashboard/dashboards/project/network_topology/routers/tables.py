@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 from openstack_dashboard.dashboards.project.routers import\
     tables as r_tables
 
@@ -26,6 +26,6 @@ class DeleteRouter(r_tables.DeleteRouter):
 class RoutersTable(r_tables.RoutersTable):
     class Meta:
         name = "Routers"
-        verbose_name = _("NT_Routers")
+        verbose_name = _("Routers")
         status_columns = ["status"]
         row_actions = (DeleteRouter,)

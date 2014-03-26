@@ -16,9 +16,9 @@
 
 import logging
 
-from django.conf import settings  # noqa
-from django.core.urlresolvers import reverse  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -103,7 +103,7 @@ class UpdateDomainGroupsAction(workflows.MembershipAction):
                               redirect=reverse(constants.DOMAINS_INDEX_URL))
         for role in role_list:
             field_name = self.get_member_field_name(role.id)
-            label = _(role.name)
+            label = role.name
             self.fields[field_name] = forms.MultipleChoiceField(required=False,
                                                                 label=label)
             self.fields[field_name].choices = groups_list

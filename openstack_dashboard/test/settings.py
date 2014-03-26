@@ -1,3 +1,15 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
 import os
 
 from horizon.test.settings import *  # noqa
@@ -80,8 +92,12 @@ AVAILABLE_REGIONS = [
     ('http://remote:5000/v2.0', 'remote'),
 ]
 
+OPENSTACK_API_VERSIONS = {
+    "identity": 3
+}
+
 OPENSTACK_KEYSTONE_URL = "http://localhost:5000/v2.0"
-OPENSTACK_KEYSTONE_DEFAULT_ROLE = "Member"
+OPENSTACK_KEYSTONE_DEFAULT_ROLE = "_member_"
 
 OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = True
 OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = 'test_domain'
@@ -99,11 +115,20 @@ OPENSTACK_NEUTRON_NETWORK = {
     'enable_lb': True,
     'enable_firewall': True,
     'enable_quotas': False,  # Enabled in specific tests only
-    'enable_vpn': True
+    'enable_vpn': True,
+    # If the profile_support config is turned on in local_settings
+    # the "router" dashboard will be enabled which can be used to
+    # create and use profiles with networks and instances. In which case
+    # using run_tests will require the registration of the "router" dashboard.
+    # TODO (absubram): Need to make this permanent when a better solution
+    # for run_tests is implemented to use with and without the n1k sub-plugin.
+    'profile_support': None,
+    #'profile_support': 'cisco'
 }
 
 OPENSTACK_HYPERVISOR_FEATURES = {
-    'can_set_mount_point': True,
+    'can_set_mount_point': False,
+    'can_set_password': True,
 }
 
 OPENSTACK_IMAGE_BACKEND = {
@@ -121,10 +146,34 @@ OPENSTACK_IMAGE_BACKEND = {
     ]
 }
 
-LOGGING['loggers']['openstack_dashboard'] = {
-    'handlers': ['test'],
-    'propagate': False,
-}
+LOGGING['loggers'].update(
+    {
+        'openstack_dashboard': {
+            'handlers': ['test'],
+            'propagate': False,
+        },
+        'novaclient': {
+            'handlers': ['test'],
+            'propagate': False,
+        },
+        'keystoneclient': {
+            'handlers': ['test'],
+            'propagate': False,
+        },
+        'glanceclient': {
+            'handlers': ['test'],
+            'propagate': False,
+        },
+        'neutronclient': {
+            'handlers': ['test'],
+            'propagate': False,
+        },
+        'iso8601': {
+            'handlers': ['null'],
+            'propagate': False,
+        },
+    }
+)
 
 SECURITY_GROUP_RULES = {
     'all_tcp': {

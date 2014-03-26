@@ -27,7 +27,7 @@ attributes that are direct maps to the data returned from the API http call.
 Unfortunately, these objects are also often constructed dynamically, making
 it difficult to know what data is available from the API object.  Because of
 this, all API calls should wrap their returned object in one defined here,
-using only explicitly defined atributes and/or methods.
+using only explicitly defined attributes and/or methods.
 
 In other words, Horizon developers not working on openstack_dashboard.api
 shouldn't need to understand the finer details of APIs for
@@ -48,17 +48,20 @@ from openstack_dashboard.api import swift
 from openstack_dashboard.api import trove
 from openstack_dashboard.api import vpn
 
-assert base
-assert cinder
-assert fwaas
-assert glance
-assert heat
-assert keystone
-assert lbaas
-assert network
-assert neutron
-assert nova
-assert swift
-assert ceilometer
-assert trove
-assert vpn
+
+__all__ = [
+    "base",
+    "cinder",
+    "fwaas",
+    "glance",
+    "heat",
+    "keystone",
+    "lbaas",
+    "network",
+    "neutron",
+    "nova",
+    "swift",
+    "ceilometer",
+    "trove",
+    "vpn",
+]

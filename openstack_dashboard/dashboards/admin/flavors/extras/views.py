@@ -18,7 +18,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+
+from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -40,7 +42,9 @@ class ExtraSpecMixin(object):
                                                     self.kwargs['id'])
         except Exception:
             exceptions.handle(self.request,
-                              _("Unable to retrieve flavor data."))
+                              _("Unable to retrieve flavor details."))
+        if 'key' in self.kwargs:
+            context['key'] = self.kwargs['key']
         return context
 
 
@@ -68,7 +72,8 @@ class CreateView(ExtraSpecMixin, forms.ModalFormView):
         return {'flavor_id': self.kwargs['id']}
 
     def get_success_url(self):
-        return "/admin/flavors/%s/extras/" % (self.kwargs['id'])
+        return reverse("horizon:admin:flavors:extras:index",
+                       args=(self.kwargs["id"],))
 
 
 class EditView(ExtraSpecMixin, forms.ModalFormView):
@@ -85,7 +90,8 @@ class EditView(ExtraSpecMixin, forms.ModalFormView):
         except Exception:
             extra_specs = {}
             exceptions.handle(self.request,
-                              _("Unable to retrieve flavor extra spec data."))
+                              _('Unable to retrieve flavor extra spec '
+                                'details.'))
         return {'flavor_id': flavor_id,
                 'key': key,
                 'value': extra_specs.get(key, '')}

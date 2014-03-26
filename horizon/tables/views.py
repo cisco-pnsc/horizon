@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from collections import defaultdict  # noqa
+from collections import defaultdict
 
 from django.views import generic
 
@@ -22,7 +22,7 @@ from horizon.templatetags.horizon import has_permissions  # noqa
 
 
 class MultiTableMixin(object):
-    """ A generic mixin which provides methods for handling DataTables. """
+    """A generic mixin which provides methods for handling DataTables."""
     data_method_pattern = "get_%s_data"
 
     def __init__(self, *args, **kwargs):
@@ -123,8 +123,7 @@ class MultiTableMixin(object):
 
 
 class MultiTableView(MultiTableMixin, generic.TemplateView):
-    """
-    A class-based generic view to handle the display and processing of
+    """A class-based generic view to handle the display and processing of
     multiple :class:`~horizon.tables.DataTable` classes in a single view.
 
     Three steps are required to use this view: set the ``table_classes``
@@ -164,7 +163,7 @@ class MultiTableView(MultiTableMixin, generic.TemplateView):
 
 
 class DataTableView(MultiTableView):
-    """ A class-based generic view to handle basic DataTable processing.
+    """A class-based generic view to handle basic DataTable processing.
 
     Three steps are required to use this view: set the ``table_class``
     attribute with the desired :class:`~horizon.tables.DataTable` class;
@@ -195,6 +194,8 @@ class DataTableView(MultiTableView):
         return self._tables
 
     def get_table(self):
+        # Note: this method cannot be easily memoized, because get_context_data
+        # uses its cached value directly.
         if not self.table_class:
             raise AttributeError('You must specify a DataTable class for the '
                                  '"table_class" attribute on %s.'
@@ -211,7 +212,7 @@ class DataTableView(MultiTableView):
 
 
 class MixedDataTableView(DataTableView):
-    """ A class-based generic view to handle DataTable with mixed data
+    """A class-based generic view to handle DataTable with mixed data
     types.
 
     Basic usage is the same as DataTableView.
@@ -255,7 +256,7 @@ class MixedDataTableView(DataTableView):
         self.table = super(MixedDataTableView, self).get_table()
         if not self.table._meta.mixed_data_type:
             raise AttributeError('You must have at least two elements in '
-                                 'the data_types attibute '
+                                 'the data_types attribute '
                                  'in table %s to use MixedDataTableView.'
                                  % self.table._meta.name)
         return self.table

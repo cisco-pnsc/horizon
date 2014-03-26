@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright 2013 Openstack Foundation
+# Copyright 2013 OpenStack Foundation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,9 +15,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.core.urlresolvers import reverse  # noqa
+from django.core.urlresolvers import reverse
 from django.template.defaultfilters import filesizeformat  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.debug import sensitive_variables  # noqa
 
 from horizon import exceptions
@@ -27,12 +27,12 @@ from horizon.utils import fields
 from horizon.utils import validators
 
 from openstack_dashboard import api
-from openstack_dashboard.dashboards.project.images_and_snapshots import utils
+from openstack_dashboard.dashboards.project.images import utils
 
 
 def _image_choice_title(img):
-    gb = filesizeformat(img.bytes)
-    return '%s (%s)' % (img.display_name, gb)
+    gb = filesizeformat(img.size)
+    return '%s (%s)' % (img.name or img.id, gb)
 
 
 class RebuildInstanceForm(forms.SelfHandlingForm):
@@ -56,12 +56,16 @@ class RebuildInstanceForm(forms.SelfHandlingForm):
         self.fields['instance_id'].initial = instance_id
 
         images = utils.get_available_images(request, request.user.tenant_id)
-        choices = [(image.id, image.name) for image in images]
+        choices = [(image.id, image) for image in images]
         if choices:
             choices.insert(0, ("", _("Select Image")))
         else:
-            choices.insert(0, ("", _("No images available.")))
+            choices.insert(0, ("", _("No images available")))
         self.fields['image'].choices = choices
+
+        if not api.nova.can_set_server_password():
+            del self.fields['password']
+            del self.fields['confirm_password']
 
     def clean(self):
         cleaned_data = super(RebuildInstanceForm, self).clean()

@@ -21,8 +21,8 @@ import zipfile
 
 from django import http
 from django import shortcuts
-from django.template.loader import render_to_string  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.template.loader import render_to_string
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import messages
@@ -94,7 +94,7 @@ def download_ec2_bundle(request):
                           redirect=request.build_absolute_uri())
 
     # Send it back
-    response = http.HttpResponse(mimetype='application/zip')
+    response = http.HttpResponse(content_type='application/zip')
     response.write(temp_zip.read())
     response['Content-Disposition'] = ('attachment; '
                                        'filename="%s-x509.zip"'

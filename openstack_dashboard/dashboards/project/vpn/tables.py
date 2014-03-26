@@ -17,11 +17,15 @@
 # @author: Tatiana Mazur
 
 
+from django.core.urlresolvers import reverse
 from django.template.defaultfilters import title  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import tables
 from horizon.utils import filters
+
+
+forbid_updates = set(["PENDING_CREATE", "PENDING_UPDATE", "PENDING_DELETE"])
 
 
 class AddIKEPolicyLink(tables.LinkAction):
@@ -55,33 +59,104 @@ class AddIPSecSiteConnectionLink(tables.LinkAction):
 class DeleteVPNServiceLink(tables.DeleteAction):
     name = "deletevpnservice"
     action_present = _("Delete")
-    action_past = _("Scheduled deletion of")
+    action_past = _("Scheduled deletion of %(data_type)s")
     data_type_singular = _("VPN Service")
     data_type_plural = _("VPN Services")
+
+    def allowed(self, request, datum=None):
+        if datum and datum.ipsecsiteconns:
+            return False
+        return True
 
 
 class DeleteIKEPolicyLink(tables.DeleteAction):
     name = "deleteikepolicy"
     action_present = _("Delete")
-    action_past = _("Scheduled deletion of")
+    action_past = _("Scheduled deletion of %(data_type)s")
     data_type_singular = _("IKE Policy")
     data_type_plural = _("IKE Policies")
+
+    def allowed(self, request, datum=None):
+        if datum and datum.ipsecsiteconns:
+            return False
+        return True
 
 
 class DeleteIPSecPolicyLink(tables.DeleteAction):
     name = "deleteipsecpolicy"
     action_present = _("Delete")
-    action_past = _("Scheduled deletion of")
+    action_past = _("Scheduled deletion of %(data_type)s")
     data_type_singular = _("IPSec Policy")
     data_type_plural = _("IPSec Policies")
+
+    def allowed(self, request, datum=None):
+        if datum and datum.ipsecsiteconns:
+            return False
+        return True
 
 
 class DeleteIPSecSiteConnectionLink(tables.DeleteAction):
     name = "deleteipsecsiteconnection"
     action_present = _("Delete")
-    action_past = _("Scheduled deletion of")
+    action_past = _("Scheduled deletion of %(data_type)s")
     data_type_singular = _("IPSec Site Connection")
     data_type_plural = _("IPSec Site Connections")
+
+
+class UpdateVPNServiceLink(tables.LinkAction):
+    name = "update_vpnservice"
+    verbose_name = _("Edit VPN Service")
+    classes = ("ajax-modal", "btn-update",)
+
+    def get_link_url(self, vpnservice):
+        return reverse("horizon:project:vpn:update_vpnservice",
+                       kwargs={'vpnservice_id': vpnservice.id})
+
+    def allowed(self, request, datum=None):
+        if datum and datum.status not in forbid_updates:
+            return True
+        return False
+
+
+class UpdateIKEPolicyLink(tables.LinkAction):
+    name = "updateikepolicy"
+    verbose_name = _("Edit IKE Policy")
+    classes = ("ajax-modal", "btn-update",)
+
+    def get_link_url(self, ikepolicy):
+        return reverse("horizon:project:vpn:update_ikepolicy",
+                       kwargs={'ikepolicy_id': ikepolicy.id})
+
+    def allowed(self, request, datum=None):
+        return not datum['ipsecsiteconns']
+
+
+class UpdateIPSecPolicyLink(tables.LinkAction):
+    name = "updateipsecpolicy"
+    verbose_name = _("Edit IPSec Policy")
+    classes = ("ajax-modal", "btn-update",)
+
+    def get_link_url(self, ipsecpolicy):
+        return reverse("horizon:project:vpn:update_ipsecpolicy",
+                       kwargs={'ipsecpolicy_id': ipsecpolicy.id})
+
+    def allowed(self, request, datum=None):
+        return not datum['ipsecsiteconns']
+
+
+class UpdateIPSecSiteConnectionLink(tables.LinkAction):
+    name = "updateipsecsiteconnection"
+    verbose_name = _("Edit Connection")
+    classes = ("ajax-modal", "btn-update",)
+
+    def get_link_url(self, ipsecsiteconnection):
+        return reverse("horizon:project:vpn:update_ipsecsiteconnection",
+            kwargs={'ipsecsiteconnection_id': ipsecsiteconnection.id})
+
+    def allowed(self, request, datum=None):
+        if datum and datum.status not in forbid_updates:
+            return True
+        return False
 
 
 class IPSecSiteConnectionsTable(tables.DataTable):
@@ -110,7 +185,8 @@ class IPSecSiteConnectionsTable(tables.DataTable):
         verbose_name = _("IPSec Site Connections")
         table_actions = (AddIPSecSiteConnectionLink,
                          DeleteIPSecSiteConnectionLink)
-        row_actions = (DeleteIPSecSiteConnectionLink,)
+        row_actions = (UpdateIPSecSiteConnectionLink,
+                       DeleteIPSecSiteConnectionLink)
 
 
 class VPNServicesTable(tables.DataTable):
@@ -135,7 +211,7 @@ class VPNServicesTable(tables.DataTable):
         name = "vpnservicestable"
         verbose_name = _("VPN Services")
         table_actions = (AddVPNServiceLink, DeleteVPNServiceLink)
-        row_actions = (DeleteVPNServiceLink,)
+        row_actions = (UpdateVPNServiceLink, DeleteVPNServiceLink)
 
 
 class IKEPoliciesTable(tables.DataTable):
@@ -153,7 +229,7 @@ class IKEPoliciesTable(tables.DataTable):
         name = "ikepoliciestable"
         verbose_name = _("IKE Policies")
         table_actions = (AddIKEPolicyLink, DeleteIKEPolicyLink)
-        row_actions = (DeleteIKEPolicyLink,)
+        row_actions = (UpdateIKEPolicyLink, DeleteIKEPolicyLink)
 
 
 class IPSecPoliciesTable(tables.DataTable):
@@ -171,4 +247,4 @@ class IPSecPoliciesTable(tables.DataTable):
         name = "ipsecpoliciestable"
         verbose_name = _("IPSec Policies")
         table_actions = (AddIPSecPolicyLink, DeleteIPSecPolicyLink,)
-        row_actions = (DeleteIPSecPolicyLink,)
+        row_actions = (UpdateIPSecPolicyLink, DeleteIPSecPolicyLink)

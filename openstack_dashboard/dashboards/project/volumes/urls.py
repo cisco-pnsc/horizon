@@ -14,22 +14,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.conf.urls.defaults import patterns  # noqa
-from django.conf.urls.defaults import url  # noqa
+from django.conf.urls import include  # noqa
+from django.conf.urls import patterns  # noqa
+from django.conf.urls import url  # noqa
 
 from openstack_dashboard.dashboards.project.volumes import views
+from openstack_dashboard.dashboards.project.volumes.volumes \
+    import urls as volume_urls
 
 
-urlpatterns = patterns('openstack_dashboard.dashboards.project.volumes.views',
+urlpatterns = patterns('',
     url(r'^$', views.IndexView.as_view(), name='index'),
-    url(r'^create/$', views.CreateView.as_view(), name='create'),
-    url(r'^(?P<volume_id>[^/]+)/attach/$',
-        views.EditAttachmentsView.as_view(),
-        name='attach'),
-    url(r'^(?P<volume_id>[^/]+)/create_snapshot/$',
-        views.CreateSnapshotView.as_view(),
-        name='create_snapshot'),
-    url(r'^(?P<volume_id>[^/]+)/$',
+    url(r'', include(volume_urls, namespace='volumes')),
+    url(r'^snapshots/(?P<snapshot_id>[^/]+)/$',
         views.DetailView.as_view(),
         name='detail'),
 )

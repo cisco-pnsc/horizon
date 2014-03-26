@@ -15,7 +15,7 @@
 #    under the License.
 
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 from openstack_dashboard.dashboards.project.routers.ports import\
     tables as p_tables
 
@@ -27,5 +27,5 @@ class RemoveInterface(p_tables.RemoveInterface):
 class PortsTable(p_tables.PortsTable):
     class Meta:
         name = "interfaces"
-        verbose_name = _("NT_Interfaces")
+        verbose_name = _("Interfaces")
         row_actions = (RemoveInterface, )

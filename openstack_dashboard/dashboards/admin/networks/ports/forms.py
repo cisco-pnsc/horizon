@@ -16,8 +16,8 @@
 
 import logging
 
-from django.core.urlresolvers import reverse  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -44,11 +44,12 @@ class CreatePort(forms.SelfHandlingForm):
     admin_state = forms.BooleanField(label=_("Admin State"),
                                      initial=True, required=False)
     device_id = forms.CharField(max_length=100, label=_("Device ID"),
-                                help_text='Device ID attached to the port',
+                                help_text=_("Device ID attached to the port"),
                                 required=False)
     device_owner = forms.CharField(max_length=100, label=_("Device Owner"),
-                                help_text='Device owner attached to the port',
-                                required=False)
+                                   help_text=_("Device owner attached to the "
+                                               "port"),
+                                   required=False)
 
     def handle(self, request, data):
         try:
@@ -77,17 +78,18 @@ class CreatePort(forms.SelfHandlingForm):
 class UpdatePort(project_forms.UpdatePort):
     #tenant_id = forms.CharField(widget=forms.HiddenInput())
     device_id = forms.CharField(max_length=100, label=_("Device ID"),
-                                help_text='Device ID attached to the port',
+                                help_text=_("Device ID attached to the port"),
                                 required=False)
     device_owner = forms.CharField(max_length=100, label=_("Device Owner"),
-                                help_text='Device owner attached to the port',
-                                required=False)
+                                   help_text=_("Device owner attached to the "
+                                               "port"),
+                                   required=False)
     failure_url = 'horizon:admin:networks:detail'
 
     def handle(self, request, data):
         try:
             LOG.debug('params = %s' % data)
-            port = api.neutron.port_modify(request, data['port_id'],
+            port = api.neutron.port_update(request, data['port_id'],
                                            name=data['name'],
                                            admin_state_up=data['admin_state'],
                                            device_id=data['device_id'],

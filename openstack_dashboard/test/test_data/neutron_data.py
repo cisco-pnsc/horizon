@@ -31,6 +31,7 @@ def data(TEST):
     TEST.subnets = utils.TestDataContainer()
     TEST.ports = utils.TestDataContainer()
     TEST.routers = utils.TestDataContainer()
+    TEST.routers_with_rules = utils.TestDataContainer()
     TEST.q_floating_ips = utils.TestDataContainer()
     TEST.q_secgroups = utils.TestDataContainer()
     TEST.q_secgroup_rules = utils.TestDataContainer()
@@ -114,10 +115,10 @@ def data(TEST):
     net_profile_dict = {'name': 'net_profile_test1',
                         'segment_type': 'vlan',
                         'physical_network': 'phys1',
-                        'segment_range': '3000-31000',
+                        'segment_range': '3000-3100',
                         'id':
                         '00000000-1111-1111-1111-000000000000',
-                        'tenant_id': network_dict['tenant_id']}
+                        'project_id': network_dict['tenant_id']}
 
     TEST.api_net_profiles.add(net_profile_dict)
     TEST.net_profiles.add(neutron.Profile(net_profile_dict))
@@ -147,6 +148,28 @@ def data(TEST):
     TEST.api_policy_profile_binding.add(policy_profile_binding_dict)
     TEST.policy_profile_binding.add(neutron.Profile(
         policy_profile_binding_dict))
+
+    # 2nd network profile for network when using the cisco n1k plugin
+    net_profile_dict = {'name': 'net_profile_test2',
+                        'segment_type': 'overlay',
+                        'sub_type': 'native_vxlan',
+                        'segment_range': '10000-10100',
+                        'multicast_ip_range': '144.0.0.0-144.0.0.100',
+                        'id':
+                        '00000000-2222-2222-2222-000000000000',
+                        'project_id': network_dict['tenant_id']}
+
+    TEST.api_net_profiles.add(net_profile_dict)
+    TEST.net_profiles.add(neutron.Profile(net_profile_dict))
+
+    # 2nd network profile binding
+    network_profile_binding_dict = {'profile_id':
+                                    '00000000-2222-2222-2222-000000000000',
+                                    'tenant_id': network_dict['tenant_id']}
+
+    TEST.api_network_profile_binding.add(network_profile_binding_dict)
+    TEST.network_profile_binding.add(neutron.Profile(
+        network_profile_binding_dict))
 
     # ports on 1st network
     port_dict = {'admin_state_up': True,
@@ -291,6 +314,23 @@ def data(TEST):
                    'tenant_id': '1'}
     TEST.api_routers.add(router_dict)
     TEST.routers.add(neutron.Router(router_dict))
+    router_dict = {'id': '71fb25e9-cd9f-4a44-a780-85ec3bd8bdd7',
+                   'name': 'rulerouter',
+                   'external_gateway_info':
+                       {'network_id': ext_net['id']},
+                   'tenant_id': '1',
+                   'router_rules': [{'id': '101',
+                                     'action': 'deny',
+                                     'source': 'any',
+                                     'destination': 'any',
+                                     'nexthops': []},
+                                    {'id': '102',
+                                     'action': 'permit',
+                                     'source': 'any',
+                                     'destination': '8.8.8.8/32',
+                                     'nexthops': ['1.0.0.2', '1.0.0.1']}]}
+    TEST.api_routers.add(router_dict)
+    TEST.routers_with_rules.add(neutron.Router(router_dict))
 
     #------------------------------------------------------------
     # floating IP
@@ -374,10 +414,18 @@ def data(TEST):
             'remote_ip_prefix': None,
             'security_group_id': secgroup['id'],
             'tenant_id': secgroup['tenant_id']}
+        rule_all_tcp = {
+            'id': str(uuid.uuid4()),
+            'direction': u'egress', 'ethertype': u'IPv4',
+            'port_range_min': 1, 'port_range_max': 65535,
+            'protocol': u'tcp', 'remote_group_id': None,
+            'remote_ip_prefix': u'0.0.0.0/24',
+            'security_group_id': secgroup['id'],
+            'tenant_id': secgroup['tenant_id']}
 
         rules = []
         if not default_only:
-            rules += [rule_tcp_80, rule_icmp, rule_group]
+            rules += [rule_tcp_80, rule_icmp, rule_group, rule_all_tcp]
         rules += [rule_egress_ipv4, rule_egress_ipv6]
         secgroup['security_group_rules'] = rules
 
@@ -413,7 +461,23 @@ def data(TEST):
                  'lb_method': 'ROUND_ROBIN',
                  'health_monitors': ['d4a0500f-db2b-4cc4-afcf-ec026febff96'],
                  'admin_state_up': True,
+                 'status': 'ACTIVE',
                  'provider': 'haproxy'}
+    TEST.api_pools.add(pool_dict)
+    TEST.pools.add(lbaas.Pool(pool_dict))
+
+    # 2nd pool
+    pool_dict = {'id': '8913dde8-4915-4b90-8d3e-b95eeedb0d50',
+                 'tenant_id': '1',
+                 'vip_id': 'f0881d38-c3eb-4fee-9763-12de3338041d',
+                 'name': 'pool2',
+                 'description': 'pool description',
+                 'subnet_id': TEST.subnets.first().id,
+                 'protocol': 'HTTPS',
+                 'lb_method': 'ROUND_ROBIN',
+                 'health_monitors': ['d4a0500f-db2b-4cc4-afcf-ec026febff97'],
+                 'status': 'PENDING_CREATE',
+                 'admin_state_up': True}
     TEST.api_pools.add(pool_dict)
     TEST.pools.add(lbaas.Pool(pool_dict))
 
@@ -462,6 +526,7 @@ def data(TEST):
                    'address': '10.0.0.11',
                    'protocol_port': 80,
                    'weight': 10,
+                   'status': 'ACTIVE',
                    'admin_state_up': True}
     TEST.api_members.add(member_dict)
     TEST.members.add(lbaas.Member(member_dict))
@@ -473,23 +538,10 @@ def data(TEST):
                   'address': '10.0.0.12',
                   'protocol_port': 80,
                   'weight': 10,
+                  'status': 'ACTIVE',
                   'admin_state_up': True}
     TEST.api_members.add(member_dict)
     TEST.members.add(lbaas.Member(member_dict))
-
-    # 2nd pool
-    pool_dict = {'id': '8913dde8-4915-4b90-8d3e-b95eeedb0d50',
-                 'tenant_id': '1',
-                 'vip_id': 'f0881d38-c3eb-4fee-9763-12de3338041d',
-                 'name': 'pool2',
-                 'description': 'pool description',
-                 'subnet_id': TEST.subnets.first().id,
-                 'protocol': 'HTTPS',
-                 'lb_method': 'ROUND_ROBIN',
-                 'health_monitors': ['d4a0500f-db2b-4cc4-afcf-ec026febff97'],
-                 'admin_state_up': True}
-    TEST.api_pools.add(pool_dict)
-    TEST.pools.add(lbaas.Pool(pool_dict))
 
     # 1st monitor
     monitor_dict = {'id': 'd4a0500f-db2b-4cc4-afcf-ec026febff96',
@@ -599,7 +651,8 @@ def data(TEST):
                        'vpn_type': 'ipsec',
                        'ipsecsiteconnections': [],
                        'admin_state_up': True,
-                       'status': 'Active'}
+                       'status': 'Active',
+                       'ipsecsiteconns': TEST.ipsecsiteconnections.list()}
     TEST.api_vpnservices.add(vpnservice_dict)
     TEST.vpnservices.add(vpn.VPNService(vpnservice_dict))
 
@@ -613,7 +666,8 @@ def data(TEST):
                        'vpn_type': 'ipsec',
                        'ipsecsiteconnections': [],
                        'admin_state_up': True,
-                       'status': 'Active'}
+                       'status': 'Active',
+                       'ipsecsiteconns': []}
     TEST.api_vpnservices.add(vpnservice_dict)
     TEST.vpnservices.add(vpn.VPNService(vpnservice_dict))
 
@@ -627,7 +681,8 @@ def data(TEST):
                       'ike_version': 'v1',
                       'lifetime': {'units': 'seconds', 'value': 3600},
                       'phase1_negotiation_mode': 'main',
-                      'pfs': 'group5'}
+                      'pfs': 'group5',
+                      'ipsecsiteconns': TEST.ipsecsiteconnections.list()}
     TEST.api_ikepolicies.add(ikepolicy_dict)
     TEST.ikepolicies.add(vpn.IKEPolicy(ikepolicy_dict))
 
@@ -641,7 +696,8 @@ def data(TEST):
                       'ike_version': 'v1',
                       'lifetime': {'units': 'seconds', 'value': 3600},
                       'phase1_negotiation_mode': 'main',
-                      'pfs': 'group5'}
+                      'pfs': 'group5',
+                      'ipsecsiteconns': []}
     TEST.api_ikepolicies.add(ikepolicy_dict)
     TEST.ikepolicies.add(vpn.IKEPolicy(ikepolicy_dict))
 
@@ -655,7 +711,8 @@ def data(TEST):
                       'encryption_algorithm': '3des',
                       'lifetime': {'units': 'seconds', 'value': 3600},
                       'pfs': 'group5',
-                      'transform_protocol': 'esp'}
+                      'transform_protocol': 'esp',
+                      'ipsecsiteconns': TEST.ipsecsiteconnections.list()}
     TEST.api_ipsecpolicies.add(ipsecpolicy_dict)
     TEST.ipsecpolicies.add(vpn.IPSecPolicy(ipsecpolicy_dict))
 
@@ -669,7 +726,8 @@ def data(TEST):
                       'encryption_algorithm': '3des',
                       'lifetime': {'units': 'seconds', 'value': 3600},
                       'pfs': 'group5',
-                      'transform_protocol': 'esp'}
+                      'transform_protocol': 'esp',
+                      'ipsecsiteconns': []}
     TEST.api_ipsecpolicies.add(ipsecpolicy_dict)
     TEST.ipsecpolicies.add(vpn.IPSecPolicy(ipsecpolicy_dict))
 
@@ -684,10 +742,10 @@ def data(TEST):
                           'ikepolicy_id': ikepolicy_dict['id'],
                           'initiator': 'bi-directional',
                           'ipsecpolicy_id': ipsecpolicy_dict['id'],
-                          'mtu': '1500',
+                          'mtu': 1500,
                           'peer_address':
                               '2607:f0d0:4545:3:200:f8ff:fe21:67cf',
-                          'peer_cidrs': '20.1.0.0/24',
+                          'peer_cidrs': ['20.1.0.0/24', '21.1.0.0/24'],
                           'peer_id': '2607:f0d0:4545:3:200:f8ff:fe21:67cf',
                           'psk': 'secret',
                           'vpnservice_id': vpnservice_dict['id'],
@@ -708,9 +766,9 @@ def data(TEST):
                           'ikepolicy_id': ikepolicy_dict['id'],
                           'initiator': 'bi-directional',
                           'ipsecpolicy_id': ipsecpolicy_dict['id'],
-                          'mtu': '1500',
+                          'mtu': 1500,
                           'peer_address': '172.0.0.2',
-                          'peer_cidrs': '20.1.0.0/24',
+                          'peer_cidrs': ['20.1.0.0/24'],
                           'peer_id': '172.0.0.2',
                           'psk': 'secret',
                           'vpnservice_id': vpnservice_dict['id'],

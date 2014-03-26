@@ -159,7 +159,7 @@ Structure
 A panel is a relatively flat structure with the exception that templates
 for a panel in a dashboard live in the dashboard's ``templates`` directory
 rather than in the panel's ``templates`` directory. Continuing our
-vizulaization/flocking example, let's see what the looks like::
+visualization/flocking example, let's see what the file structure looks like::
 
     # stand-alone panel structure
     flocking/
@@ -221,7 +221,7 @@ find a ``urls.py`` file in your panel directory which will define a view named
 ``index`` that handles the default view for that panel. This is what your
 ``urls.py`` file might look like::
 
-    from django.conf.urls.defaults import patterns, url
+    from django.conf.urls import patterns, url
     from .views import IndexView
 
     urlpatterns = patterns('',
@@ -281,7 +281,7 @@ make everything translatable, we give each column a ``verbose_name`` that's
 marked for translation.
 
 Lastly, we added a ``Meta`` class which defines some properties about our
-table, notably it's (translatable) verbose name, and a semi-unique "slug"-like
+table, notably its (translatable) verbose name, and a semi-unique "slug"-like
 name to identify it.
 
 .. note::
@@ -311,7 +311,7 @@ First off, let's make a tab for our visualization::
             return None
 
 This is about as simple as you can get. Since our visualization will
-ultiimately use AJAX to load it's data we don't need to pass any context
+ultimately use AJAX to load it's data we don't need to pass any context
 to the template, and all we need to define is the name and which template
 it should use.
 
@@ -458,12 +458,12 @@ A site built on Horizon takes the form of a very typical Django project::
          |--static/
 
 The key bits here are that ``demo_dashboard`` is on our python path, and that
-the `settings.py`` file here will contain our customized Horizon config.
+the ``settings.py`` file here will contain our customized Horizon config.
 
 The settings file
 -----------------
 
-There are several key things you will generally want to customiz in your
+There are several key things you will generally want to customize in your
 site's settings file: specifying custom dashboards and panels, catching your
 client's exception classes, and (possibly) specifying a file for advanced
 overrides.
@@ -471,43 +471,40 @@ overrides.
 Specifying dashboards
 ~~~~~~~~~~~~~~~~~~~~~
 
-The most basic thing to do is to add your own custom dashboard using the
-``HORIZON_CONFIG`` dictionary in the settings file::
+Adding your own dashboard is as simple as creating a file in the
+``openstack_dashboard/local/enabled`` directory named ``_50_visualizations.py``.
+The contents of this file should resemble::
 
-    HORIZON_CONFIG = {
-        'dashboards': ('project', 'admin', 'settings',),
-    }
+    DASHBOARD = 'visualizations'
+    DEFAULT = True
+    ADD_EXCEPTIONS = {}
+    ADD_INSTALLED_APPS = ['openstack_dashboard.dashboards.visualizations']
 
-Please note, the dashboards also must be added to settings.py::
-    INSTALLED_APPS = (
-        'openstack_dashboard',
-        ...
-        'horizon',
-        'openstack_dashboard.dashboards.project',
-        'openstack_dashboard.dashboards.admin',
-        'openstack_dashboard.dashboards.settings',
-        ...
-    )
+.. seealso::
 
-In this case, we've taken the default Horizon ``'dashboards'`` config and
-added our ``visualizations`` dashboard to it. Note that the name here is the
-name of the dashboard's module on the python path. It will find our
-``dashboard.py`` file inside of it and load both the dashboard and its panels
-automatically from there.
+    For more information on the significance of the file naming and an
+    explanation of the contents, check out
+    :doc:`Pluggable Settings for Dashboards </topics/settings>`
+
+In this case, we've added our ``visualizations`` dashboard to the list of
+dashboards to load. Note that the name here is the name of the dashboard's
+module on the python path. It will find our ``dashboard.py`` file inside of
+it and load both the dashboard and its panels automatically from there.
 
 Error handling
 ~~~~~~~~~~~~~~
 
 Adding custom error handler for your API client is quite easy. While it's not
-necessary for this example, it would be done by customizing the
-``'exceptions'`` value in the ``HORIZON_CONFIG`` dictionary::
+necessary for this example, it would be done by customizing the ``ADD_EXCEPTIONS``
+dictionary in the file added to ``openstack/local/enabled``::
 
     import my_api.exceptions as my_api
 
-    'exceptions': {'recoverable': [my_api.Error,
-                                   my_api.ClientConnectionError],
-                   'not_found': [my_api.NotFound],
-                   'unauthorized': [my_api.NotAuthorized]},
+    ADD_EXCEPTIONS: {
+        'recoverable': [my_api.Error, my_api.ClientConnectionError],
+        'not_found': [my_api.NotFound],
+        'unauthorized': [my_api.NotAuthorized]
+    }
 
 .. _overrides:
 
@@ -520,7 +517,7 @@ routines for the entire site. By specifying an override file you can alter
 any behavior you like in existing code. This tutorial won't go in-depth,
 but let's just say that with great power comes great responsibility.
 
-To specify am override file, you set the ``'customization_module'`` value in
+To specify an override file, you set the ``'customization_module'`` value in
 the ``HORIZON_CONFIG`` dictionary to the dotted python path of your
 override module::
 

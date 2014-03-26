@@ -15,7 +15,7 @@
 #    under the License.
 
 from django import template
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon.browsers.breadcrumb import Breadcrumb  # noqa
 from horizon.tables import DataTable  # noqa
@@ -121,9 +121,8 @@ class ResourceBrowser(html.HTMLElement):
                              % (attr_name, self.__class__.__name__))
 
     def set_tables(self, tables):
-        """
-        Sets the table instances on the browser from a dictionary mapping table
-        names to table instances (as constructed by MultiTableView).
+        """Sets the table instances on the browser from a dictionary mapping
+        table names to table instances (as constructed by MultiTableView).
         """
         self.navigation_table = tables[self.navigation_table_class._meta.name]
         self.content_table = tables[self.content_table_class._meta.name]

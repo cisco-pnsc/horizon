@@ -17,6 +17,7 @@
 import copy
 import json
 
+from django import forms
 from django import http
 from django import shortcuts
 from django.views import generic
@@ -27,8 +28,7 @@ from horizon import messages
 
 
 class WorkflowView(generic.TemplateView):
-    """
-    A generic class-based view which handles the intricacies of workflow
+    """A generic class-based view which handles the intricacies of workflow
     processing with minimal user configuration.
 
     .. attribute:: workflow_class
@@ -65,14 +65,13 @@ class WorkflowView(generic.TemplateView):
                                  "on %s." % self.__class__.__name__)
 
     def get_initial(self):
-        """
-        Returns initial data for the workflow. Defaults to using the GET
+        """Returns initial data for the workflow. Defaults to using the GET
         parameters to allow pre-seeding of the workflow context values.
         """
         return copy.copy(self.request.GET)
 
     def get_workflow(self):
-        """ Returns the instanciated workflow class. """
+        """Returns the instantiated workflow class."""
         extra_context = self.get_initial()
         entry_point = self.request.GET.get("step", None)
         workflow = self.workflow_class(self.request,
@@ -81,8 +80,7 @@ class WorkflowView(generic.TemplateView):
         return workflow
 
     def get_context_data(self, **kwargs):
-        """
-        Returns the template context, including the workflow class.
+        """Returns the template context, including the workflow class.
 
         This method should be overridden in subclasses to provide additional
         context data to the template.
@@ -92,14 +90,32 @@ class WorkflowView(generic.TemplateView):
         context[self.context_object_name] = workflow
         next = self.request.REQUEST.get(workflow.redirect_param_name, None)
         context['REDIRECT_URL'] = next
-        if self.request.is_ajax():
-            context['modal'] = True
+        context['layout'] = self.get_layout()
+        # For consistency with Workflow class
+        context['modal'] = 'modal' in context['layout']
+
         if ADD_TO_FIELD_HEADER in self.request.META:
             context['add_to_field'] = self.request.META[ADD_TO_FIELD_HEADER]
         return context
 
+    def get_layout(self):
+        """returns classes for the workflow element in template based on
+        the workflow characteristics
+        """
+        if self.request.is_ajax():
+            layout = ['modal', 'hide', ]
+            if self.workflow_class.fullscreen:
+                layout += ['fullscreen', ]
+        else:
+            layout = ['static_page', ]
+
+        if self.workflow_class.wizard:
+            layout += ['wizard', ]
+
+        return layout
+
     def get_template_names(self):
-        """ Returns the template name to use for this request. """
+        """Returns the template name to use for this request."""
         if self.request.is_ajax():
             template = self.ajax_template_name
         else:
@@ -122,37 +138,73 @@ class WorkflowView(generic.TemplateView):
             workflow.add_error_to_step(error_msg, step)
 
     def get(self, request, *args, **kwargs):
-        """ Handler for HTTP GET requests. """
+        """Handler for HTTP GET requests."""
         context = self.get_context_data(**kwargs)
         self.set_workflow_step_errors(context)
         return self.render_to_response(context)
 
+    def validate_steps(self, request, workflow, start, end):
+        """Validates the workflow steps from ``start`` to ``end``, inclusive.
+
+        Returns a dict describing the validation state of the workflow.
+        """
+        errors = {}
+        for step in workflow.steps[start:end + 1]:
+            if not step.action.is_valid():
+                errors[step.slug] = dict(
+                    (field, [unicode(error) for error in errors])
+                    for (field, errors) in step.action.errors.iteritems())
+        return {
+            'has_errors': bool(errors),
+            'workflow_slug': workflow.slug,
+            'errors': errors,
+        }
+
     def post(self, request, *args, **kwargs):
-        """ Handler for HTTP POST requests. """
+        """Handler for HTTP POST requests."""
         context = self.get_context_data(**kwargs)
         workflow = context[self.context_object_name]
-        if workflow.is_valid():
-            try:
-                success = workflow.finalize()
-            except Exception:
-                success = False
-                exceptions.handle(request)
-            next = self.request.REQUEST.get(workflow.redirect_param_name, None)
-            if success:
-                msg = workflow.format_status_message(workflow.success_message)
-                messages.success(request, msg)
-            else:
-                msg = workflow.format_status_message(workflow.failure_message)
-                messages.error(request, msg)
-
-            if "HTTP_X_HORIZON_ADD_TO_FIELD" in self.request.META:
-                field_id = self.request.META["HTTP_X_HORIZON_ADD_TO_FIELD"]
-                data = [self.get_object_id(workflow.object),
-                        self.get_object_display(workflow.object)]
-                response = http.HttpResponse(json.dumps(data))
-                response["X-Horizon-Add-To-Field"] = field_id
-                return response
-            else:
-                return shortcuts.redirect(next or workflow.get_success_url())
+        try:
+            # Check for the VALIDATE_STEP* headers, if they are present
+            # and valid integers, return validation results as JSON,
+            # otherwise proceed normally.
+            validate_step_start = int(self.request.META.get(
+                'HTTP_X_HORIZON_VALIDATE_STEP_START', ''))
+            validate_step_end = int(self.request.META.get(
+                'HTTP_X_HORIZON_VALIDATE_STEP_END', ''))
+        except ValueError:
+            # No VALIDATE_STEP* headers, or invalid values. Just proceed
+            # with normal workflow handling for POSTs.
+            pass
         else:
+            # There are valid VALIDATE_STEP* headers, so only do validation
+            # for the specified steps and return results.
+            data = self.validate_steps(request, workflow,
+                                       validate_step_start,
+                                       validate_step_end)
+            return http.HttpResponse(json.dumps(data),
+                                     content_type="application/json")
+        if not workflow.is_valid():
             return self.render_to_response(context)
+        try:
+            success = workflow.finalize()
+        except forms.ValidationError:
+            return self.render_to_response(context)
+        except Exception:
+            success = False
+            exceptions.handle(request)
+        if success:
+            msg = workflow.format_status_message(workflow.success_message)
+            messages.success(request, msg)
+        else:
+            msg = workflow.format_status_message(workflow.failure_message)
+            messages.error(request, msg)
+        if "HTTP_X_HORIZON_ADD_TO_FIELD" in self.request.META:
+            field_id = self.request.META["HTTP_X_HORIZON_ADD_TO_FIELD"]
+            data = [self.get_object_id(workflow.object),
+                    self.get_object_display(workflow.object)]
+            response = http.HttpResponse(json.dumps(data))
+            response["X-Horizon-Add-To-Field"] = field_id
+            return response
+        next_url = self.request.REQUEST.get(workflow.redirect_param_name, None)
+        return shortcuts.redirect(next_url or workflow.get_success_url())

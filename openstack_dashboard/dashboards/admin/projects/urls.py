@@ -18,8 +18,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.conf.urls.defaults import patterns  # noqa
-from django.conf.urls.defaults import url  # noqa
+from django.conf.urls import patterns  # noqa
+from django.conf.urls import url  # noqa
 
 from openstack_dashboard.dashboards.admin.projects import views
 
@@ -29,6 +29,6 @@ urlpatterns = patterns('',
     url(r'^create$', views.CreateProjectView.as_view(), name='create'),
     url(r'^(?P<tenant_id>[^/]+)/update/$',
         views.UpdateProjectView.as_view(), name='update'),
-    url(r'^(?P<tenant_id>[^/]+)/usage/$',
+    url(r'^(?P<project_id>[^/]+)/usage/$',
         views.ProjectUsageView.as_view(), name='usage'),
 )

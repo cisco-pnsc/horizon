@@ -15,7 +15,7 @@
 #    under the License.
 
 from django.core.exceptions import ValidationError  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import conf
 
@@ -39,7 +39,7 @@ def password_validator_msg():
 
 
 def validate_port_or_colon_separated_port_range(port_range):
-    """accepts a port number or a single-colon separated range"""
+    """Accepts a port number or a single-colon separated range."""
     if port_range.count(':') > 1:
         raise ValidationError(_("One colon allowed in port range"))
     ports = port_range.split(':')

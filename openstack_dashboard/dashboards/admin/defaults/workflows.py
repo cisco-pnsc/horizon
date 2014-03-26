@@ -15,7 +15,7 @@
 #    under the License.
 
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -32,26 +32,26 @@ ALL_NOVA_QUOTA_FIELDS = quotas.NOVA_QUOTA_FIELDS + quotas.MISSING_QUOTA_FIELDS
 class UpdateDefaultQuotasAction(workflows.Action):
     ifcb_label = _("Injected File Content Bytes")
     ifpb_label = _("Injected File Path Bytes")
-    metadata_items = forms.IntegerField(min_value=-1,
-                                        label=_("Metadata Items"))
-    cores = forms.IntegerField(min_value=-1, label=_("VCPUs"))
-    instances = forms.IntegerField(min_value=-1, label=_("Instances"))
-    injected_files = forms.IntegerField(min_value=-1,
-                                        label=_("Injected Files"))
     injected_file_content_bytes = forms.IntegerField(min_value=-1,
                                                      label=ifcb_label)
-    injected_file_path_bytes = forms.IntegerField(min_value=-1,
-                                                  label=ifpb_label)
-    volumes = forms.IntegerField(min_value=-1, label=_("Volumes"))
-    snapshots = forms.IntegerField(min_value=-1, label=_("Snapshots"))
-    gigabytes = forms.IntegerField(min_value=-1, label=_("Gigabytes"))
+    metadata_items = forms.IntegerField(min_value=-1,
+                                        label=_("Metadata Items"))
     ram = forms.IntegerField(min_value=-1, label=_("RAM (MB)"))
     floating_ips = forms.IntegerField(min_value=-1, label=_("Floating IPs"))
-    security_groups = forms.IntegerField(min_value=-1,
-                                         label=_("Security Groups"))
+    key_pairs = forms.IntegerField(min_value=-1, label=_("Key Pairs"))
+    injected_file_path_bytes = forms.IntegerField(min_value=-1,
+                                                  label=ifpb_label)
+    instances = forms.IntegerField(min_value=-1, label=_("Instances"))
     security_group_rules = forms.IntegerField(min_value=-1,
                                               label=_("Security Group Rules"))
-    key_pairs = forms.IntegerField(min_value=-1, label=_("Key Pairs"))
+    injected_files = forms.IntegerField(min_value=-1,
+                                        label=_("Injected Files"))
+    cores = forms.IntegerField(min_value=-1, label=_("VCPUs"))
+    security_groups = forms.IntegerField(min_value=-1,
+                                         label=_("Security Groups"))
+    gigabytes = forms.IntegerField(min_value=-1, label=_("Gigabytes"))
+    snapshots = forms.IntegerField(min_value=-1, label=_("Snapshots"))
+    volumes = forms.IntegerField(min_value=-1, label=_("Volumes"))
 
     def __init__(self, request, *args, **kwargs):
         super(UpdateDefaultQuotasAction, self).__init__(request,
@@ -70,7 +70,7 @@ class UpdateDefaultQuotasAction(workflows.Action):
                       "(max limits).")
 
 
-class UpdateDefaultQuotas(workflows.Step):
+class UpdateDefaultQuotasStep(workflows.Step):
     action_class = UpdateDefaultQuotasAction
     contributes = (quotas.QUOTA_FIELDS + quotas.MISSING_QUOTA_FIELDS)
 
@@ -79,10 +79,10 @@ class UpdateDefaultQuotas(workflows.Workflow):
     slug = "update_default_quotas"
     name = _("Update Default Quotas")
     finalize_button_name = _("Update Defaults")
-    success_message = _('Default quotas updated "%s".')
-    failure_message = _('Unable to update default quotas "%s".')
+    success_message = _('Default quotas updated.')
+    failure_message = _('Unable to update default quotas.')
     success_url = "horizon:admin:defaults:index"
-    default_steps = (UpdateDefaultQuotas,)
+    default_steps = (UpdateDefaultQuotasStep,)
 
     def handle(self, request, data):
         # Update the default quotas.

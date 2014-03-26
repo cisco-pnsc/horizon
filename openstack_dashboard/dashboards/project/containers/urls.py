@@ -18,8 +18,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.conf.urls.defaults import patterns  # noqa
-from django.conf.urls.defaults import url  # noqa
+from django.conf.urls import patterns  # noqa
+from django.conf.urls import url  # noqa
 
 from openstack_dashboard.dashboards.project.containers import views
 
@@ -44,9 +44,19 @@ urlpatterns = patterns(VIEW_MOD,
         views.ObjectDetailView.as_view(),
         name='object_detail'),
 
+    url(r'^(?P<container_name>[^/]+)/(?P<subfolder_path>(.+/)+)?'
+        '(?P<object_name>.+)/update$',
+        views.UpdateObjectView.as_view(),
+        name='object_update'),
+
     url(r'^(?P<container_name>.+?)/(?P<subfolder_path>(.+/)+)?upload$',
         views.UploadView.as_view(),
         name='object_upload'),
+
+    url(r'^(?P<container_name>.+?)/(?P<subfolder_path>(.+/)+)'
+            '?create_pseudo_folder',
+        views.CreatePseudoFolderView.as_view(),
+        name='create_pseudo_folder'),
 
     url(r'^(?P<container_name>[^/]+)/'
          r'(?P<subfolder_path>(.+/)+)?'

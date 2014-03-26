@@ -19,7 +19,7 @@
 #    under the License.
 
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -45,16 +45,21 @@ class CreateFlavorInfoAction(workflows.Action):
                              required=False,
                              initial='auto',
                              help_text=_flavor_id_help_text)
-    vcpus = forms.IntegerField(label=_("VCPUs"))
-    memory_mb = forms.IntegerField(label=_("RAM MB"))
-    disk_gb = forms.IntegerField(label=_("Root Disk GB"))
-    eph_gb = forms.IntegerField(label=_("Ephemeral Disk GB"))
-    swap_mb = forms.IntegerField(label=_("Swap Disk MB"))
+    vcpus = forms.IntegerField(label=_("VCPUs"),
+                            min_value=1)
+    memory_mb = forms.IntegerField(label=_("RAM MB"),
+                            min_value=1)
+    disk_gb = forms.IntegerField(label=_("Root Disk GB"),
+                            min_value=0)
+    eph_gb = forms.IntegerField(label=_("Ephemeral Disk GB"),
+                            min_value=0)
+    swap_mb = forms.IntegerField(label=_("Swap Disk MB"),
+                            min_value=0)
 
     class Meta:
         name = _("Flavor Info")
         help_text = _("From here you can create a new "
-                      "flavor to organize projects.")
+                      "flavor to organize instance resources.")
 
     def clean(self):
         cleaned_data = super(CreateFlavorInfoAction, self).clean()
@@ -292,7 +297,6 @@ class UpdateFlavor(workflows.Workflow):
                                             data['disk_gb'],
                                             ephemeral=data['eph_gb'],
                                             swap=data['swap_mb'],
-                                            flavorid=flavor_id,
                                             is_public=is_public)
             if (extras_dict):
                 api.nova.flavor_extra_set(request, flavor.id, extras_dict)

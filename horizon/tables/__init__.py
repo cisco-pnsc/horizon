@@ -15,12 +15,15 @@
 #    under the License.
 
 # Convenience imports for public API components.
+# Importing non-modules that are not used explicitly
+
 from horizon.tables.actions import Action  # noqa
 from horizon.tables.actions import BatchAction  # noqa
 from horizon.tables.actions import DeleteAction  # noqa
 from horizon.tables.actions import FilterAction  # noqa
 from horizon.tables.actions import FixedFilterAction  # noqa
 from horizon.tables.actions import LinkAction  # noqa
+from horizon.tables.actions import UpdateAction  # noqa
 from horizon.tables.base import Column  # noqa
 from horizon.tables.base import DataTable  # noqa
 from horizon.tables.base import Row  # noqa
@@ -28,17 +31,3 @@ from horizon.tables.views import DataTableView  # noqa
 from horizon.tables.views import MixedDataTableView  # noqa
 from horizon.tables.views import MultiTableMixin  # noqa
 from horizon.tables.views import MultiTableView  # noqa
-
-assert Action
-assert BatchAction
-assert DeleteAction
-assert LinkAction
-assert FilterAction
-assert FixedFilterAction
-assert DataTable
-assert Column
-assert Row
-assert DataTableView
-assert MultiTableView
-assert MultiTableMixin
-assert MixedDataTableView

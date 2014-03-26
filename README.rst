@@ -47,8 +47,8 @@ or, as a shortcut::
   $ ./run_tests.sh --runserver
 
 
-Settings Up OpenStack
-=====================
+Setting Up OpenStack
+====================
 
 The recommended tool for installing and configuring the core OpenStack
 components is `Devstack`_. Refer to their documentation for getting
@@ -74,7 +74,7 @@ Development
 For development, start with the getting started instructions above.
 Once you have a working virtualenv and all the necessary packages, read on.
 
-If dependencies are added to either ``horizon`` or ``openstack-dashboard``,
+If dependencies are added to either ``horizon`` or ``openstack_dashboard``,
 they should be added to ``requirements.txt``.
 
 The ``run_tests.sh`` script invokes tests and analyses on both of these

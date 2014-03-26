@@ -16,9 +16,9 @@
 
 import logging
 
-from django.core.urlresolvers import reverse  # noqa
+from django.core.urlresolvers import reverse
 from django.template import defaultfilters
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import tables
 
@@ -85,7 +85,7 @@ class ManageUsersLink(tables.LinkAction):
 
 class GroupFilterAction(tables.FilterAction):
     def filter(self, table, groups, filter_string):
-        """ Naive case-insensitive search """
+        """Naive case-insensitive search."""
         q = filter_string.lower()
 
         def comp(group):
@@ -112,11 +112,11 @@ class GroupsTable(tables.DataTable):
 
 class UserFilterAction(tables.FilterAction):
     def filter(self, table, users, filter_string):
-        """ Naive case-insensitive search """
+        """Naive case-insensitive search."""
         q = filter_string.lower()
         return [user for user in users
                 if q in user.name.lower()
-                or q in user.email.lower()]
+                or q in getattr(user, 'email', '').lower()]
 
 
 class RemoveMembers(tables.DeleteAction):

@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 import horizon
 
@@ -25,7 +25,7 @@ class BasePanels(horizon.PanelGroup):
     panels = ('overview',
               'instances',
               'volumes',
-              'images_and_snapshots',
+              'images',
               'access_and_security',)
 
 

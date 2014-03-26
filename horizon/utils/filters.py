@@ -17,6 +17,9 @@
 import iso8601
 
 from django.template.defaultfilters import register  # noqa
+from django.template.defaultfilters import timesince  # noqa
+from django.utils.safestring import mark_safe
+from django.utils import timezone
 
 
 @register.filter
@@ -25,14 +28,20 @@ def replace_underscores(string):
 
 
 @register.filter
-def parse_isotime(timestr):
-    """
-    This duplicates oslo timeutils parse_isotime but with a
-    @register.filter annotation.
+def parse_isotime(timestr, default=None):
+    """This duplicates oslo timeutils parse_isotime but with a
+    @register.filter annotation and a silent fallback on error.
     """
     try:
         return iso8601.parse_date(timestr)
-    except iso8601.ParseError as e:
-        raise ValueError(e.message)
-    except TypeError as e:
-        raise ValueError(e.message)
+    except (iso8601.ParseError, TypeError):
+        return default or ''
+
+
+@register.filter
+def timesince_sortable(dt):
+    delta = timezone.now() - dt
+    # timedelta.total_seconds() not supported on python < 2.7
+    seconds = delta.seconds + (delta.days * 24 * 3600)
+    return mark_safe("<span data-seconds=\"%d\">%s</span>" %
+                     (seconds, timesince(dt)))

@@ -1,6 +1,18 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
 from django import template
 from django.template import defaultfilters as filters
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import tables
 from horizon.utils import filters as utils_filters
@@ -54,7 +66,7 @@ def get_available(zone):
     return zone.zoneState['available']
 
 
-def get_hosts(zone):
+def get_zone_hosts(zone):
     hosts = zone.hosts
     host_details = []
     for name, services in hosts.items():
@@ -66,7 +78,7 @@ def get_hosts(zone):
 
 class ZonesTable(tables.DataTable):
     name = tables.Column('zoneName', verbose_name=_('Name'))
-    hosts = tables.Column(get_hosts,
+    hosts = tables.Column(get_zone_hosts,
                           verbose_name=_('Hosts'),
                           wrap_list=True,
                           filters=(filters.unordered_list,))
@@ -118,7 +130,7 @@ class NovaServicesTable(tables.DataTable):
         multi_select = False
 
 
-def get_hosts(aggregate):
+def get_aggregate_hosts(aggregate):
     return [host for host in aggregate.hosts]
 
 
@@ -132,7 +144,7 @@ class AggregatesTable(tables.DataTable):
                          verbose_name=_("Name"))
     availability_zone = tables.Column("availability_zone",
                                       verbose_name=_("Availability Zone"))
-    hosts = tables.Column(get_hosts,
+    hosts = tables.Column(get_aggregate_hosts,
                           verbose_name=_("Hosts"),
                           wrap_list=True,
                           filters=(filters.unordered_list,))

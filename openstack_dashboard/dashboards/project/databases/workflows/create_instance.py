@@ -16,10 +16,11 @@
 
 import logging
 
-from django.conf import settings  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 from horizon import exceptions
 from horizon import forms
+from horizon.utils import memoized
 from horizon import workflows
 
 from openstack_dashboard import api
@@ -40,14 +41,13 @@ class SetInstanceDetailsAction(workflows.Action):
         name = _("Details")
         help_text_template = ("project/databases/_launch_details_help.html")
 
+    @memoized.memoized_method
     def flavors(self, request):
-        if not hasattr(self, '_flavors'):
-            try:
-                self._flavors = api.trove.flavor_list(request)
-            except Exception:
-                LOG.exception("Exception while obtaining flavors list")
-                self._flavors = []
-        return self._flavors
+        try:
+            return api.trove.flavor_list(request)
+        except Exception:
+            LOG.exception("Exception while obtaining flavors list")
+            self._flavors = []
 
     def populate_flavor_choices(self, request, context):
         flavor_list = [(f.id, "%s" % f.name) for f in self.flavors(request)]
@@ -65,8 +65,7 @@ class SetInstanceDetails(workflows.Step):
 
 
 class AddDatabasesAction(workflows.Action):
-    """
-    Initialize the database with users/databases. This tab will honor
+    """Initialize the database with users/databases. This tab will honor
     the settings which should be a list of permissions required:
 
     * TROVE_ADD_USER_PERMS = []
@@ -124,7 +123,8 @@ class RestoreAction(workflows.Action):
         empty = [('', '-')]
         try:
             backups = api.trove.backup_list(request)
-            backup_list = [(b.id, b.name) for b in backups]
+            backup_list = [(b.id, b.name) for b in backups
+                           if b.status == 'COMPLETED']
         except Exception:
             backup_list = []
         return empty + backup_list

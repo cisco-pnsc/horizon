@@ -16,7 +16,7 @@
 #
 # @author: Tatiana Mazur
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -57,7 +57,8 @@ class AddVPNServiceAction(workflows.Action):
     def populate_router_id_choices(self, request, context):
         router_id_choices = [('', _("Select a Router"))]
         try:
-            routers = api.neutron.router_list(request)
+            tenant_id = request.user.tenant_id
+            routers = api.neutron.router_list(request, tenant_id=tenant_id)
         except Exception:
             exceptions.handle(request,
                               _('Unable to retrieve routers list.'))
@@ -130,6 +131,8 @@ class AddIKEPolicyAction(workflows.Action):
 
         auth_algorithm_choices = [("sha1", "sha1")]
         self.fields['auth_algorithm'].choices = auth_algorithm_choices
+        # Currently this field has only one choice, so mark it as readonly.
+        self.fields['auth_algorithm'].widget.attrs['readonly'] = True
 
         encryption_algorithm_choices = [("3des", "3des"),
                                         ("aes-128", "aes-128"),
@@ -138,8 +141,6 @@ class AddIKEPolicyAction(workflows.Action):
         self.fields[
             'encryption_algorithm'].choices = encryption_algorithm_choices
         self.fields['encryption_algorithm'].initial = "aes-128"
-        # Currently this field has only one choice, so mark it as readonly.
-        self.fields['encryption_algorithm'].widget.attrs['readonly'] = True
 
         ike_version_choices = [("v1", "v1"),
                                ("v2", "v2")]
@@ -327,19 +328,22 @@ class AddIPSecSiteConnectionAction(workflows.Action):
                     "Can be IPv4/IPv6 address, e-mail, key ID, or FQDN"),
         version=fields.IPv4 | fields.IPv6,
         mask=False)
-    peer_cidrs = fields.IPField(label=_("Remote peer subnet"),
-                                help_text=_("Remote peer subnet address "
-                                            "with mask in CIDR format "
-                                            "(e.g. 20.1.0.0/24)"),
-                                version=fields.IPv4 | fields.IPv6,
-                                mask=True)
+    peer_cidrs = fields.MultiIPField(
+        label=_("Remote peer subnet(s)"),
+        help_text=_("Remote peer subnet(s) address(es) "
+                    "with mask(s) in CIDR format "
+                    "separated with commas if needed "
+                    "(e.g. 20.1.0.0/24, 21.1.0.0/24)"),
+        version=fields.IPv4 | fields.IPv6,
+        mask=True)
     psk = forms.CharField(max_length=80,
                           label=_("Pre-Shared Key (PSK) string"))
 
     def populate_ikepolicy_id_choices(self, request, context):
         ikepolicy_id_choices = [('', _("Select IKE Policy"))]
         try:
-            ikepolicies = api.vpn.ikepolicies_get(request)
+            tenant_id = self.request.user.tenant_id
+            ikepolicies = api.vpn.ikepolicy_list(request, tenant_id=tenant_id)
         except Exception:
             exceptions.handle(request,
                               _('Unable to retrieve IKE Policies list.'))
@@ -352,7 +356,9 @@ class AddIPSecSiteConnectionAction(workflows.Action):
     def populate_ipsecpolicy_id_choices(self, request, context):
         ipsecpolicy_id_choices = [('', _("Select IPSec Policy"))]
         try:
-            ipsecpolicies = api.vpn.ipsecpolicies_get(request)
+            tenant_id = self.request.user.tenant_id
+            ipsecpolicies = api.vpn.ipsecpolicy_list(request,
+                                                     tenant_id=tenant_id)
         except Exception:
             exceptions.handle(request,
                               _('Unable to retrieve IPSec Policies list.'))
@@ -365,7 +371,8 @@ class AddIPSecSiteConnectionAction(workflows.Action):
     def populate_vpnservice_id_choices(self, request, context):
         vpnservice_id_choices = [('', _("Select VPN Service"))]
         try:
-            vpnservices = api.vpn.vpnservices_get(request)
+            tenant_id = self.request.user.tenant_id
+            vpnservices = api.vpn.vpnservice_list(request, tenant_id=tenant_id)
         except Exception:
             exceptions.handle(request,
                               _('Unable to retrieve VPN Services list.'))
@@ -452,6 +459,10 @@ class AddIPSecSiteConnectionOptionalStep(workflows.Step):
         context.pop('dpd_action')
         context.pop('dpd_interval')
         context.pop('dpd_timeout')
+
+        cidrs = context['peer_cidrs']
+        context['peer_cidrs'] = cidrs.replace(" ", "").split(",")
+
         if data:
             return context
 

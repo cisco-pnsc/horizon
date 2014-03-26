@@ -17,8 +17,8 @@
 
 import logging
 
-from django.core.urlresolvers import reverse  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import tables
@@ -62,6 +62,8 @@ class NetworkProfile(tables.DataTable):
     project = tables.Column("project_name", verbose_name=_("Project"))
     segment_type = tables.Column("segment_type",
                                  verbose_name=_("Segment Type"))
+    sub_type = tables.Column("sub_type",
+                             verbose_name=_("Sub Type"))
     segment_range = tables.Column("segment_range",
                                   verbose_name=_("Segment Range"))
     multicast_ip_range = tables.Column("multicast_ip_range",
@@ -79,7 +81,7 @@ class NetworkProfile(tables.DataTable):
 class EditPolicyProfile(tables.LinkAction):
     name = "edit"
     verbose_name = _("Edit Policy Profile")
-    url = "horizon:project:images_and_snapshots:images:update"
+    url = "horizon:project:images:images:update"
     classes = ("ajax-modal", "btn-edit")
 
 

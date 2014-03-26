@@ -21,7 +21,8 @@
 import logging
 
 from django.forms import ValidationError  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django import http
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.debug import sensitive_variables  # noqa
 
 from horizon import exceptions
@@ -40,7 +41,7 @@ class BaseUserForm(forms.SelfHandlingForm):
         super(BaseUserForm, self).__init__(request, *args, **kwargs)
 
         # Populate project choices
-        project_choices = [('', _("Select a project"))]
+        project_choices = []
 
         # If the user is already set (update action), list only projects which
         # the user has access to.
@@ -52,6 +53,10 @@ class BaseUserForm(forms.SelfHandlingForm):
         for project in projects:
             if project.enabled:
                 project_choices.append((project.id, project.name))
+        if not project_choices:
+            project_choices.insert(0, ('', _("No available projects")))
+        elif len(project_choices) > 1:
+            project_choices.insert(0, ('', _("Select a project")))
         self.fields['project'].choices = project_choices
 
     def clean(self):
@@ -85,7 +90,6 @@ class CreateUserForm(BaseUserForm):
         error_messages={'invalid': validators.password_validator_msg()})
     confirm_password = forms.CharField(
         label=_("Confirm Password"),
-        required=False,
         widget=forms.PasswordInput(render_value=False))
     project = forms.DynamicChoiceField(label=_("Primary Project"),
                                        add_item_link=ADD_PROJECT_URL)
@@ -110,6 +114,8 @@ class CreateUserForm(BaseUserForm):
         domain = api.keystone.get_default_domain(self.request)
         try:
             LOG.info('Creating user with name "%s"' % data['name'])
+            if "email" in data:
+                data['email'] = data['email'] or None
             new_user = api.keystone.user_create(request,
                                                 name=data['name'],
                                                 email=data['email'],
@@ -185,10 +191,16 @@ class UpdateUserForm(BaseUserForm):
         data.pop('domain_name')
 
         try:
-            api.keystone.user_update(request, user, **data)
+            if "email" in data:
+                data['email'] = data['email'] or None
+            response = api.keystone.user_update(request, user, **data)
             messages.success(request,
                              _('User has been updated successfully.'))
         except Exception:
-            exceptions.handle(request, ignore=True)
+            response = exceptions.handle(request, ignore=True)
             messages.error(request, _('Unable to update the user.'))
-        return True
+
+        if isinstance(response, http.HttpResponse):
+            return response
+        else:
+            return True

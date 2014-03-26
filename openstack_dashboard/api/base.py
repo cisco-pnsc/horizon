@@ -21,7 +21,7 @@
 from collections import Sequence  # noqa
 import logging
 
-from django.conf import settings  # noqa
+from django.conf import settings
 
 from horizon import exceptions
 
@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 
 
 class APIVersionManager(object):
-    """ Object to store and manage API versioning data and utility methods. """
+    """Object to store and manage API versioning data and utility methods."""
 
     SETTINGS_KEY = "OPENSTACK_API_VERSIONS"
 
@@ -67,27 +67,25 @@ class APIVersionManager(object):
 
 
 class APIResourceWrapper(object):
-    """ Simple wrapper for api objects
+    """Simple wrapper for api objects.
 
-        Define _attrs on the child class and pass in the
-        api object as the only argument to the constructor
+    Define _attrs on the child class and pass in the
+    api object as the only argument to the constructor
     """
     _attrs = []
+    _apiresource = None  # Make sure _apiresource is there even in __init__.
 
     def __init__(self, apiresource):
         self._apiresource = apiresource
 
-    def __getattr__(self, attr):
-        if attr in self._attrs:
+    def __getattribute__(self, attr):
+        try:
+            return object.__getattribute__(self, attr)
+        except AttributeError:
+            if attr not in self._attrs:
+                raise
             # __getattr__ won't find properties
-            return self._apiresource.__getattribute__(attr)
-        else:
-            msg = ('Attempted to access unknown attribute "%s" on '
-                   'APIResource object of type "%s" wrapping resource of '
-                   'type "%s".') % (attr, self.__class__,
-                                    self._apiresource.__class__)
-            LOG.debug(exceptions.error_color(msg))
-            raise AttributeError(attr)
+            return getattr(self._apiresource, attr)
 
     def __repr__(self):
         return "<%s: %s>" % (self.__class__.__name__,
@@ -97,37 +95,39 @@ class APIResourceWrapper(object):
 
 
 class APIDictWrapper(object):
-    """ Simple wrapper for api dictionaries
+    """Simple wrapper for api dictionaries
 
-        Some api calls return dictionaries.  This class provides identical
-        behavior as APIResourceWrapper, except that it will also behave as a
-        dictionary, in addition to attribute accesses.
+    Some api calls return dictionaries.  This class provides identical
+    behavior as APIResourceWrapper, except that it will also behave as a
+    dictionary, in addition to attribute accesses.
 
-        Attribute access is the preferred method of access, to be
-        consistent with api resource objects from novaclient.
+    Attribute access is the preferred method of access, to be
+    consistent with api resource objects from novaclient.
     """
+
+    _apidict = {}  # Make sure _apidict is there even in __init__.
+
     def __init__(self, apidict):
         self._apidict = apidict
 
-    def __getattr__(self, attr):
+    def __getattribute__(self, attr):
         try:
+            return object.__getattribute__(self, attr)
+        except AttributeError:
+            if attr not in self._apidict:
+                raise
             return self._apidict[attr]
-        except KeyError:
-            msg = 'Unknown attribute "%(attr)s" on APIResource object ' \
-                  'of type "%(cls)s"' % {'attr': attr, 'cls': self.__class__}
-            LOG.debug(exceptions.error_color(msg))
-            raise AttributeError(msg)
 
     def __getitem__(self, item):
         try:
-            return self.__getattr__(item)
+            return getattr(self, item)
         except AttributeError as e:
             # caller is expecting a KeyError
             raise KeyError(e)
 
     def get(self, item, default=None):
         try:
-            return self.__getattr__(item)
+            return getattr(self, item)
         except AttributeError:
             return default
 
@@ -146,8 +146,7 @@ class Quota(object):
 
 
 class QuotaSet(Sequence):
-    """
-    Wrapper for client QuotaSet objects which turns the individual quotas
+    """Wrapper for client QuotaSet objects which turns the individual quotas
     into Quota objects for easier handling/iteration.
 
     `QuotaSet` objects support a mix of `list` and `dict` methods; you can use
@@ -177,8 +176,9 @@ class QuotaSet(Sequence):
         return self.items[index]
 
     def __add__(self, other):
-        '''Merge another QuotaSet into this one. Existing quotas are
-        not overriden.'''
+        """Merge another QuotaSet into this one. Existing quotas are
+        not overriden.
+        """
         if not isinstance(other, QuotaSet):
             msg = "Can only add QuotaSet to QuotaSet, " \
                   "but received %s instead" % type(other)
@@ -247,7 +247,7 @@ def get_url_for_service(service, region, endpoint_type):
     return None
 
 
-def url_for(request, service_type, endpoint_type=None):
+def url_for(request, service_type, endpoint_type=None, region=None):
     endpoint_type = endpoint_type or getattr(settings,
                                              'OPENSTACK_ENDPOINT_TYPE',
                                              'publicURL')
@@ -256,12 +256,14 @@ def url_for(request, service_type, endpoint_type=None):
     catalog = request.user.service_catalog
     service = get_service_from_catalog(catalog, service_type)
     if service:
+        if not region:
+            region = request.user.services_region
         url = get_url_for_service(service,
-                                  request.user.services_region,
+                                  region,
                                   endpoint_type)
         if not url and fallback_endpoint_type:
             url = get_url_for_service(service,
-                                      request.user.services_region,
+                                      region,
                                       fallback_endpoint_type)
         if url:
             return url

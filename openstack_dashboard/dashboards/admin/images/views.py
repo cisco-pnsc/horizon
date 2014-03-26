@@ -18,15 +18,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.core.urlresolvers import reverse_lazy  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.core.urlresolvers import reverse_lazy
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import tables
 
 from openstack_dashboard import api
-from openstack_dashboard.dashboards.project \
-    .images_and_snapshots.images import views
+from openstack_dashboard.dashboards.project.images.images import views
 
 from openstack_dashboard.dashboards.admin.images import forms
 from openstack_dashboard.dashboards.admin.images \
@@ -42,12 +41,14 @@ class IndexView(tables.DataTableView):
 
     def get_data(self):
         images = []
+        filters = {'is_public': None}
         marker = self.request.GET.get(
             project_tables.AdminImagesTable._meta.pagination_param, None)
         try:
             images, self._more = api.glance.image_list_detailed(self.request,
-                                                                marker=marker,
-                                                                paginate=True)
+                                                            marker=marker,
+                                                            paginate=True,
+                                                            filters=filters)
         except Exception:
             self._more = False
             msg = _('Unable to retrieve image list.')
@@ -68,5 +69,5 @@ class UpdateView(views.UpdateView):
 
 
 class DetailView(views.DetailView):
-    """ Admin placeholder for image detail view. """
+    """Admin placeholder for image detail view."""
     pass

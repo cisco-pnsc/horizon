@@ -119,6 +119,13 @@ class FloatingIpManager(object):
         pass
 
     @abc.abstractmethod
+    def list_target_id_by_instance(self, instance_id):
+        """Returns a list of instance's target IDs of floating IP association
+        based on the backend implementation
+        """
+        pass
+
+    @abc.abstractmethod
     def is_simple_associate_supported(self):
         """Returns True if the default floating IP pool is enabled."""
         pass
@@ -129,26 +136,29 @@ class SecurityGroupManager(object):
 
     SecurityGroup object returned from methods in this class
     must contains the following attributes:
-    - id : ID of Security Group (int for Nova, uuid for Neutron)
-    - name
-    - description
-    - tenant_id
-    - rules : A list of SecurityGroupRule objects
 
-    SecurityGroupRule object should have the following attributes:
-    The attribute names and their formats are borrowed from nova
-    security group implementation.
-    - id
-    - direction
-    - ethertype
-    - parent_group_id : security group the rule belongs to
-    - ip_protocol
-    - from_port : lower limit of allowed port range (inclusive)
-    - to_port : upper limit of allowed port range (inclusive)
-    - ip_range : remote IP CIDR (source for ingress, dest for egress)
-          The value should be a format of "{'cidr': <cidr>}"
-    - group : remote security group
-          The value should be a format of "{'name': <secgroup_name>}"
+    * id: ID of Security Group (int for Nova, uuid for Neutron)
+    * name
+    * description
+    * tenant_id
+    * rules: A list of SecurityGroupRule objects
+
+    SecurityGroupRule object should have the following attributes
+    (The attribute names and their formats are borrowed from nova
+    security group implementation):
+
+    * id
+    * direction
+    * ethertype
+    * parent_group_id: security group the rule belongs to
+    * ip_protocol
+    * from_port: lower limit of allowed port range (inclusive)
+    * to_port: upper limit of allowed port range (inclusive)
+    * ip_range: remote IP CIDR (source for ingress, dest for egress).
+    The value should be a format of "{'cidr': <cidr>}"
+    * group: remote security group. The value should be a format of
+    "{'name': <secgroup_name>}"
+
     """
 
     __metaclass__ = abc.ABCMeta

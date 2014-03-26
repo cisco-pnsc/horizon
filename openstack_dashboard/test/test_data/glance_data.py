@@ -58,21 +58,25 @@ def data(TEST):
                   'name': 'public_image',
                   'status': "active",
                   'size': 20 * 1024 ** 3,
+                  'min_disk': 0,
                   'owner': TEST.tenant.id,
                   'container_format': 'novaImage',
                   'properties': {'image_type': u'image'},
                   'is_public': True,
-                  'protected': False}
+                  'protected': False,
+                  'min_ram': 0}
     public_image = images.Image(images.ImageManager(None), image_dict)
 
     image_dict = {'id': 'a001c047-22f8-47d0-80a1-8ec94a9524fe',
                   'name': 'private_image',
                   'status': "active",
                   'size': 10 * 1024 ** 2,
+                  'min_disk': 0,
                   'owner': TEST.tenant.id,
                   'container_format': 'aki',
                   'is_public': False,
-                  'protected': False}
+                  'protected': False,
+                  'min_ram': 0}
     private_image = images.Image(images.ImageManager(None), image_dict)
 
     image_dict = {'id': 'd6936c86-7fec-474a-85c5-5e467b371c3c',
@@ -80,41 +84,49 @@ def data(TEST):
                   'status': "active",
                   'owner': TEST.tenant.id,
                   'size': 2 * 1024 ** 3,
+                  'min_disk': 30,
                   'container_format': 'novaImage',
                   'properties': {'image_type': u'image'},
                   'is_public': True,
-                  'protected': True}
+                  'protected': True,
+                  'min_ram': 0}
     protected_image = images.Image(images.ImageManager(None), image_dict)
 
     image_dict = {'id': '278905a6-4b52-4d1e-98f9-8c57bb25ba32',
-                  'name': 'public_image 2',
+                  'name': None,
                   'status': "active",
                   'size': 5 * 1024 ** 3,
+                  'min_disk': 0,
                   'owner': TEST.tenant.id,
                   'container_format': 'novaImage',
                   'properties': {'image_type': u'image'},
                   'is_public': True,
-                  'protected': False}
+                  'protected': False,
+                  'min_ram': 0}
     public_image2 = images.Image(images.ImageManager(None), image_dict)
 
     image_dict = {'id': '710a1acf-a3e3-41dd-a32d-5d6b6c86ea10',
                   'name': 'private_image 2',
                   'status': "active",
                   'size': 30 * 1024 ** 3,
+                  'min_disk': 0,
                   'owner': TEST.tenant.id,
                   'container_format': 'aki',
                   'is_public': False,
-                  'protected': False}
+                  'protected': False,
+                  'min_ram': 0}
     private_image2 = images.Image(images.ImageManager(None), image_dict)
 
     image_dict = {'id': '7cd892fd-5652-40f3-a450-547615680132',
                   'name': 'private_image 3',
                   'status': "active",
                   'size': 2 * 1024 ** 3,
+                  'min_disk': 0,
                   'owner': TEST.tenant.id,
                   'container_format': 'aki',
                   'is_public': False,
-                  'protected': False}
+                  'protected': False,
+                  'min_ram': 0}
     private_image3 = images.Image(images.ImageManager(None), image_dict)
 
     # A shared image. Not public and not local tenant.
@@ -122,10 +134,12 @@ def data(TEST):
                   'name': 'shared_image 1',
                   'status': "active",
                   'size': 8 * 1024 ** 3,
+                  'min_disk': 0,
                   'owner': 'someothertenant',
                   'container_format': 'aki',
                   'is_public': False,
-                  'protected': False}
+                  'protected': False,
+                  'min_ram': 0}
     shared_image1 = images.Image(images.ImageManager(None), image_dict)
 
     # "Official" image. Public and tenant matches an entry
@@ -134,12 +148,41 @@ def data(TEST):
                   'name': 'official_image 1',
                   'status': "active",
                   'size': 2 * 1024 ** 3,
+                  'min_disk': 0,
                   'owner': 'officialtenant',
                   'container_format': 'aki',
                   'is_public': True,
-                  'protected': False}
+                  'protected': False,
+                  'min_ram': 0}
     official_image1 = images.Image(images.ImageManager(None), image_dict)
+
+    image_dict = {'id': 'a67e7d45-fe1e-4c5c-bf08-44b4a4964822',
+                  'name': 'multi_prop_image',
+                  'status': "active",
+                  'size': 20 * 1024 ** 3,
+                  'min_disk': 0,
+                  'owner': TEST.tenant.id,
+                  'container_format': 'novaImage',
+                  'properties': {'description': u'a multi prop image',
+                                 'foo': u'foo val',
+                                 'bar': u'bar val'},
+                  'is_public': True,
+                  'protected': False}
+    multi_prop_image = images.Image(images.ImageManager(None), image_dict)
+
+    # An image wihout name being returned based on current api
+    image_dict = {'id': 'c8756975-7a3b-4e43-b7f7-433576112849',
+                  'status': "active",
+                  'size': 8 * 1024 ** 3,
+                  'min_disk': 0,
+                  'owner': 'someothertenant',
+                  'container_format': 'aki',
+                  'is_public': False,
+                  'protected': False}
+    no_name_image = images.Image(images.ImageManager(None), image_dict)
 
     TEST.images.add(public_image, private_image, protected_image,
                     public_image2, private_image2, private_image3,
-                    shared_image1, official_image1)
+                    shared_image1, official_image1, multi_prop_image)
+
+    TEST.empty_name_image = no_name_image

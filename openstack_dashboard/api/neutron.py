@@ -21,12 +21,15 @@
 
 from __future__ import absolute_import
 
+import collections
 import logging
+import netaddr
 
-from django.conf import settings  # noqa
-from django.utils.datastructures import SortedDict  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.conf import settings
+from django.utils.datastructures import SortedDict
+from django.utils.translation import ugettext_lazy as _
 
+from horizon import messages
 from horizon.utils.memoized import memoized  # noqa
 
 from openstack_dashboard.api import base
@@ -62,7 +65,7 @@ class NeutronAPIDictWrapper(base.APIDictWrapper):
 
 
 class Agent(NeutronAPIDictWrapper):
-    """Wrapper for neutron agents"""
+    """Wrapper for neutron agents."""
 
     def __init__(self, apiresource):
         apiresource['admin_state'] = \
@@ -71,7 +74,7 @@ class Agent(NeutronAPIDictWrapper):
 
 
 class Network(NeutronAPIDictWrapper):
-    """Wrapper for neutron Networks"""
+    """Wrapper for neutron Networks."""
 
     def __init__(self, apiresource):
         apiresource['admin_state'] = \
@@ -84,7 +87,7 @@ class Network(NeutronAPIDictWrapper):
 
 
 class Subnet(NeutronAPIDictWrapper):
-    """Wrapper for neutron subnets"""
+    """Wrapper for neutron subnets."""
 
     def __init__(self, apiresource):
         apiresource['ipver_str'] = get_ipver_str(apiresource['ip_version'])
@@ -92,7 +95,7 @@ class Subnet(NeutronAPIDictWrapper):
 
 
 class Port(NeutronAPIDictWrapper):
-    """Wrapper for neutron ports"""
+    """Wrapper for neutron ports."""
 
     def __init__(self, apiresource):
         apiresource['admin_state'] = \
@@ -102,15 +105,15 @@ class Port(NeutronAPIDictWrapper):
 
 class Profile(NeutronAPIDictWrapper):
     """Wrapper for neutron profiles."""
-    _attrs = ['profile_id', 'name', 'segment_type',
-              'segment_range', 'multicast_ip_index', 'multicast_ip_range']
+    _attrs = ['profile_id', 'name', 'segment_type', 'segment_range',
+              'sub_type', 'multicast_ip_index', 'multicast_ip_range']
 
     def __init__(self, apiresource):
         super(Profile, self).__init__(apiresource)
 
 
 class Router(NeutronAPIDictWrapper):
-    """Wrapper for neutron routers"""
+    """Wrapper for neutron routers."""
 
     def __init__(self, apiresource):
         #apiresource['admin_state'] = \
@@ -290,7 +293,7 @@ class SecurityGroupManager(network_base.SecurityGroupManager):
         ports = port_list(self.request, device_id=instance_id)
         for p in ports:
             params = {'security_groups': new_security_group_ids}
-            port_modify(self.request, p.id, **params)
+            port_update(self.request, p.id, **params)
 
 
 class FloatingIp(base.APIDictWrapper):
@@ -321,12 +324,12 @@ class FloatingIpManager(network_base.FloatingIpManager):
         return [FloatingIpPool(pool) for pool
                 in self.client.list_networks(**search_opts).get('networks')]
 
-    def list(self):
+    def list(self, **search_opts):
         tenant_id = self.request.user.tenant_id
         # In Neutron, list_floatingips returns Floating IPs from all tenants
         # when the API is called with admin role, so we need to filter them
         # with tenant_id.
-        fips = self.client.list_floatingips(tenant_id=tenant_id)
+        fips = self.client.list_floatingips(tenant_id=tenant_id, **search_opts)
         fips = fips.get('floatingips')
         # Get port list to add instance_id to floating IP list
         # instance_id is stored in device_id attribute
@@ -389,16 +392,25 @@ class FloatingIpManager(network_base.FloatingIpManager):
                 targets.append(FloatingIpTarget(target))
         return targets
 
-    def get_target_id_by_instance(self, instance_id):
-        # In Neutron one port can have multiple ip addresses, so this method
-        # picks up the first one and generate target id.
+    def _target_ports_by_instance(self, instance_id):
         if not instance_id:
             return None
         search_opts = {'device_id': instance_id}
-        ports = port_list(self.request, **search_opts)
+        return port_list(self.request, **search_opts)
+
+    def get_target_id_by_instance(self, instance_id):
+        # In Neutron one port can have multiple ip addresses, so this method
+        # picks up the first one and generate target id.
+        ports = self._target_ports_by_instance(instance_id)
         if not ports:
             return None
-        return '%s_%s' % (ports[0].id, ports[0].fixed_ips[0]['ip_address'])
+        return '{0}_{1}'.format(ports[0].id,
+                                ports[0].fixed_ips[0]['ip_address'])
+
+    def list_target_id_by_instance(self, instance_id):
+        ports = self._target_ports_by_instance(instance_id)
+        return ['{0}_{1}'.format(p.id, p.fixed_ips[0]['ip_address'])
+                for p in ports]
 
     def is_simple_associate_supported(self):
         # NOTE: There are two reason that simple association support
@@ -412,7 +424,7 @@ class FloatingIpManager(network_base.FloatingIpManager):
 
 
 def get_ipver_str(ip_version):
-    """Convert an ip version number to a human-friendly string"""
+    """Convert an ip version number to a human-friendly string."""
     return IP_VERSION_DICT.get(ip_version, '')
 
 
@@ -424,6 +436,7 @@ def neutronclient(request):
     LOG.debug('user_id=%(user)s, tenant_id=%(tenant)s' %
               {'user': request.user.id, 'tenant': request.user.tenant_id})
     c = neutron_client.Client(token=request.user.token.id,
+                              auth_url=base.url_for(request, 'identity'),
                               endpoint_url=base.url_for(request, 'network'),
                               insecure=insecure, ca_cert=cacert)
     return c
@@ -476,8 +489,7 @@ def network_get(request, network_id, expand_subnet=True, **params):
 
 
 def network_create(request, **kwargs):
-    """
-    Create a subnet on a specified network.
+    """Create a subnet on a specified network.
     :param request: request context
     :param tenant_id: (optional) tenant id of the network created
     :param name: (optional) name of the network created
@@ -492,8 +504,8 @@ def network_create(request, **kwargs):
     return Network(network)
 
 
-def network_modify(request, network_id, **kwargs):
-    LOG.debug("network_modify(): netid=%s, params=%s" % (network_id, kwargs))
+def network_update(request, network_id, **kwargs):
+    LOG.debug("network_update(): netid=%s, params=%s" % (network_id, kwargs))
     body = {'network': kwargs}
     network = neutronclient(request).update_network(network_id,
                                                     body=body).get('network')
@@ -519,8 +531,7 @@ def subnet_get(request, subnet_id, **params):
 
 
 def subnet_create(request, network_id, cidr, ip_version, **kwargs):
-    """
-    Create a subnet on a specified network.
+    """Create a subnet on a specified network.
     :param request: request context
     :param network_id: network id a subnet is created on
     :param cidr: subnet IP address range
@@ -541,8 +552,8 @@ def subnet_create(request, network_id, cidr, ip_version, **kwargs):
     return Subnet(subnet)
 
 
-def subnet_modify(request, subnet_id, **kwargs):
-    LOG.debug("subnet_modify(): subnetid=%s, kwargs=%s" % (subnet_id, kwargs))
+def subnet_update(request, subnet_id, **kwargs):
+    LOG.debug("subnet_update(): subnetid=%s, kwargs=%s" % (subnet_id, kwargs))
     body = {'subnet': kwargs}
     subnet = neutronclient(request).update_subnet(subnet_id,
                                                   body=body).get('subnet')
@@ -567,8 +578,7 @@ def port_get(request, port_id, **params):
 
 
 def port_create(request, network_id, **kwargs):
-    """
-    Create a port on a specified network.
+    """Create a port on a specified network.
     :param request: request context
     :param network_id: network id a subnet is created on
     :param device_id: (optional) device id attached to the port
@@ -591,8 +601,8 @@ def port_delete(request, port_id):
     neutronclient(request).delete_port(port_id)
 
 
-def port_modify(request, port_id, **kwargs):
-    LOG.debug("port_modify(): portid=%s, kwargs=%s" % (port_id, kwargs))
+def port_update(request, port_id, **kwargs):
+    LOG.debug("port_update(): portid=%s, kwargs=%s" % (port_id, kwargs))
     body = {'port': kwargs}
     port = neutronclient(request).update_port(port_id, body=body).get('port')
     return Port(port)
@@ -634,8 +644,8 @@ def profile_delete(request, profile_id):
     neutronclient(request).delete_network_profile(profile_id)
 
 
-def profile_modify(request, profile_id, **kwargs):
-    LOG.debug("profile_modify(): "
+def profile_update(request, profile_id, **kwargs):
+    LOG.debug("profile_update(): "
               "profileid=%(profileid)s, kwargs=%(kwargs)s",
               {'profileid': profile_id, 'kwargs': kwargs})
     body = {'network_profile': kwargs}
@@ -663,6 +673,14 @@ def router_create(request, **kwargs):
     body['router'].update(kwargs)
     router = neutronclient(request).create_router(body=body).get('router')
     return Router(router)
+
+
+def router_update(request, r_id, **kwargs):
+    LOG.debug("router_update(): router_id=%s, kwargs=%s" % (r_id, kwargs))
+    body = {'router': {}}
+    body['router'].update(kwargs)
+    router = neutronclient(request).update_router(r_id, body=body)
+    return Router(router['router'])
 
 
 def router_get(request, router_id, **params):
@@ -725,6 +743,88 @@ def agent_list(request):
 def provider_list(request):
     providers = neutronclient(request).list_service_providers()
     return providers['service_providers']
+
+
+def servers_update_addresses(request, servers):
+    """Retrieve servers networking information from Neutron if enabled.
+
+       Should be used when up to date networking information is required,
+       and Nova's networking info caching mechanism is not fast enough.
+    """
+
+    # Get all (filtered for relevant servers) information from Neutron
+    try:
+        ports = port_list(request,
+                          device_id=[instance.id for instance in servers])
+        floating_ips = FloatingIpManager(request).list(
+            port_id=[port.id for port in ports])
+        networks = network_list(request,
+                                id=[port.network_id for port in ports])
+    except Exception:
+        error_message = _('Unable to connect to Neutron.')
+        LOG.error(error_message)
+        messages.error(request, error_message)
+        return
+
+    # Map instance to its ports
+    instances_ports = collections.defaultdict(list)
+    for port in ports:
+        instances_ports[port.device_id].append(port)
+
+    # Map port to its floating ips
+    ports_floating_ips = collections.defaultdict(list)
+    for fip in floating_ips:
+        ports_floating_ips[fip.port_id].append(fip)
+
+    # Map network id to its name
+    network_names = dict(((network.id, network.name) for network in networks))
+
+    for server in servers:
+        try:
+            addresses = _server_get_addresses(
+                request,
+                server,
+                instances_ports,
+                ports_floating_ips,
+                network_names)
+        except Exception as e:
+            LOG.error(e)
+        else:
+            server.addresses = addresses
+
+
+def _server_get_addresses(request, server, ports, floating_ips, network_names):
+    def _format_address(mac, ip, type):
+        try:
+            version = netaddr.IPAddress(ip).version
+        except Exception as e:
+            error_message = _('Unable to parse IP address %s.') % ip
+            LOG.error(error_message)
+            messages.error(request, error_message)
+            raise e
+        return {u'OS-EXT-IPS-MAC:mac_addr': mac,
+                u'version': version,
+                u'addr': ip,
+                u'OS-EXT-IPS:type': type}
+
+    addresses = collections.defaultdict(list)
+    instance_ports = ports.get(server.id, [])
+    for port in instance_ports:
+        network_name = network_names.get(port.network_id)
+        if network_name is not None:
+            for fixed_ip in port.fixed_ips:
+                addresses[network_name].append(
+                    _format_address(port.mac_address,
+                                    fixed_ip['ip_address'],
+                                    u'fixed'))
+            port_fips = floating_ips.get(port.id, [])
+            for fip in port_fips:
+                addresses[network_name].append(
+                    _format_address(port.mac_address,
+                                    fip.floating_ip_address,
+                                    u'floating'))
+
+    return dict(addresses)
 
 
 @memoized

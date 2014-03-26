@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -23,6 +23,10 @@ from horizon.utils import validators
 from horizon import workflows
 
 from openstack_dashboard import api
+
+
+AVAILABLE_PROTOCOLS = ('HTTP', 'HTTPS', 'TCP')
+AVAILABLE_METHODS = ('ROUND_ROBIN', 'LEAST_CONNECTIONS', 'SOURCE_IP')
 
 
 class AddPoolAction(workflows.Action):
@@ -57,14 +61,11 @@ class AddPoolAction(workflows.Action):
         self.fields['subnet_id'].choices = subnet_id_choices
 
         protocol_choices = [('', _("Select a Protocol"))]
-        protocol_choices.append(('HTTP', 'HTTP'))
-        protocol_choices.append(('HTTPS', 'HTTPS'))
+        [protocol_choices.append((p, p)) for p in AVAILABLE_PROTOCOLS]
         self.fields['protocol'].choices = protocol_choices
 
         lb_method_choices = [('', _("Select a Method"))]
-        lb_method_choices.append(('ROUND_ROBIN', 'ROUND_ROBIN'))
-        lb_method_choices.append(('LEAST_CONNECTIONS', 'LEAST_CONNECTIONS'))
-        lb_method_choices.append(('SOURCE_IP', 'SOURCE_IP'))
+        [lb_method_choices.append((m, m)) for m in AVAILABLE_METHODS]
         self.fields['lb_method'].choices = lb_method_choices
 
         # provider choice
@@ -94,9 +95,9 @@ class AddPoolAction(workflows.Action):
                         _("%s (default)") % default_provider))
         else:
             if providers is None:
-                msg = _("Provider for Load Balancer is not supported.")
+                msg = _("Provider for Load Balancer is not supported")
             else:
-                msg = _("No provider is available.")
+                msg = _("No provider is available")
             provider_choices = [('', msg)]
             self.fields['provider'].widget.attrs['readonly'] = True
         self.fields['provider'].choices = provider_choices
@@ -164,14 +165,23 @@ class AddVipAction(workflows.Action):
                               validators=[validators.validate_port_range])
     protocol = forms.ChoiceField(label=_("Protocol"))
     session_persistence = forms.ChoiceField(
-        required=False, initial={}, label=_("Session Persistence"))
+        required=False, initial={}, label=_("Session Persistence"),
+        widget=forms.Select(attrs={
+            'class': 'switchable',
+            'data-slug': 'persistence'
+        }))
     cookie_name = forms.CharField(
         initial="", required=False,
         max_length=80, label=_("Cookie Name"),
         help_text=_("Required for APP_COOKIE persistence;"
-                    " Ignored otherwise."))
+                    " Ignored otherwise."),
+        widget=forms.TextInput(attrs={
+            'class': 'switched',
+            'data-switch-on': 'persistence',
+            'data-persistence-app_cookie': 'APP_COOKIE',
+        }))
     connection_limit = forms.IntegerField(
-        min_value=-1, label=_("Connection Limit"),
+        required=False, min_value=-1, label=_("Connection Limit"),
         help_text=_("Maximum number of connections allowed "
                     "for the VIP or '-1' if the limit is not set"))
     admin_state_up = forms.BooleanField(
@@ -185,13 +195,12 @@ class AddVipAction(workflows.Action):
                                                args[0]['subnet'])
 
         protocol_choices = [('', _("Select a Protocol"))]
-        protocol_choices.append(('HTTP', 'HTTP'))
-        protocol_choices.append(('HTTPS', 'HTTPS'))
+        [protocol_choices.append((p, p)) for p in AVAILABLE_PROTOCOLS]
         self.fields['protocol'].choices = protocol_choices
 
         session_persistence_choices = [('', _("No Session Persistence"))]
         for mode in ('SOURCE_IP', 'HTTP_COOKIE', 'APP_COOKIE'):
-            session_persistence_choices.append((mode, mode))
+            session_persistence_choices.append((mode.lower(), mode))
         self.fields[
             'session_persistence'].choices = session_persistence_choices
 
@@ -200,6 +209,9 @@ class AddVipAction(workflows.Action):
 
     def clean(self):
         cleaned_data = super(AddVipAction, self).clean()
+        persistence = cleaned_data.get('session_persistence')
+        if persistence:
+            cleaned_data['session_persistence'] = persistence.upper()
         if (cleaned_data.get('session_persistence') == 'APP_COOKIE' and
                 not cleaned_data.get('cookie_name')):
             msg = _('Cookie name is required for APP_COOKIE persistence.')
@@ -292,6 +304,7 @@ class AddMemberAction(workflows.Action):
                             _('At least one member must be specified')},
         help_text=_("Select members for this pool "))
     weight = forms.IntegerField(max_value=256, min_value=0, label=_("Weight"),
+                                required=False,
                                 help_text=_("Relative part of requests this "
                                 "pool member serves compared to others"))
     protocol_port = forms.IntegerField(label=_("Protocol Port"), min_value=1,
@@ -306,7 +319,8 @@ class AddMemberAction(workflows.Action):
 
         pool_id_choices = [('', _("Select a Pool"))]
         try:
-            pools = api.lbaas.pools_get(request)
+            tenant_id = self.request.user.tenant_id
+            pools = api.lbaas.pool_list(request, tenant_id=tenant_id)
         except Exception:
             pools = []
             exceptions.handle(request,
@@ -326,14 +340,15 @@ class AddMemberAction(workflows.Action):
                               _('Unable to retrieve instances list.'))
 
         if len(servers) == 0:
-            self.fields['members'].label = _("No servers available. "
-                                             "Click Add to cancel.")
-            self.fields['members'].required = False
+            self.fields['members'].label = _(
+                "No servers available. To add a member, you "
+                "need at least one running instance.")
+            self.fields['members'].required = True
             self.fields['members'].help_text = _("Select members "
                                                  "for this pool ")
             self.fields['pool_id'].required = False
-            self.fields['weight'].required = False
             self.fields['protocol_port'].required = False
+
             return
 
         for m in servers:
@@ -523,7 +538,25 @@ class AddMonitor(workflows.Workflow):
         return False
 
 
-class AddPMAssociationAction(workflows.Action):
+class MonitorMixin():
+
+    def _get_monitor_display_name(self, monitor):
+        fields = ['type', 'delay', 'max_retries', 'timeout']
+        if monitor.type in ['HTTP', 'HTTPS']:
+            fields.extend(['url_path', 'expected_codes', 'http_method'])
+            name = _("%(type)s url:%(url_path)s "
+                     "method:%(http_method)s codes:%(expected_codes)s "
+                     "delay:%(delay)d retries:%(max_retries)d "
+                     "timeout:%(timeout)d")
+        else:
+            name = _("%(type)s delay:%(delay)d "
+                     "retries:%(max_retries)d "
+                     "timeout:%(timeout)d")
+        params = dict((key, getattr(monitor, key)) for key in fields)
+        return name % params
+
+
+class AddPMAssociationAction(workflows.Action, MonitorMixin):
     monitor_id = forms.ChoiceField(label=_("Monitor"))
 
     def __init__(self, request, *args, **kwargs):
@@ -535,10 +568,13 @@ class AddPMAssociationAction(workflows.Action):
 
         monitor_id_choices = [('', _("Select a Monitor"))]
         try:
-            monitors = api.lbaas.pool_health_monitors_get(request)
+            tenant_id = self.request.user.tenant_id
+            monitors = api.lbaas.pool_health_monitor_list(request,
+                                                          tenant_id=tenant_id)
             for m in monitors:
                 if m.id not in context['pool_monitors']:
-                    monitor_id_choices.append((m.id, m.id))
+                    display_name = self._get_monitor_display_name(m)
+                    monitor_id_choices.append((m.id, display_name))
         except Exception:
             exceptions.handle(request,
                               _('Unable to retrieve monitors list.'))
@@ -565,10 +601,10 @@ class AddPMAssociationStep(workflows.Step):
 
 class AddPMAssociation(workflows.Workflow):
     slug = "addassociation"
-    name = _("Add Association")
-    finalize_button_name = _("Add")
-    success_message = _('Added association.')
-    failure_message = _('Unable to add association.')
+    name = _("Associate Monitor")
+    finalize_button_name = _("Associate")
+    success_message = _('Associated monitor.')
+    failure_message = _('Unable to associate monitor.')
     success_url = "horizon:project:loadbalancers:index"
     default_steps = (AddPMAssociationStep,)
 
@@ -578,11 +614,11 @@ class AddPMAssociation(workflows.Workflow):
                 request, **context)
             return True
         except Exception:
-            exceptions.handle(request, _("Unable to add association."))
-        return False
+            exceptions.handle(request, _("Unable to associate monitor."))
+            return False
 
 
-class DeletePMAssociationAction(workflows.Action):
+class DeletePMAssociationAction(workflows.Action, MonitorMixin):
     monitor_id = forms.ChoiceField(label=_("Monitor"))
 
     def __init__(self, request, *args, **kwargs):
@@ -595,8 +631,11 @@ class DeletePMAssociationAction(workflows.Action):
 
         monitor_id_choices = [('', _("Select a Monitor"))]
         try:
-            for m_id in context['pool_monitors']:
-                monitor_id_choices.append((m_id, m_id))
+            monitors = api.lbaas.pool_health_monitor_list(request)
+            for m in monitors:
+                if m.id in context['pool_monitors']:
+                    display_name = self._get_monitor_display_name(m)
+                    monitor_id_choices.append((m.id, display_name))
         except Exception:
             exceptions.handle(request,
                               _('Unable to retrieve monitors list.'))
@@ -624,10 +663,10 @@ class DeletePMAssociationStep(workflows.Step):
 
 class DeletePMAssociation(workflows.Workflow):
     slug = "deleteassociation"
-    name = _("Delete Association")
-    finalize_button_name = _("Delete")
-    success_message = _('Deleted association.')
-    failure_message = _('Unable to delete association.')
+    name = _("Disassociate Monitor")
+    finalize_button_name = _("Disassociate")
+    success_message = _('Disassociated monitor.')
+    failure_message = _('Unable to disassociate monitor.')
     success_url = "horizon:project:loadbalancers:index"
     default_steps = (DeletePMAssociationStep,)
 
@@ -637,5 +676,5 @@ class DeletePMAssociation(workflows.Workflow):
                 request, **context)
             return True
         except Exception:
-            exceptions.handle(request, _("Unable to delete association."))
+            exceptions.handle(request, _("Unable to disassociate monitor."))
         return False

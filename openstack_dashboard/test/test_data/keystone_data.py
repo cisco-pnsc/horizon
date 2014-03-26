@@ -14,7 +14,7 @@
 
 from datetime import timedelta  # noqa
 
-from django.conf import settings  # noqa
+from django.conf import settings
 from django.utils import datetime_safe
 
 from keystoneclient import access
@@ -194,7 +194,16 @@ def data(TEST):
                  'enabled': True,
                  'domain_id': "2"}
     user4 = users.User(users.UserManager(None), user_dict)
-    TEST.users.add(user, user2, user3, user4)
+    user_dict = {'id': "5",
+                 'name': 'user_five',
+                 'email': None,
+                 'password': 'password',
+                 'token': 'test_token',
+                 'project_id': '2',
+                 'enabled': True,
+                 'domain_id': "1"}
+    user5 = users.User(users.UserManager(None), user_dict)
+    TEST.users.add(user, user2, user3, user4, user5)
     TEST.user = user  # Your "current" user
     TEST.user.service_catalog = SERVICE_CATALOG
 

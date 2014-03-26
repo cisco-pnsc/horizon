@@ -1,4 +1,16 @@
-from django.core.urlresolvers import reverse  # noqa
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+from django.core.urlresolvers import reverse
 from django import http
 from mox import IsA  # noqa
 
@@ -348,7 +360,6 @@ class UpdateFlavorWorkflowTests(BaseFlavorWorkflowTests):
                                new_flavor.disk,
                                swap=new_flavor.swap,
                                ephemeral=eph,
-                               flavorid=flavor.id,
                                is_public=True).AndReturn(new_flavor)
 
         # Put mocks in replay mode
@@ -418,7 +429,6 @@ class UpdateFlavorWorkflowTests(BaseFlavorWorkflowTests):
                                new_flavor.disk,
                                swap=new_flavor.swap,
                                ephemeral=eph,
-                               flavorid=flavor.id,
                                is_public=True).AndReturn(new_flavor)
         api.nova.flavor_extra_set(IsA(http.HttpRequest),
                                   new_flavor.id, extra_specs)
@@ -490,7 +500,6 @@ class UpdateFlavorWorkflowTests(BaseFlavorWorkflowTests):
                                new_flavor.disk,
                                swap=new_flavor.swap,
                                ephemeral=eph,
-                               flavorid=flavor.id,
                                is_public=True)\
                                .AndRaise(self.exceptions.nova)
 
@@ -566,7 +575,6 @@ class UpdateFlavorWorkflowTests(BaseFlavorWorkflowTests):
                                new_flavor.disk,
                                swap=new_flavor.swap,
                                ephemeral=eph,
-                               flavorid=flavor.id,
                                is_public=new_flavor.is_public) \
                                .AndReturn(new_flavor)
 
@@ -680,3 +688,70 @@ class UpdateFlavorWorkflowTests(BaseFlavorWorkflowTests):
         resp = self.client.post(url, data)
         self.assertFormErrors(resp, 1, 'The name &quot;m1.massive&quot; '
                               'is already used by another flavor.')
+
+    @test.create_stubs({api.keystone: ('tenant_list',),
+                        api.nova: ('flavor_get',
+                                   'flavor_list',)})
+    def generic_update_flavor_invalid_data_form_fails(self, override_data,
+                                                      error_msg):
+        flavor = self.flavors.first()
+        projects = self.tenants.list()
+        eph = getattr(flavor, 'OS-FLV-EXT-DATA:ephemeral')
+
+        api.nova.flavor_get(IsA(http.HttpRequest), flavor.id) \
+                .MultipleTimes().AndReturn(flavor)
+        api.keystone.tenant_list(IsA(http.HttpRequest)) \
+                .MultipleTimes().AndReturn([projects, False])
+        api.nova.flavor_list(IsA(http.HttpRequest), None) \
+                .AndReturn(self.flavors.list())
+
+        self.mox.ReplayAll()
+
+        # run get test
+        url = reverse('horizon:admin:flavors:update', args=[flavor.id])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, "admin/flavors/update.html")
+
+        # run post test
+        workflow_data = {'flavor_id': flavor.id,
+                         'name': flavor.name,
+                         'vcpus': flavor.vcpus,
+                         'memory_mb': flavor.ram,
+                         'disk_gb': flavor.disk,
+                         'swap_mb': flavor.swap,
+                         'eph_gb': eph,
+                         'is_public': True}
+        workflow_data.update(override_data)
+        resp = self.client.post(url, workflow_data)
+        self.assertFormErrors(resp, 1, error_msg)
+
+    def test_update_flavor_invalid_vcpu_fails(self):
+        error = 'Ensure this value is greater than or equal to 1.'
+        data = {'vcpus': 0}
+        self.generic_update_flavor_invalid_data_form_fails(override_data=data,
+                                                           error_msg=error)
+
+    def test_update_flavor_invalid_ram_fails(self):
+        error = 'Ensure this value is greater than or equal to 1.'
+        data = {'memory_mb': 0}
+        self.generic_update_flavor_invalid_data_form_fails(override_data=data,
+                                                           error_msg=error)
+
+    def test_update_flavor_invalid_disk_gb_fails(self):
+        error = 'Ensure this value is greater than or equal to 0.'
+        data = {'disk_gb': -1}
+        self.generic_update_flavor_invalid_data_form_fails(override_data=data,
+                                                           error_msg=error)
+
+    def test_update_flavor_invalid_swap_mb_fails(self):
+        error = 'Ensure this value is greater than or equal to 0.'
+        data = {'swap_mb': -1}
+        self.generic_update_flavor_invalid_data_form_fails(override_data=data,
+                                                           error_msg=error)
+
+    def test_update_flavor_invalid_eph_gb_fails(self):
+        error = 'Ensure this value is greater than or equal to 0.'
+        data = {'eph_gb': -1}
+        self.generic_update_flavor_invalid_data_form_fails(override_data=data,
+                                                           error_msg=error)

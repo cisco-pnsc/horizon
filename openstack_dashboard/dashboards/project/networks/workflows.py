@@ -18,8 +18,8 @@
 import logging
 import netaddr
 
-from django.core.urlresolvers import reverse  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
@@ -271,6 +271,7 @@ class CreateNetwork(workflows.Workflow):
     default_steps = (CreateNetworkInfo,
                      CreateSubnetInfo,
                      CreateSubnetDetail)
+    wizard = True
 
     def get_success_url(self):
         return reverse("horizon:project:networks:index")
@@ -368,7 +369,7 @@ class CreateNetwork(workflows.Workflow):
             return False
 
     def _delete_network(self, request, network):
-        """Delete the created network when subnet creation failed"""
+        """Delete the created network when subnet creation failed."""
         try:
             api.neutron.network_delete(request, network.id)
             msg = _('Delete the created network "%s" '

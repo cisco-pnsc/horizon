@@ -18,7 +18,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from openstack_dashboard import api
 
@@ -26,10 +26,19 @@ from horizon import exceptions
 from horizon import forms
 from horizon import messages
 
+import re
+
 
 class CreateExtraSpec(forms.SelfHandlingForm):
-    key = forms.CharField(max_length="25", label=_("Key"))
-    value = forms.CharField(max_length="25", label=_("Value"))
+    _extraspec_name_regex = re.compile(r"^[\w\.\-: ]+$", re.UNICODE)
+    key = forms.RegexField(
+        max_length="255",
+        label=_("Key"),
+        regex=_extraspec_name_regex,
+        error_messages={'invalid': _('Key Name may only contain letters, '
+                            'numbers, underscores, periods, colons, '
+                            'spaces and hyphens.')})
+    value = forms.CharField(max_length="255", label=_("Value"))
     flavor_id = forms.CharField(widget=forms.widgets.HiddenInput)
 
     def handle(self, request, data):
@@ -46,8 +55,8 @@ class CreateExtraSpec(forms.SelfHandlingForm):
 
 
 class EditExtraSpec(forms.SelfHandlingForm):
-    key = forms.CharField(max_length="25", label=_("Key"))
-    value = forms.CharField(max_length="25", label=_("Value"))
+    key = forms.CharField(widget=forms.widgets.HiddenInput)
+    value = forms.CharField(max_length="255", label=_("Value"))
     flavor_id = forms.CharField(widget=forms.widgets.HiddenInput)
 
     def handle(self, request, data):

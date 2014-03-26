@@ -1,9 +1,21 @@
-from django.utils.translation import ugettext_lazy as _  # noqa
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import tables
 from openstack_dashboard.api import cinder
 from openstack_dashboard.dashboards.project.volumes \
-    import tables as project_tables
+    .volumes import tables as project_tables
 
 
 class CreateVolumeType(tables.LinkAction):
@@ -11,11 +23,13 @@ class CreateVolumeType(tables.LinkAction):
     verbose_name = _("Create Volume Type")
     url = "horizon:admin:volumes:create_type"
     classes = ("ajax-modal", "btn-create")
+    policy_rules = (("volume", "volume_extension:types_manage"),)
 
 
 class DeleteVolumeType(tables.DeleteAction):
     data_type_singular = _("Volume Type")
     data_type_plural = _("Volume Types")
+    policy_rules = (("volume", "volume_extension:types_manage"),)
 
     def delete(self, request, obj_id):
         cinder.volume_type_delete(request, obj_id)
@@ -24,7 +38,7 @@ class DeleteVolumeType(tables.DeleteAction):
 class VolumesFilterAction(tables.FilterAction):
 
     def filter(self, table, volumes, filter_string):
-        """ Naive case-insensitive search. """
+        """Naive case-insensitive search."""
         q = filter_string.lower()
         return [volume for volume in volumes
                 if q in volume.display_name.lower()]

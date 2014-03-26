@@ -14,17 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-try:
-    from troveclient import backups
-    from troveclient import instances
-    with_trove = True
-except ImportError:
-    with_trove = False
+from troveclient.v1 import backups
+from troveclient.v1 import instances
 
 from openstack_dashboard.test.test_data import utils
 
 
-DATABASE_DATA = {
+DATABASE_DATA_ONE = {
     "status": "ACTIVE",
     "updated": "2013-08-12T22:00:09",
     "name": "Test Database",
@@ -44,6 +40,23 @@ DATABASE_DATA = {
     "id": "6ddc36d9-73db-4e23-b52e-368937d72719"
 }
 
+DATABASE_DATA_TWO = {
+    "status": "ACTIVE",
+    "updated": "2013-08-12T22:00:09",
+    "name": "Test Database With DNS",
+    "links": [],
+    "created": "2013-08-12T22:00:03",
+    "hostname": "trove.instance-2.com",
+    "volume": {
+        "used": 0.13,
+        "size": 1
+    },
+    "flavor": {
+        "id": "1",
+        "links": []
+    },
+    "id": "4d7b3f57-44f5-41d2-8e86-36b88cad572a"
+}
 
 BACKUP_ONE = {
     "instance_id": "6ddc36d9-73db-4e23-b52e-368937d72719",
@@ -70,14 +83,18 @@ BACKUP_TWO = {
     "description": "Longer description of backup"
 }
 
-if with_trove:
-    def data(TEST):
-        database = instances.Instance(instances.Instances(None), DATABASE_DATA)
-        bkup1 = backups.Backup(backups.Backups(None), BACKUP_ONE)
-        bkup2 = backups.Backup(backups.Backups(None), BACKUP_TWO)
 
-        TEST.databases = utils.TestDataContainer()
-        TEST.database_backups = utils.TestDataContainer()
-        TEST.databases.add(database)
-        TEST.database_backups.add(bkup1)
-        TEST.database_backups.add(bkup2)
+def data(TEST):
+    database1 = instances.Instance(instances.Instances(None),
+                                   DATABASE_DATA_ONE)
+    database2 = instances.Instance(instances.Instances(None),
+                                   DATABASE_DATA_TWO)
+    bkup1 = backups.Backup(backups.Backups(None), BACKUP_ONE)
+    bkup2 = backups.Backup(backups.Backups(None), BACKUP_TWO)
+
+    TEST.databases = utils.TestDataContainer()
+    TEST.database_backups = utils.TestDataContainer()
+    TEST.databases.add(database1)
+    TEST.databases.add(database2)
+    TEST.database_backups.add(bkup1)
+    TEST.database_backups.add(bkup2)

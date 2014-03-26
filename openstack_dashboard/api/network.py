@@ -21,8 +21,6 @@ introduced to abstract the differences between them for seamless consumption by
 different dashboard implementations.
 """
 
-from django.conf import settings  # noqa
-
 from openstack_dashboard.api import base
 from openstack_dashboard.api import neutron
 from openstack_dashboard.api import nova
@@ -83,6 +81,11 @@ def floating_ip_target_get_by_instance(request, instance_id):
         instance_id)
 
 
+def floating_ip_target_list_by_instance(request, instance_id):
+    floating_ips = NetworkClient(request).floating_ips
+    return floating_ips.list_target_id_by_instance(instance_id)
+
+
 def floating_ip_simple_associate_supported(request):
     return NetworkClient(request).floating_ips.is_simple_associate_supported()
 
@@ -132,3 +135,15 @@ def server_update_security_groups(request, instance_id,
 
 def security_group_backend(request):
     return NetworkClient(request).secgroups.backend
+
+
+def servers_update_addresses(request, servers):
+    """Retrieve servers networking information from Neutron if enabled.
+
+       Should be used when up to date networking information is required,
+       and Nova's networking info caching mechanism is not fast enough.
+
+    """
+    neutron_enabled = base.is_service_enabled(request, 'network')
+    if neutron_enabled:
+        neutron.servers_update_addresses(request, servers)

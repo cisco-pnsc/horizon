@@ -14,22 +14,34 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
+import datetime
 import logging
+import os
 
-from django.core.urlresolvers import reverse  # noqa
+from django.core.urlresolvers import reverse
 from django import http
-from django.test.utils import override_settings  # noqa
+from django.test.utils import override_settings
+from django.utils import timezone
+from django.utils import unittest
 
+from mox import IgnoreArg  # noqa
 from mox import IsA  # noqa
 
 from horizon import exceptions
 from horizon.workflows import views
 
 from openstack_dashboard import api
+from openstack_dashboard.dashboards.admin.projects import workflows
 from openstack_dashboard.test import helpers as test
+from openstack_dashboard import usage
 from openstack_dashboard.usage import quotas
 
-from openstack_dashboard.dashboards.admin.projects import workflows
+with_sel = os.environ.get('WITH_SELENIUM', False)
+if with_sel:
+    from selenium.webdriver import ActionChains  # noqa
+
+from socket import timeout as socket_timeout  # noqa
 
 
 INDEX_URL = reverse('horizon:admin:projects:index')
@@ -1440,3 +1452,203 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
                 self.client.get(url)
         finally:
             logging.disable(logging.NOTSET)
+
+
+class UsageViewTests(test.BaseAdminViewTests):
+    def _stub_nova_api_calls(self, nova_stu_enabled=True):
+        self.mox.StubOutWithMock(api.nova, 'usage_get')
+        self.mox.StubOutWithMock(api.nova, 'tenant_absolute_limits')
+        self.mox.StubOutWithMock(api.nova, 'extension_supported')
+        self.mox.StubOutWithMock(api.cinder, 'tenant_absolute_limits')
+
+        api.nova.extension_supported(
+            'SimpleTenantUsage', IsA(http.HttpRequest)) \
+            .AndReturn(nova_stu_enabled)
+
+    def _stub_neutron_api_calls(self, neutron_sg_enabled=True):
+        self.mox.StubOutWithMock(api.neutron, 'is_extension_supported')
+        self.mox.StubOutWithMock(api.network, 'tenant_floating_ip_list')
+        if neutron_sg_enabled:
+            self.mox.StubOutWithMock(api.network, 'security_group_list')
+        api.neutron.is_extension_supported(
+            IsA(http.HttpRequest),
+            'security-group').AndReturn(neutron_sg_enabled)
+        api.network.tenant_floating_ip_list(IsA(http.HttpRequest)) \
+            .AndReturn(self.floating_ips.list())
+        if neutron_sg_enabled:
+            api.network.security_group_list(IsA(http.HttpRequest)) \
+                .AndReturn(self.q_secgroups.list())
+
+    def test_usage_csv(self):
+        self._test_usage_csv(nova_stu_enabled=True)
+
+    def test_usage_csv_disabled(self):
+        self._test_usage_csv(nova_stu_enabled=False)
+
+    def _test_usage_csv(self, nova_stu_enabled=True):
+        now = timezone.now()
+        usage_obj = api.nova.NovaUsage(self.usages.first())
+        self._stub_nova_api_calls(nova_stu_enabled)
+        api.nova.extension_supported(
+            'SimpleTenantUsage', IsA(http.HttpRequest)) \
+            .AndReturn(nova_stu_enabled)
+        start = datetime.datetime(now.year, now.month, now.day, 0, 0, 0, 0)
+        end = datetime.datetime(now.year, now.month, now.day, 23, 59, 59, 0)
+
+        if nova_stu_enabled:
+            api.nova.usage_get(IsA(http.HttpRequest),
+                               self.tenant.id,
+                               start, end).AndReturn(usage_obj)
+        api.nova.tenant_absolute_limits(IsA(http.HttpRequest))\
+            .AndReturn(self.limits['absolute'])
+        api.cinder.tenant_absolute_limits(IsA(http.HttpRequest)) \
+            .AndReturn(self.cinder_limits['absolute'])
+        self._stub_neutron_api_calls()
+        self.mox.ReplayAll()
+
+        project_id = self.tenants.first().id
+        csv_url = reverse('horizon:admin:projects:usage',
+                          args=[project_id]) + "?format=csv"
+        res = self.client.get(csv_url)
+        self.assertTemplateUsed(res, 'project/overview/usage.csv')
+
+        self.assertTrue(isinstance(res.context['usage'], usage.ProjectUsage))
+        hdr = ('Instance Name,VCPUs,Ram (MB),Disk (GB),Usage (Hours),'
+               'Uptime(Seconds),State')
+        self.assertContains(res, '%s\r\n' % hdr)
+
+
+@unittest.skipUnless(os.environ.get('WITH_SELENIUM', False),
+                     "The WITH_SELENIUM env variable is not set.")
+class SeleniumTests(test.SeleniumAdminTestCase):
+    @test.create_stubs(
+        {api.keystone: ('tenant_list', 'tenant_get', 'tenant_update')})
+    def test_inline_editing_update(self):
+        # Tenant List
+        api.keystone.tenant_list(IgnoreArg(),
+                                 domain=None,
+                                 marker=None,
+                                 paginate=True) \
+            .AndReturn([self.tenants.list(), False])
+        # Edit mod
+        api.keystone.tenant_get(IgnoreArg(),
+                                u'1',
+                                admin=True) \
+            .AndReturn(self.tenants.list()[0])
+        # Update - requires get and update
+        api.keystone.tenant_get(IgnoreArg(),
+                                u'1',
+                                admin=True) \
+            .AndReturn(self.tenants.list()[0])
+        api.keystone.tenant_update(
+            IgnoreArg(),
+            u'1',
+            description='a test tenant.',
+            enabled=True,
+            name=u'Changed test_tenant')
+        # Refreshing cell with changed name
+        changed_tenant = copy.copy(self.tenants.list()[0])
+        changed_tenant.name = u'Changed test_tenant'
+        api.keystone.tenant_get(IgnoreArg(),
+                                u'1',
+                                admin=True) \
+            .AndReturn(changed_tenant)
+
+        self.mox.ReplayAll()
+
+        self.selenium.get("%s%s" % (self.live_server_url, INDEX_URL))
+
+        # Check the presence of the important elements
+        td_element = self.selenium.find_element_by_xpath(
+            "//td[@data-update-url='/admin/projects/?action=cell_update"
+            "&table=tenants&cell_name=name&obj_id=1']")
+        cell_wrapper = td_element.find_element_by_class_name(
+            'table_cell_wrapper')
+        edit_button_wrapper = td_element.find_element_by_class_name(
+            'table_cell_action')
+        edit_button = edit_button_wrapper.find_element_by_tag_name('button')
+        # Hovering over td and clicking on edit button
+        action_chains = ActionChains(self.selenium)
+        action_chains.move_to_element(cell_wrapper).click(edit_button)
+        action_chains.perform()
+        # Waiting for the AJAX response for switching to editing mod
+        wait = self.ui.WebDriverWait(self.selenium, 10,
+                                     ignored_exceptions=[socket_timeout])
+        wait.until(lambda x: self.selenium.find_element_by_name("name__1"))
+        # Changing project name in cell form
+        td_element = self.selenium.find_element_by_xpath(
+            "//td[@data-update-url='/admin/projects/?action=cell_update"
+            "&table=tenants&cell_name=name&obj_id=1']")
+        td_element.find_element_by_tag_name('input').send_keys("Changed ")
+        # Saving new project name by AJAX
+        td_element.find_element_by_class_name('inline-edit-submit').click()
+        # Waiting for the AJAX response of cell refresh
+        wait = self.ui.WebDriverWait(self.selenium, 10,
+                                     ignored_exceptions=[socket_timeout])
+        wait.until(lambda x: self.selenium.find_element_by_xpath(
+            "//td[@data-update-url='/admin/projects/?action=cell_update"
+            "&table=tenants&cell_name=name&obj_id=1']"
+            "/div[@class='table_cell_wrapper']"
+            "/div[@class='table_cell_data_wrapper']"))
+        # Checking new project name after cell refresh
+        data_wrapper = self.selenium.find_element_by_xpath(
+            "//td[@data-update-url='/admin/projects/?action=cell_update"
+            "&table=tenants&cell_name=name&obj_id=1']"
+            "/div[@class='table_cell_wrapper']"
+            "/div[@class='table_cell_data_wrapper']")
+        self.assertTrue(data_wrapper.text == u'Changed test_tenant',
+                        "Error: saved tenant name is expected to be "
+                        "'Changed test_tenant'")
+
+    @test.create_stubs(
+        {api.keystone: ('tenant_list', 'tenant_get')})
+    def test_inline_editing_cancel(self):
+        # Tenant List
+        api.keystone.tenant_list(IgnoreArg(),
+                                 domain=None,
+                                 marker=None,
+                                 paginate=True) \
+            .AndReturn([self.tenants.list(), False])
+        # Edit mod
+        api.keystone.tenant_get(IgnoreArg(),
+                                u'1',
+                                admin=True) \
+            .AndReturn(self.tenants.list()[0])
+        # Cancel edit mod is without the request
+
+        self.mox.ReplayAll()
+
+        self.selenium.get("%s%s" % (self.live_server_url, INDEX_URL))
+
+        # Check the presence of the important elements
+        td_element = self.selenium.find_element_by_xpath(
+            "//td[@data-update-url='/admin/projects/?action=cell_update"
+            "&table=tenants&cell_name=name&obj_id=1']")
+        cell_wrapper = td_element.find_element_by_class_name(
+            'table_cell_wrapper')
+        edit_button_wrapper = td_element.find_element_by_class_name(
+            'table_cell_action')
+        edit_button = edit_button_wrapper.find_element_by_tag_name('button')
+        # Hovering over td and clicking on edit
+        action_chains = ActionChains(self.selenium)
+        action_chains.move_to_element(cell_wrapper).click(edit_button)
+        action_chains.perform()
+        # Waiting for the AJAX response for switching to editing mod
+        wait = self.ui.WebDriverWait(self.selenium, 10,
+                                     ignored_exceptions=[socket_timeout])
+        wait.until(lambda x: self.selenium.find_element_by_name("name__1"))
+        # Click on cancel button
+        td_element = self.selenium.find_element_by_xpath(
+            "//td[@data-update-url='/admin/projects/?action=cell_update"
+            "&table=tenants&cell_name=name&obj_id=1']")
+        td_element.find_element_by_class_name('inline-edit-cancel').click()
+        # Cancel is via javascript, so it should be immediate
+        # Checking that tenant name is not changed
+        data_wrapper = self.selenium.find_element_by_xpath(
+            "//td[@data-update-url='/admin/projects/?action=cell_update"
+            "&table=tenants&cell_name=name&obj_id=1']"
+            "/div[@class='table_cell_wrapper']"
+            "/div[@class='table_cell_data_wrapper']")
+        self.assertTrue(data_wrapper.text == u'test_tenant',
+                        "Error: saved tenant name is expected to be "
+                        "'test_tenant'")

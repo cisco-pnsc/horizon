@@ -21,11 +21,10 @@
 import json
 import logging
 
-from django.conf import settings  # noqa
 from django.template.defaultfilters import filesizeformat  # noqa
 from django.utils.text import normalize_newlines  # noqa
-from django.utils.translation import ugettext_lazy as _  # noqa
-from django.utils.translation import ungettext_lazy  # noqa
+from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ungettext_lazy
 from django.views.decorators.debug import sensitive_variables  # noqa
 
 from horizon import exceptions
@@ -36,10 +35,14 @@ from horizon.utils import validators
 from horizon import workflows
 
 from openstack_dashboard import api
+from openstack_dashboard.api import base
 from openstack_dashboard.api import cinder
 from openstack_dashboard.usage import quotas
 
-from openstack_dashboard.dashboards.project.images_and_snapshots import utils
+from openstack_dashboard.dashboards.project.images \
+    import utils as image_utils
+from openstack_dashboard.dashboards.project.instances \
+    import utils as instance_utils
 
 
 LOG = logging.getLogger(__name__)
@@ -73,17 +76,6 @@ class SelectProjectUser(workflows.Step):
 
 
 class SetInstanceDetailsAction(workflows.Action):
-    SOURCE_TYPE_CHOICES = (
-        ('', _("--- Select source ---")),
-        ("image_id", _("Boot from image.")),
-        ("instance_snapshot_id", _("Boot from snapshot.")),
-        ("volume_id", _("Boot from volume.")),
-        ("volume_image_id", _("Boot from image "
-                                  "(creates a new volume).")),
-        ("volume_snapshot_id", _("Boot from volume snapshot "
-                                 "(creates a new volume).")),
-    )
-
     availability_zone = forms.ChoiceField(label=_("Availability Zone"),
                                           required=False)
 
@@ -99,7 +91,6 @@ class SetInstanceDetailsAction(workflows.Action):
 
     source_type = forms.ChoiceField(label=_("Instance Boot Source"),
                                     required=True,
-                                    choices=SOURCE_TYPE_CHOICES,
                                     help_text=_("Choose Your Boot Source "
                                                 "Type."))
 
@@ -119,7 +110,7 @@ class SetInstanceDetailsAction(workflows.Action):
             transform=lambda x: ("%s (%s)" % (x.name,
                                               filesizeformat(x.bytes)))))
 
-    volume_size = forms.CharField(label=_("Device size (GB)"),
+    volume_size = forms.IntegerField(label=_("Device size (GB)"),
                                   required=False,
                                   help_text=_("Volume size in gigabytes "
                                               "(integer value)."))
@@ -143,8 +134,30 @@ class SetInstanceDetailsAction(workflows.Action):
 
     def __init__(self, request, context, *args, **kwargs):
         self._init_images_cache()
+        self.request = request
+        self.context = context
         super(SetInstanceDetailsAction, self).__init__(
             request, context, *args, **kwargs)
+        source_type_choices = [
+            ('', _("--- Select source ---")),
+            ("image_id", _("Boot from image")),
+            ("instance_snapshot_id", _("Boot from snapshot")),
+        ]
+        if base.is_service_enabled(request, 'volume'):
+            source_type_choices.append(("volume_id", _("Boot from volume")))
+
+            try:
+                if api.nova.extension_supported("BlockDeviceMappingV2Boot",
+                                                request):
+                    source_type_choices.append(("volume_image_id",
+                            _("Boot from image (creates a new volume)")))
+            except Exception:
+                exceptions.handle(request, _('Unable to retrieve extensions '
+                                            'information.'))
+
+            source_type_choices.append(("volume_snapshot_id",
+                    _("Boot from volume snapshot (creates a new volume)")))
+        self.fields['source_type'].choices = source_type_choices
 
     def clean(self):
         cleaned_data = super(SetInstanceDetailsAction, self).clean()
@@ -170,10 +183,67 @@ class SetInstanceDetailsAction(workflows.Action):
         # Validate our instance source.
         source_type = self.data.get('source_type', None)
 
-        if source_type == 'image_id':
+        if source_type in ('image_id', 'volume_image_id'):
             if not cleaned_data.get('image_id'):
                 msg = _("You must select an image.")
                 self._errors['image_id'] = self.error_class([msg])
+            else:
+                # Prevents trying to launch an image needing more resources.
+                try:
+                    image_id = cleaned_data.get('image_id')
+                    # We want to retrieve details for a given image,
+                    # however get_available_images uses a cache of image list,
+                    # so it is used instead of image_get to reduce the number
+                    # of API calls.
+                    images = image_utils.get_available_images(
+                        self.request,
+                        self.context.get('project_id'),
+                        self._images_cache)
+                    image = [x for x in images if x.id == image_id][0]
+                except IndexError:
+                    image = None
+
+                try:
+                    flavor_id = cleaned_data.get('flavor')
+                    # We want to retrieve details for a given flavor,
+                    # however flavor_list uses a memoized decorator
+                    # so it is used instead of flavor_get to reduce the number
+                    # of API calls.
+                    flavors = instance_utils.flavor_list(self.request)
+                    flavor = [x for x in flavors if x.id == flavor_id][0]
+                except IndexError:
+                    flavor = None
+
+                if image and flavor:
+                    props_mapping = (("min_ram", "ram"), ("min_disk", "disk"))
+                    for iprop, fprop in props_mapping:
+                        if getattr(image, iprop) > 0 and \
+                                getattr(image, iprop) > getattr(flavor, fprop):
+                            msg = _("The flavor '%(flavor)s' is too small for "
+                                    "requested image.\n"
+                                    "Minimum requirements: "
+                                    "%(min_ram)s MB of RAM and "
+                                    "%(min_disk)s GB of Root Disk." %
+                                    {'flavor': flavor.name,
+                                     'min_ram': image.min_ram,
+                                     'min_disk': image.min_disk})
+                            self._errors['image_id'] = self.error_class([msg])
+                            break  # Not necessary to continue the tests.
+
+                    volume_size = cleaned_data.get('volume_size')
+                    if volume_size and source_type == 'volume_image_id':
+                        volume_size = int(volume_size)
+                        img_gigs = functions.bytes_to_gigabytes(image.size)
+                        smallest_size = max(img_gigs, image.min_disk)
+                        if volume_size < smallest_size:
+                            msg = _("The Volume size is too small for the"
+                                    " '%(image_name)s' image and has to be"
+                                    " greater than or equal to "
+                                    "'%(smallest_size)d' GB." %
+                                    {'image_name': image.name,
+                                     'smallest_size': smallest_size})
+                            self._errors['volume_size'] = self.error_class(
+                                [msg])
 
         elif source_type == 'instance_snapshot_id':
             if not cleaned_data['instance_snapshot_id']:
@@ -214,23 +284,10 @@ class SetInstanceDetailsAction(workflows.Action):
         return cleaned_data
 
     def populate_flavor_choices(self, request, context):
-        """By default, returns the available flavors, sorted by RAM
-        usage (ascending).
-        Override these behaviours with a CREATE_INSTANCE_FLAVOR_SORT dict
-        in local_settings.py."""
-        try:
-            flavors = api.nova.flavor_list(request)
-            flavor_sort = getattr(settings, 'CREATE_INSTANCE_FLAVOR_SORT', {})
-            rev = flavor_sort.get('reverse', False)
-            key = flavor_sort.get('key', lambda flavor: flavor.ram)
-
-            flavor_list = [(flavor.id, "%s" % flavor.name)
-                           for flavor in sorted(flavors, key=key, reverse=rev)]
-        except Exception:
-            flavor_list = []
-            exceptions.handle(request,
-                              _('Unable to retrieve instance flavors.'))
-        return flavor_list
+        flavors = instance_utils.flavor_list(request)
+        if flavors:
+            return instance_utils.sort_flavor_list(request, flavors)
+        return []
 
     def populate_availability_zone_choices(self, request, context):
         try:
@@ -244,7 +301,7 @@ class SetInstanceDetailsAction(workflows.Action):
                       for zone in zones if zone.zoneState['available']]
         zone_list.sort()
         if not zone_list:
-            zone_list.insert(0, ("", _("No availability zones found.")))
+            zone_list.insert(0, ("", _("No availability zones found")))
         elif len(zone_list) > 1:
             zone_list.insert(0, ("", _("Any Availability Zone")))
         return zone_list
@@ -255,8 +312,18 @@ class SetInstanceDetailsAction(workflows.Action):
             extra['usages'] = api.nova.tenant_absolute_limits(self.request)
             extra['usages_json'] = json.dumps(extra['usages'])
             flavors = json.dumps([f._info for f in
-                                  api.nova.flavor_list(self.request)])
+                                  instance_utils.flavor_list(self.request)])
             extra['flavors'] = flavors
+            images = image_utils.get_available_images(self.request,
+                                                self.initial['project_id'],
+                                                self._images_cache)
+            if images is not None:
+                attrs = [{'id': i.id,
+                          'min_disk': getattr(i, 'min_disk', 0),
+                          'min_ram': getattr(i, 'min_ram', 0)}
+                          for i in images]
+                extra['images'] = json.dumps(attrs)
+
         except Exception:
             exceptions.handle(self.request,
                               _("Unable to retrieve quota information."))
@@ -281,21 +348,26 @@ class SetInstanceDetailsAction(workflows.Action):
 
     def populate_image_id_choices(self, request, context):
         choices = []
-        images = utils.get_available_images(request,
+        images = image_utils.get_available_images(request,
                                             context.get('project_id'),
                                             self._images_cache)
         for image in images:
             image.bytes = image.size
-            image.volume_size = functions.bytes_to_gigabytes(image.bytes)
+            image.volume_size = max(
+                image.min_disk, functions.bytes_to_gigabytes(image.bytes))
             choices.append((image.id, image))
+            if context.get('image_id') == image.id and \
+                    'volume_size' not in context:
+                context['volume_size'] = image.volume_size
         if choices:
+            choices.sort(key=lambda c: c[1].name)
             choices.insert(0, ("", _("Select Image")))
         else:
             choices.insert(0, ("", _("No images available")))
         return choices
 
     def populate_instance_snapshot_id_choices(self, request, context):
-        images = utils.get_available_images(request,
+        images = image_utils.get_available_images(request,
                                             context.get('project_id'),
                                             self._images_cache)
         choices = [(image.id, image.name)
@@ -304,7 +376,7 @@ class SetInstanceDetailsAction(workflows.Action):
         if choices:
             choices.insert(0, ("", _("Select Instance Snapshot")))
         else:
-            choices.insert(0, ("", _("No snapshots available.")))
+            choices.insert(0, ("", _("No snapshots available")))
         return choices
 
     def populate_volume_id_choices(self, request, context):
@@ -319,7 +391,7 @@ class SetInstanceDetailsAction(workflows.Action):
         if volumes:
             volumes.insert(0, ("", _("Select Volume")))
         else:
-            volumes.insert(0, ("", _("No volumes available.")))
+            volumes.insert(0, ("", _("No volumes available")))
         return volumes
 
     def populate_volume_snapshot_id_choices(self, request, context):
@@ -335,7 +407,7 @@ class SetInstanceDetailsAction(workflows.Action):
         if snapshots:
             snapshots.insert(0, ("", _("Select Volume Snapshot")))
         else:
-            snapshots.insert(0, ("", _("No volume snapshots available.")))
+            snapshots.insert(0, ("", _("No volume snapshots available")))
         return snapshots
 
 
@@ -376,9 +448,9 @@ KEYPAIR_IMPORT_URL = "horizon:project:access_and_security:keypairs:import"
 
 
 class SetAccessControlsAction(workflows.Action):
-    keypair = forms.DynamicChoiceField(label=_("Keypair"),
+    keypair = forms.DynamicChoiceField(label=_("Key Pair"),
                                        required=False,
-                                       help_text=_("Which keypair to use for "
+                                       help_text=_("Which key pair to use for "
                                                    "authentication."),
                                        add_item_link=KEYPAIR_IMPORT_URL)
     admin_pass = forms.RegexField(
@@ -400,8 +472,14 @@ class SetAccessControlsAction(workflows.Action):
 
     class Meta:
         name = _("Access & Security")
-        help_text = _("Control access to your instance via keypairs, "
+        help_text = _("Control access to your instance via key pairs, "
                       "security groups, and other mechanisms.")
+
+    def __init__(self, request, *args, **kwargs):
+        super(SetAccessControlsAction, self).__init__(request, *args, **kwargs)
+        if not api.nova.can_set_server_password():
+            del self.fields['admin_pass']
+            del self.fields['confirm_admin_pass']
 
     def populate_keypair_choices(self, request, context):
         try:
@@ -410,13 +488,13 @@ class SetAccessControlsAction(workflows.Action):
         except Exception:
             keypair_list = []
             exceptions.handle(request,
-                              _('Unable to retrieve keypairs.'))
+                              _('Unable to retrieve key pairs.'))
         if keypair_list:
             if len(keypair_list) == 1:
                 self.fields['keypair'].initial = keypair_list[0][0]
-            keypair_list.insert(0, ("", _("Select a keypair")))
+            keypair_list.insert(0, ("", _("Select a key pair")))
         else:
-            keypair_list = (("", _("No keypairs available.")),)
+            keypair_list = (("", _("No key pairs available")),)
         return keypair_list
 
     def populate_groups_choices(self, request, context):
@@ -615,6 +693,7 @@ class LaunchInstance(workflows.Workflow):
             net_id = context['network_id'][0]
             LOG.debug("Horizon->Create Port with %(netid)s %(profile_id)s",
                       {'netid': net_id, 'profile_id': context['profile_id']})
+            port = None
             try:
                 port = api.neutron.port_create(request, net_id,
                                                policy_profile_id=
@@ -623,6 +702,7 @@ class LaunchInstance(workflows.Workflow):
                 msg = (_('Port not created for profile-id (%s).') %
                        context['profile_id'])
                 exceptions.handle(request, msg)
+
             if port and port.id:
                 nics = [{"port-id": port.id}]
 
