@@ -20,7 +20,6 @@
 #
 
 
-
 import logging
 import netaddr
 
@@ -144,7 +143,7 @@ class CreateSubnetInfo(workflows.Step):
 
 
 class CreateSubnetDetailAction(workflows.Action):
-    enable_dhcp = forms.BooleanField(label=_("Enable DHCP"),
+    enable_dhcp = forms.BooleanField(label=_("Enable external DHCP"),
                                      initial=True, required=False)
     allocation_pools = forms.CharField(
         widget=forms.Textarea(),
@@ -240,17 +239,53 @@ class CreateSubnetDetail(workflows.Step):
     contributes = ("enable_dhcp", "allocation_pools",
                    "dns_nameservers", "host_routes")
 
-class CreateConfigProfileInfoAction(workflows.Action):
+class CreateCiscoConfigInfoAction(workflows.Action):
     config_profile = forms.DynamicChoiceField(label = _("Config Profile"))
     forwarding_mode = ''
     gateway_mac = ''
 
+    network_role = forms.ChoiceField(choices=[(1, 'Host Network'),
+        (2, 'Service-ES Network'), (3, 'Service-LB Network'),
+        (4, 'management Network'), (5,'External Network'),
+        (6,'Service-vPath Network')], label=_("Network Role"))
+    gateway_ip2 = fields.IPField(
+                    label=_("Secondary Gateway IP (optional)"),
+                    required=False,
+                    initial="",
+                    help_text=_("Secondary IP address of Gateway (e.g."\
+                        " 192.168.0.254) "),
+                    version=fields.IPv4 | fields.IPv6,
+                    mask=False)
+    static_ip_start = fields.IPField(
+                    label=_("Static IP Start"),
+                    required=False,
+                    initial="",
+                    help_text=_("Cisco service configuration Static IP"\
+                        " Start (e.g. 192.168.0.2) "),
+                    version=fields.IPv4 | fields.IPv6,
+                    mask=False)
+    static_ip_end = fields.IPField(
+                    label=_("Static IP End"),
+                    required=False,
+                    initial="",
+                    help_text=_("Cisco service configuration Static IP"\
+                        " End (e.g. 192.168.0.254)"),
+                    version=fields.IPv4 | fields.IPv6,
+                    mask=False)
+    partition_name = forms.CharField(max_length=255,
+                                  label=_("Partition Name"),
+                                  help_text=_("Partition Name. If empty,"\
+                                  " this field will be same as organization"\
+                                  " name"),
+                                  required=False)
     class Meta:
-        name = _("Config Profile")
-        help_text = _('You can select a config profile for the network.')
+        name = _("Cisco DFA")
+        help_text = _('You can configure Cisco DFA and PNSC Parameters for the"\
+            " network.')
 
     def populate_config_profile_choices(self, request, context):
-        msg = "populate_config_profile_choices:request={1} context={0}".format(context, request)
+        msg = "populate_config_profile_choices:request={1} context={0}".\
+            format(context, request)
         LOG.debug(msg)
         choices = api.cisco_dfa_rest.config_profile_list(request, context)
         msg = "populate_config_profile_choices: choices = {0}".\
@@ -260,29 +295,42 @@ class CreateConfigProfileInfoAction(workflows.Action):
         return sorted(choices)
 
     def _forwarding_mode_get(self, cfg_profile):
-        fwd_mode = api.cisco_dfa_rest.config_profile_fwding_mode_get(cfg_profile)
+        fwd_mode = \
+          api.cisco_dfa_rest.config_profile_fwding_mode_get(cfg_profile)
         return fwd_mode
 
     def _gateway_mac_get(self):
         fwd_mode = api.cisco_dfa_rest.gateway_mac_get()
         return fwd_mode
 
+    def _check_partition_name(self, name_str):
+        special_str = ' :!@#$%^&*+=()[]{},<>~|`?\'\"\\'
+        if len(name_str) > 254:
+            raise forms.ValidationError("Partition name too long");
+        for c in special_str:
+            if c in name_str:
+                msg = _('Cannot include \'' + c + '\' in partition_name')
+                raise forms.ValidationError(msg)
+
     def clean(self):
-        cleaned_data = super(CreateConfigProfileInfoAction, self).clean()
+        cleaned_data = super(CreateCiscoConfigInfoAction, self).clean()
         fwd_mode = self._forwarding_mode_get(
                                        cleaned_data.get('config_profile'))
         gw_mac = self._gateway_mac_get()
         cleaned_data['forwarding_mode'] = fwd_mode
         cleaned_data['gateway_mac'] = gw_mac
-        msg = "CreateConfigProfileInfoAction: clean_data = {0}".\
+        self._check_partition_name(cleaned_data.get('partition_name'))
+        msg = "CreateCiscoConfigInfoAction: clean_data = {0}".\
                                             format(cleaned_data)
         LOG.debug(msg)
         return cleaned_data
 
 
-class CreateConfigProfileInfo(workflows.Step):
-    action_class = CreateConfigProfileInfoAction
-    contributes = ("config_profile", "forwarding_mode", "gateway_mac")
+class CreateCiscoConfigInfo(workflows.Step):
+    action_class = CreateCiscoConfigInfoAction
+    contributes = ("config_profile", "forwarding_mode", "gateway_mac",
+                   "network_role", "static_ip_start",
+                   "static_ip_end", "gateway_ip2","partition_name")
 
 class CreateNetwork(workflows.Workflow):
     slug = "create_network"
@@ -293,7 +341,7 @@ class CreateNetwork(workflows.Workflow):
     default_steps = (CreateNetworkInfo,
                      CreateSubnetInfo,
                      CreateSubnetDetail,
-                     CreateConfigProfileInfo)
+                     CreateCiscoConfigInfo)
 
     def get_success_url(self):
         return reverse("horizon:project:networks:index")
@@ -313,6 +361,7 @@ class CreateNetwork(workflows.Workflow):
                       'config_profile': data['config_profile'],
                       'forwarding_mode': data['forwarding_mode'],
                       'gateway_mac': data['gateway_mac'],
+                      'partition_name': data['partition_name'],
                      }
             network = api.quantum.network_create(request, **params)
             network.set_id_as_name_if_empty()
@@ -334,8 +383,20 @@ class CreateNetwork(workflows.Workflow):
         tn = api.keystone.tenant_get(request,
                                      network.tenant_id,
                                      True).name
+        LOG.debug("_create_dfa_network: start={0} end={1} "\
+            .format(subnet.allocation_pools[0]['start'],\
+            subnet.allocation_pools[0]['end']))
         LOG.debug("_create_dfa_network: tenant_name={0}".format(tn))
-        api.cisco_dfa_rest.create_network(tn, network, subnet)
+        dfa_params = {'2nd_gw_ip': self.context.get('gateway_ip2'),
+                      'network_role': self.context.get('network_role'),
+                      'start_ip': self.context.get('static_ip_start'),
+                      'end_ip': self.context.get('static_ip_end'),
+                      'partition_name': self.context.get('partition_name'),
+                      'enable_dhcp': self.context.get('enable_dhcp'),
+                     }
+        LOG.debug(" _create_dfa_network: dfa_params={0}".format(dfa_params))
+
+        api.cisco_dfa_rest.create_network(tn, network, subnet, dfa_params)
         msg = _('Network "%s" was successfully created.') % network.name
         LOG.debug(msg)
         return True
@@ -347,8 +408,8 @@ class CreateNetwork(workflows.Workflow):
         in both create and update.
         """
         is_update = not is_create
-        params['enable_dhcp'] = data['enable_dhcp']
-        if is_create and data['allocation_pools']:
+        params['enable_dhcp'] = False
+        if is_create and data['allocation_pools'] and data['enable_dhcp']:
             pools = [dict(zip(['start', 'end'], pool.strip().split(',')))
                      for pool in data['allocation_pools'].split('\n')
                      if pool.strip()]

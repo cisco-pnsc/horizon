@@ -139,7 +139,6 @@ def keystoneclient(request, admin=False):
 
 def tenant_create(request, tenant_name, description, enabled):
     cisco_dfa_rest.create_org(tenant_name, description)
-    cisco_dfa_rest.create_partition(tenant_name, tenant_name, description)
     return keystoneclient(request, admin=True).tenants.create(tenant_name,
                                                               description,
                                                               enabled)

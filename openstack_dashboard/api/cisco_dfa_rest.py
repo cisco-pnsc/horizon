@@ -29,6 +29,7 @@ try:
 except ImportError:
     import simplejson as json
 import requests
+import socket
 
 LOG = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class DFARESTClient(object):
         self._user = params_dcnm.get('user')
         self._pwd = params_dcnm.get('password')
         self._gw_mac = params_tenant.get('gateway_mac')
+        self._dhcp_server = params_dcnm.get('dhcp_server')
         if (not self._ip) or (not self._user) or (not self._pwd):
             msg = '[DFARESTClient] Input DCNM IP, user name or password\
                    parameter is not specified'
@@ -53,16 +55,32 @@ class DFARESTClient(object):
         # url timeout: 10 seconds
         self._TIMEOUT_RESPONSE = 10
 
+        res = self.get_dcnm_version()
+        LOG.debug('dcnm_version Response code: %d, content: %s\n'\
+                                        % (res.status_code, res.content))
+        DCNM_API_OK = 200
+        if res and res.status_code == DCNM_API_OK:
+            self._pnsc_support = True
+        else :
+            self._pnsc_support = False
 
     def gateway_mac_get(self):
         return self._gw_mac
+
+    def dhcp_server_get(self):
+        return self._dhcp_server
+
+    def pnsc_support_get(self):
+        return self._pnsc_support
 
     def dfa_tun_base_get(self):
         return int(self._tun_base)
 
     def create_network(self, network_info):
-        url = 'http://%s/rest/auto-config/organizations/%s/partitions/%s/networks' \
-            % (self._ip, network_info['partitionName'], network_info['partitionName'])
+        url =\
+        'http://%s/rest/auto-config/organizations/%s/partitions/%s/networks' \
+            % (self._ip, network_info['organizationName'],
+            network_info['partitionName'])
         payload = network_info
 
         LOG.debug('url = {0}\npayload={1}'.format(url, payload))
@@ -84,6 +102,14 @@ class DFARESTClient(object):
         LOG.debug('url = {0}'.format(url))
         res = self._send_request('GET', url, payload, 'config-profile')
         return res.json()
+
+    def get_dcnm_version(self):
+        url = 'http://%s/rest/dcnm-version' % (self._ip)
+        payload = {}
+
+        LOG.debug('url = {0}'.format(url))
+        res = self._send_request('GET', url, payload, 'dcnm-version')
+        return res
 
     def create_org(self, name, desc):
         url = 'http://%s/rest/auto-config/organizations' % (self._ip)
@@ -231,20 +257,6 @@ def read_config_file(config_file):
 
     return config_params
 
-
-def check_for_supported_profile(thisprofile):
-    '''
-    Filter those profiles that are not currently supported.
-    '''
-    if thisprofile.endswith('Ipv4TfProfile') or \
-       thisprofile.endswith('Ipv4EfProfile') or \
-       'defaultNetworkL2Profile' in thisprofile:
-        return True
-    else:
-        return False
-
-
-
 def get_config_profile_list():
     profile_list = []
     these_profiles = []
@@ -255,8 +267,7 @@ def get_config_profile_list():
     if len(these_profiles) > 0:
         for i in range(0, len(these_profiles)):
             p = these_profiles[i].get("profileName")
-            if check_for_supported_profile(p):
-                profile_list.append((p, p))
+            profile_list.append((p, p))
 
     return profile_list
 
@@ -289,28 +300,59 @@ def gateway_mac_get():
     dfa_rest_client = DFARESTClient()
     return dfa_rest_client.gateway_mac_get()
 
-def create_network(tenant_name, network, subnet):
+def create_network(tenant_name, network, subnet, ext_params):
     network_info = {}
     dfa_rest_client = DFARESTClient()
     tun_base = dfa_rest_client.dfa_tun_base_get()
     seg_id = str(network.provider__segmentation_id + tun_base)
-    LOG.debug("tenant_id={0} tenant_name={1}\
-               segmentation_id={2}".\
-               format(network.tenant_id, tenant_name, seg_id))
+    organization_name = tenant_name
+    partition_name = ext_params.get('partition_name')
+    if not partition_name:
+        partition_name = tenant_name
+    LOG.debug("tenant_id={0} organizationName={1} partitionName={2}\
+               segmentation_id={3} ext_params={4}".\
+               format(network.tenant_id, organization_name, partition_name,
+                   seg_id, ext_params))
+
+    dfa_rest_client.create_partition(tenant_name, partition_name, '')
+
     subnet_ip_mask = subnet.cidr.split('/')
     gw_ip = subnet.gateway_ip
+    en_dhcp = ext_params.get('enable_dhcp')
+    is_pnsc_support = dfa_rest_client.pnsc_support_get()
     cfg_args = []
     cfg_args.append("$segmentId=" + seg_id)
     cfg_args.append("$netMaskLength=" + subnet_ip_mask[1])
     cfg_args.append("$gatewayIpAddress=" + gw_ip)
+    if is_pnsc_support:
+        cfg_args.append("$dhcpServerAddr=" +
+            dfa_rest_client.dhcp_server_get())
     cfg_args.append("$networkName=" + network.name)
     cfg_args.append("$vlanId=0")
-    cfg_args.append("$vrfName=" + tenant_name + ':' + tenant_name)
+    cfg_args.append("$vrfName=" + organization_name + ':' + partition_name)
     cfg_args = ';'.join(cfg_args)
 
     ip_range = ""
     for ip_pool in subnet.allocation_pools:
         ip_range += "%s-%s," % (ip_pool['start'], ip_pool['end'])
+    sip_start = ext_params.get('start_ip')
+    sip_end = ext_params.get('end_ip')
+    if not en_dhcp:
+        # subnet range is kept in the first entry of allocation_pools
+        if not sip_start:
+            sip_start = (subnet.allocation_pools[0])['start']
+        if not sip_end:
+            sip_end = (subnet.allocation_pools[0])['end']
+
+    network_role_dic = {'1': 'Host Network',
+                        '2': 'Service-ES Network',
+                        '3': 'Service-LB Network',
+                        '4': 'Management Network',
+                        '5': 'External Network',
+                        '6': 'Service-vPath Network',
+                  }
+    LOG.debug("network_role=%s" \
+        %(network_role_dic.get(ext_params.get('network_role'))))
 
     dhcp_scopes = {'ipRange': ip_range,
                    'subnet': subnet.cidr,
@@ -324,13 +366,26 @@ def create_network(tenant_name, network, subnet):
           "profileName" : network.config_profile,
           "networkName" : network.name,
           "configArg" : cfg_args,
-          "organizationName": tenant_name,
-          "partitionName" : tenant_name,
+          "organizationName": organization_name,
+          "partitionName" : partition_name,
           "description"   : network.name,
-          "dhcpScope"     : dhcp_scopes,
     }
 
+    if is_pnsc_support:
+        network_info["vSwitchControllerId"] = \
+            socket.gethostbyname_ex(socket.gethostname())[2][0]
+        network_info["vSwitchControllerNetworkId"] = network.id
+        network_info["networkRole"] = \
+             network_role_dic.get(ext_params.get('network_role'))
+        network_info["staticIpStart"] = sip_start
+        network_info["staticIpEnd"] = sip_end
+        network_info["secondaryGateway"] = ext_params.get('2nd_gw_ip')
+        network_info["gateway"] = gw_ip
+        network_info["netmaskLength"] = subnet_ip_mask[1]
+
     LOG.debug("network_info={0}".format(network_info))
+    if en_dhcp:
+        network_info["dhcpScope"] = dhcp_scopes
 
     dfa_rest_client.create_network(network_info)
     return
@@ -342,17 +397,21 @@ def delete_network(tenant_name, network):
     seg_id = network.provider__segmentation_id + tun_base
     LOG.debug("tenant_name={0} segmentation_id={1}".format(tenant_name, seg_id))
 
+    partition_name = network.partition_name
+    if not partition_name:
+        partition_name = tenant_name
+    LOG.debug(" partition_name={0}".format(partition_name))
     network_info = {
         'organizationName': tenant_name,
-        'partitionName'   : tenant_name,
+        'partitionName'   : partition_name,
         'segmentId'       : seg_id,
     }
 
     dfa_rest_client.delete_network(network_info)
+    dfa_rest_client.delete_partition(tenant_name, partition_name)
     return
 
 def delete_tenant(tenant_name):
     dfa_rest_client = DFARESTClient()
-    dfa_rest_client.delete_partition(tenant_name, tenant_name)
     dfa_rest_client.delete_org(tenant_name)
 
