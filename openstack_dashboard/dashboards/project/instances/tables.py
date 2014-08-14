@@ -584,6 +584,6 @@ class InstancesTable(tables.DataTable):
                        CreateSnapshot, SimpleAssociateIP, AssociateIP,
                        SimpleDisassociateIP, EditInstance,
                        EditInstanceSecurityGroups, ConsoleLink, LogLink,
-                       TogglePause, ToggleSuspend, ResizeLink,
+                       TogglePause, ToggleSuspend,
                        SoftRebootInstance, RebootInstance, StopInstance,
                        RebuildInstance, TerminateInstance)
