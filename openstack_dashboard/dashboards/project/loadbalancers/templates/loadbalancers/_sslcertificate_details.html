@@ -1,0 +1,22 @@
+{% load i18n sizeformat parse_date %}
+
+<div class="info row-fluid detail">
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "ID" %}</dt>
+    <dd>{{ sslcertificate.id }}</dd>
+    
+    <dt>{% trans "Name" %}</dt>
+    <dd>{{ sslcertificate.name }}</dd>
+    
+    <dt>{% trans "Passphrase" %}</dt>
+    <dd>{{ sslcertificate.passphrase }}</dd>
+    
+    <dt>{% trans "Certificate Chain" %}</dt>
+    <dd>{{ sslcertificate.certificate_chain }}</dd>
+
+    <dt>{% trans "Certificate" %}</dt>
+    <dd>{{ sslcertificate.certificate }}</dd>
+
+  </dl>
+</div>

@@ -14,8 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.conf.urls import patterns  # noqa
-from django.conf.urls import url  # noqa
+from django.conf.urls.defaults import patterns  # noqa
+from django.conf.urls.defaults import url  # noqa
 
 from openstack_dashboard.dashboards.project.loadbalancers import views
 
@@ -47,4 +47,18 @@ urlpatterns = patterns(
     url(r'^member/(?P<member_id>[^/]+)/$',
         views.MemberDetailsView.as_view(), name='memberdetails'),
     url(r'^monitor/(?P<monitor_id>[^/]+)/$',
-        views.MonitorDetailsView.as_view(), name='monitordetails'))
+        views.MonitorDetailsView.as_view(), name='monitordetails'),
+    url(r'^addsslpolicy$', views.AddSSLpolicyView.as_view(), name='addsslpolicy'),
+    url(r'^addcertificate$', views.AddSSLcertificateView.as_view(), name='addcertificate'),
+    url(r'^sslpolicy/(?P<sslpolicy_id>[^/]+)/$',
+        views.SSLpolicyDetailsView.as_view(), name='sslpolicydetails'),
+    url(r'^updatesslpolicy/(?P<sslpolicy_id>[^/]+)/$',
+        views.UpdateSSLpolicyView.as_view(), name='updatesslpolicy'),
+    url(r'^sslcertificatedetails/(?P<sslcertificate_id>[^/]+)/$',
+        views.SSLcertificateDetailsView.as_view(), name='sslcertificatedetails'),
+    url(r'^updatesslcertificate/(?P<sslcertificate_id>[^/]+)/$',
+        views.UpdateSSLcertificateView.as_view(), name='updatesslcertificate'),
+    url(r'^associatesslpolicy/(?P<vip_id>[^/]+)/$',
+        views.AssociateSSLPolicyView.as_view(), name='associatesslpolicy'),
+    url(r'^disassociatesslpolicy/(?P<vip_id>[^/]+)/$',
+        views.DisassociateSSLPolicyView.as_view(), name='disassociatesslpolicy'))

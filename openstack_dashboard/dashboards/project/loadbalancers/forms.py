@@ -18,8 +18,8 @@
 
 import logging
 
-from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.core.urlresolvers import reverse  # noqa
+from django.utils.translation import ugettext_lazy as _  # noqa
 
 from horizon import exceptions
 from horizon import forms
@@ -101,7 +101,7 @@ class UpdateVip(forms.SelfHandlingForm):
         pool_id_choices = []
         try:
             tenant_id = request.user.tenant_id
-            pools = api.lbaas.pool_list(request, tenant_id=tenant_id)
+            pools = api.lbaas.pools_get(request, tenant_id=tenant_id)
         except Exception:
             pools = []
             exceptions.handle(request,
@@ -181,7 +181,7 @@ class UpdateMember(forms.SelfHandlingForm):
         pool_id_choices = []
         try:
             tenant_id = request.user.tenant_id
-            pools = api.lbaas.pool_list(request, tenant_id=tenant_id)
+            pools = api.lbaas.pools_get(request, tenant_id=tenant_id)
         except Exception:
             pools = []
             exceptions.handle(request,
@@ -254,6 +254,120 @@ class UpdateMonitor(forms.SelfHandlingForm):
         except Exception:
             msg = _('Failed to update health monitor %s')\
                 % context['monitor_id']
+            LOG.info(msg)
+            redirect = reverse(self.failure_url)
+            exceptions.handle(request, msg, redirect=redirect)
+
+FRONT_END_PROTOCOL_CHOICES = (
+         ('SSLv2','SSLv2'),
+         ('SSLv3','SSLv3'),
+         ('TLSv1','TLSv1'),
+    )    
+
+class UpdateSSLpolicy(forms.SelfHandlingForm):
+    sslpolicy_id = forms.CharField(label=_("ID"),
+                                 widget=forms.TextInput(
+                                     attrs={'readonly': 'readonly'}))
+    
+    name = forms.CharField(max_length=80, label=_("Name"))
+    description = forms.CharField(required=False,
+                                  max_length=80, label=_("Description"))
+    
+    front_end_enabled = forms.BooleanField(label=_("Front End Enabled"),
+                                        initial=True, required=False)
+    
+    front_end_cipher_suites = forms.ChoiceField(
+        label=_("Front End Cipher Suite"),
+        choices=[('ALL', _('ALL')),
+                 ('HIGH', _('HIGH')),
+                 ('MEDIUM', _('MEDIUM')),
+                 ('LOW', _('LOW'))])
+    
+    front_end_protocols = forms.TypedMultipleChoiceField(required=False, 
+                                                         label=_("Front End Protocols"),
+                                                         empty_value='',
+                                         widget=forms.CheckboxSelectMultiple,
+                                         choices=FRONT_END_PROTOCOL_CHOICES)
+    """
+    back_end_enabled = forms.BooleanField(label=_("Back End Enabled"),
+                                        initial=True, required=False)
+    
+    back_end_cipher_suites = forms.ChoiceField(
+        label=_("Back End Cipher Suite"),
+        choices=[('ALL', _('ALL')),
+                 ('HIGH', _('HIGH')),
+                 ('MEDIUM', _('MEDIUM')),
+                 ('LOW', _('LOW'))])
+    """
+    failure_url = 'horizon:project:loadbalancers:index'
+
+    def __init__(self, request, *args, **kwargs):
+        super(UpdateSSLpolicy, self).__init__(request, *args, **kwargs)
+
+    def handle(self, request, context):
+        try:
+            data = {'ssl_policy': {
+                    'name': context['name'],
+                    'description': context['description'],
+                    'front_end_enabled': context['front_end_enabled'],
+                    'front_end_protocols': ','.join(context['front_end_protocols']),
+                    'front_end_cipher_suites': context['front_end_cipher_suites']}}
+                    
+                    #'back_end_enabled': context['back_end_enabled'],
+                    #'back_end_cipher_suites': context['back_end_cipher_suites']}}
+            
+            sslpolicy = api.lbaas.ssl_policy_update(request,
+                                             context['sslpolicy_id'], **data)
+            msg = _('SSL policy %s was successfully updated.')\
+                % context['sslpolicy_id']
+            LOG.debug(msg)
+            messages.success(request, msg)
+            return sslpolicy
+        except Exception:
+            msg = _('Failed to update SSL policy %s')\
+                % context['sslpolicy_id']
+            LOG.info(msg)
+            redirect = reverse(self.failure_url)
+            exceptions.handle(request, msg, redirect=redirect)
+
+
+class UpdateSSLcertificate(forms.SelfHandlingForm):
+    sslcertificate_id = forms.CharField(label=_("ID"),
+                                 widget=forms.TextInput(
+                                     attrs={'readonly': 'readonly'}))
+    
+    name = forms.CharField(max_length=80, label=_("Name"))
+    passphrase = forms.CharField(required=False,
+                                  label=_("Passphrase"))
+    certificate_chain = forms.CharField(required=False,
+                                  label=_("Certificate Chain"))
+    certificate = forms.CharField(required=False,
+                                   widget=forms.Textarea,
+                                   label=_("Certificate"))
+
+    failure_url = 'horizon:project:loadbalancers:index'
+
+    def __init__(self, request, *args, **kwargs):
+        super(UpdateSSLcertificate, self).__init__(request, *args, **kwargs)
+
+    def handle(self, request, context):
+        try:
+            data = {'ssl_certificate': {
+                    'name': context['name'],
+                    'passphrase': context['passphrase'],
+                    'certificate_chain': context['certificate_chain'],
+                    'certificate': context['certificate']}}
+            
+            sslcertificate = api.lbaas.ssl_certificate_update(request,
+                                             context['sslcertificate_id'], **data)
+            msg = _('SSL certificate %s was successfully updated.')\
+                % context['sslcertificate_id']
+            LOG.debug(msg)
+            messages.success(request, msg)
+            return sslcertificate
+        except Exception:
+            msg = _('Failed to update SSL certificate %s')\
+                % context['sslcertificate_id']
             LOG.info(msg)
             redirect = reverse(self.failure_url)
             exceptions.handle(request, msg, redirect=redirect)

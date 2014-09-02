@@ -16,49 +16,119 @@
 
 from __future__ import absolute_import
 
-from django.utils.datastructures import SortedDict
-
 from openstack_dashboard.api import neutron
 
 neutronclient = neutron.neutronclient
 
 
 class Vip(neutron.NeutronAPIDictWrapper):
-    """Wrapper for neutron load balancer vip."""
+    """Wrapper for neutron load balancer vip"""
 
     def __init__(self, apiresource):
         super(Vip, self).__init__(apiresource)
 
 
 class Pool(neutron.NeutronAPIDictWrapper):
-    """Wrapper for neutron load balancer pool."""
+    """Wrapper for neutron load balancer pool"""
 
     def __init__(self, apiresource):
         if 'provider' not in apiresource:
             apiresource['provider'] = None
         super(Pool, self).__init__(apiresource)
 
+    class AttributeDict(dict):
+        def __getattr__(self, attr):
+            return self[attr]
+
+        def __setattr__(self, attr, value):
+            self[attr] = value
+
+    def readable(self, request):
+        pFormatted = {'id': self.id,
+                      'name': self.name,
+                      'description': self.description,
+                      'protocol': self.protocol,
+                      'health_monitors': self.health_monitors,
+                      'provider': self.provider}
+        try:
+            pFormatted['subnet_id'] = self.subnet_id
+            pFormatted['subnet_name'] = neutron.subnet_get(
+                request, self.subnet_id).cidr
+        except Exception:
+            pFormatted['subnet_id'] = self.subnet_id
+            pFormatted['subnet_name'] = self.subnet_id
+
+        if self.vip_id is not None:
+            try:
+                pFormatted['vip_id'] = self.vip_id
+                pFormatted['vip_name'] = vip_get(
+                    request, self.vip_id).name
+            except Exception:
+                pFormatted['vip_id'] = self.vip_id
+                pFormatted['vip_name'] = self.vip_id
+        else:
+            pFormatted['vip_id'] = None
+            pFormatted['vip_name'] = None
+
+        return self.AttributeDict(pFormatted)
+
 
 class Member(neutron.NeutronAPIDictWrapper):
-    """Wrapper for neutron load balancer member."""
+    """Wrapper for neutron load balancer member"""
 
     def __init__(self, apiresource):
         super(Member, self).__init__(apiresource)
 
+    class AttributeDict(dict):
+        def __getattr__(self, attr):
+            return self[attr]
+
+        def __setattr__(self, attr, value):
+            self[attr] = value
+
+    def readable(self, request):
+        mFormatted = {'id': self.id,
+                      'address': self.address,
+                      'protocol_port': self.protocol_port}
+        try:
+            mFormatted['pool_id'] = self.pool_id
+            mFormatted['pool_name'] = pool_get(
+                request, self.pool_id).name
+        except Exception:
+            mFormatted['pool_id'] = self.pool_id
+            mFormatted['pool_name'] = self.pool_id
+
+        return self.AttributeDict(mFormatted)
+
 
 class PoolStats(neutron.NeutronAPIDictWrapper):
-    """Wrapper for neutron load balancer pool stats."""
+    """Wrapper for neutron load balancer pool stats"""
 
     def __init__(self, apiresource):
         super(PoolStats, self).__init__(apiresource)
 
 
 class PoolMonitor(neutron.NeutronAPIDictWrapper):
-    """Wrapper for neutron load balancer pool health monitor."""
+    """Wrapper for neutron load balancer pool health monitor"""
 
     def __init__(self, apiresource):
         super(PoolMonitor, self).__init__(apiresource)
 
+
+class SSLPolicy(neutron.NeutronAPIDictWrapper):
+    """Wrapper for neutron load balancer ssl policy"""
+
+    def __init__(self, apiresource):
+        super(SSLPolicy, self).__init__(apiresource)
+        
+class SSLCertificate(neutron.NeutronAPIDictWrapper):
+    """Wrapper for neutron load balancer ssl certificate"""
+
+    def __init__(self, apiresource):
+        super(SSLCertificate, self).__init__(apiresource)
+
+
+        
 
 def vip_create(request, **kwargs):
     """Create a vip for a specified pool.
@@ -90,8 +160,8 @@ def vip_create(request, **kwargs):
     return Vip(vip)
 
 
-def vip_list(request, **kwargs):
-    vips = neutronclient(request).list_vips(**kwargs).get('vips')
+def vips_get(request, **kwargs):
+    vips = neutronclient(request).list_vips().get('vips')
     return [Vip(v) for v in vips]
 
 
@@ -132,49 +202,13 @@ def pool_create(request, **kwargs):
     return Pool(pool)
 
 
-def _get_vip_name(request, pool, vip_dict):
-    if pool['vip_id'] is not None:
-        try:
-            if vip_dict:
-                return vip_dict.get(pool['vip_id']).name
-            else:
-                return vip_get(request, pool['vip_id']).name
-        except Exception:
-            return pool['vip_id']
-    else:
-        return None
-
-
-def pool_list(request, **kwargs):
-    return _pool_list(request, expand_subnet=True, expand_vip=True, **kwargs)
-
-
-def _pool_list(request, expand_subnet=False, expand_vip=False, **kwargs):
-    pools = neutronclient(request).list_pools(**kwargs).get('pools')
-    if expand_subnet:
-        subnets = neutron.subnet_list(request)
-        subnet_dict = SortedDict((s.id, s) for s in subnets)
-        for p in pools:
-            p['subnet_name'] = subnet_dict.get(p['subnet_id']).cidr
-    if expand_vip:
-        vips = vip_list(request)
-        vip_dict = SortedDict((v.id, v) for v in vips)
-        for p in pools:
-            p['vip_name'] = _get_vip_name(request, p, vip_dict)
+def pools_get(request, **kwargs):
+    pools = neutronclient(request).list_pools().get('pools')
     return [Pool(p) for p in pools]
 
 
 def pool_get(request, pool_id):
-    return _pool_get(request, pool_id, expand_subnet=True, expand_vip=True)
-
-
-def _pool_get(request, pool_id, expand_subnet=False, expand_vip=False):
     pool = neutronclient(request).show_pool(pool_id).get('pool')
-    if expand_subnet:
-        pool['subnet_name'] = neutron.subnet_get(request,
-                                                 pool['subnet_id']).cidr
-    if expand_vip:
-        pool['vip_name'] = _get_vip_name(request, pool, vip_dict=False)
     return Pool(pool)
 
 
@@ -223,9 +257,9 @@ def pool_health_monitor_create(request, **kwargs):
     return PoolMonitor(mon)
 
 
-def pool_health_monitor_list(request, **kwargs):
-    monitors = neutronclient(request).list_health_monitors(
-        **kwargs).get('health_monitors')
+def pool_health_monitors_get(request, **kwargs):
+    monitors = neutronclient(request
+                             ).list_health_monitors().get('health_monitors')
     return [PoolMonitor(m) for m in monitors]
 
 
@@ -243,6 +277,104 @@ def pool_health_monitor_update(request, monitor_id, **kwargs):
 
 def pool_health_monitor_delete(request, mon_id):
     neutronclient(request).delete_health_monitor(mon_id)
+
+
+def ssl_policy_create(request, **kwargs):
+    """Create a SSL Policy
+
+    :param request: request context
+    :param name: name of ssl policy
+    :param description: description of ssl policy
+    :param front_end_enabled: front_end_enabled
+    :param front_end_cipher_suites: front_end_cipher_suites
+    :param back_end_enabled: back_end_enabled
+    :param back_end_cipher_suites: back_end_cipher_suites
+    """
+    body = {'ssl_policy': {'name': kwargs['name'],
+                           'description': kwargs['description'],
+                           'front_end_enabled': kwargs['front_end_enabled'],
+                           'front_end_cipher_suites': kwargs['front_end_cipher_suites'],
+                           'front_end_protocols': kwargs['front_end_protocols'],
+                           'back_end_enabled': 'False',
+                           'back_end_cipher_suites': '',
+                           'back_end_protocols':''
+                           }}
+    
+    ssl = neutronclient(request).create_ssl_policy(body).get('ssl_policy')
+
+    return SSLPolicy(ssl)
+
+
+def ssl_policies_get(request, **kwargs):
+    sslpolicies = neutronclient(request).list_ssl_policies().get('ssl_policies')
+    return [SSLPolicy(m) for m in sslpolicies]
+
+def ssl_policy_get(request, sslpolicy_id):
+    sslpolicy = neutronclient(request).show_ssl_policy(sslpolicy_id).get('ssl_policy')
+    return SSLPolicy(sslpolicy)
+
+def ssl_policy_update(request, sslpolicy_id, **kwargs):
+    sslpolicy = neutronclient(request).update_ssl_policy(sslpolicy_id, kwargs)
+    return SSLPolicy(sslpolicy)
+
+def ssl_policy_delete(request, sslpolicy_id):
+    neutronclient(request).delete_ssl_policy(sslpolicy_id)
+
+def ssl_certificate_create(request, **kwargs):
+    """Create a SSL Certificate
+
+    :param request: request context
+    :param name: name of ssl certificate
+    :param certificate: certificate
+    :param passphrase: passphrase
+    :param certificate_chain: certificate_chain
+    """
+    body = {'ssl_certificate': {'name': kwargs['name'],
+                           'certificate': kwargs['certificate'],
+                           'passphrase': kwargs['passphrase'],
+                           'certificate_chain': kwargs['certificate_chain']}}
+    
+    sslcertificate = neutronclient(request).create_ssl_certificate(body).get('ssl_certificate')
+
+    return SSLCertificate(sslcertificate)
+
+def ssl_certificates_get(request, **kwargs):
+    sslcertificates = neutronclient(request).list_ssl_certificates().get('ssl_certificates')
+    return [SSLCertificate(m) for m in sslcertificates]
+
+def ssl_certificate_get(request, sslcertificate_id):
+    sslcertificate = neutronclient(request).show_ssl_certificate(sslcertificate_id).get('ssl_certificate')
+    return SSLCertificate(sslcertificate)
+
+def ssl_certificate_update(request, sslcertificate_id, **kwargs):
+    sslpolicy = neutronclient(request).update_ssl_certificate(sslcertificate_id, kwargs)
+    return SSLCertificate(sslpolicy)
+
+def ssl_certificate_delete(request, sslcertificate_id):
+    neutronclient(request).delete_ssl_certificate(sslcertificate_id)
+
+def ssl_policy_associate(request, **kwargs):
+
+    body = {'ssl_association': {
+                'id': kwargs['vip_id'],
+                'ssl_policy':{
+                    'id':kwargs['ssl_policy_id']},
+                'ssl_certificates': [
+                     { 'id':kwargs['ssl_certificate_id'],
+                       'private_key':kwargs['private_key']}
+                     ],
+                'ssl_trusted_certificates':[],
+           }}
+    neutronclient(request).create_ssl_policy_association(kwargs['vip_id'], body)
+
+def ssl_policy_disassociate(request, **kwargs):
+
+    neutronclient(request).delete_ssl_policy_association(
+        kwargs['vip_id'],
+        kwargs['ssl_policy_id'])
+
+
+
 
 
 def member_create(request, **kwargs):
@@ -266,28 +398,13 @@ def member_create(request, **kwargs):
     return Member(member)
 
 
-def member_list(request, **kwargs):
-    return _member_list(request, expand_pool=True, **kwargs)
-
-
-def _member_list(request, expand_pool, **kwargs):
-    members = neutronclient(request).list_members(**kwargs).get('members')
-    if expand_pool:
-        pools = _pool_list(request)
-        pool_dict = SortedDict((p.id, p) for p in pools)
-        for m in members:
-            m['pool_name'] = pool_dict.get(m['pool_id']).name
+def members_get(request, **kwargs):
+    members = neutronclient(request).list_members().get('members')
     return [Member(m) for m in members]
 
 
 def member_get(request, member_id):
-    return _member_get(request, member_id, expand_pool=True)
-
-
-def _member_get(request, member_id, expand_pool):
     member = neutronclient(request).show_member(member_id).get('member')
-    if expand_pool:
-        member['pool_name'] = _pool_get(request, member['pool_id']).name
     return Member(member)
 
 

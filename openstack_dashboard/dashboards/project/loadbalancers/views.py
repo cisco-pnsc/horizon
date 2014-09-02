@@ -14,14 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.core.urlresolvers import reverse_lazy
-from django.utils.translation import ugettext_lazy as _
+from django.core.urlresolvers import reverse_lazy  # noqa
+from django.utils.translation import ugettext_lazy as _  # noqa
 
 from horizon import exceptions
 from horizon import forms
 from horizon import messages
 from horizon import tabs
-from horizon.utils import memoized
 from horizon import workflows
 
 from openstack_dashboard import api
@@ -84,15 +83,39 @@ class IndexView(tabs.TabView):
                     except Exception as e:
                         exceptions.handle(request,
                                           _('Unable to delete VIP. %s') % e)
+        if m == 'sslpolicy':
+            for obj_id in obj_ids:
+                try:
+                    api.lbaas.ssl_policy_delete(request, obj_id)
+                    messages.success(request, _('Deleted SSL policy %s') % obj_id)
+                except Exception as e:
+                    exceptions.handle(request,
+                                      _('Unable to delete SSL policy. %s') % e)
+        if m == 'sslcertificate':
+            for obj_id in obj_ids:
+                try:
+                    api.lbaas.ssl_certificate_delete(request, obj_id)
+                    messages.success(request, _('Deleted SSL certificate %s') % obj_id)
+                except Exception as e:
+                    exceptions.handle(request,
+                                      _('Unable to delete SSL certificate. %s') % e)
         return self.get(request, *args, **kwargs)
 
 
 class AddPoolView(workflows.WorkflowView):
     workflow_class = project_workflows.AddPool
 
+    def get_initial(self):
+        initial = super(AddPoolView, self).get_initial()
+        return initial
+
 
 class AddVipView(workflows.WorkflowView):
     workflow_class = project_workflows.AddVip
+
+    def get_context_data(self, **kwargs):
+        context = super(AddVipView, self).get_context_data(**kwargs)
+        return context
 
     def get_initial(self):
         initial = super(AddVipView, self).get_initial()
@@ -111,10 +134,31 @@ class AddVipView(workflows.WorkflowView):
 class AddMemberView(workflows.WorkflowView):
     workflow_class = project_workflows.AddMember
 
+    def get_initial(self):
+        initial = super(AddMemberView, self).get_initial()
+        return initial
+
 
 class AddMonitorView(workflows.WorkflowView):
     workflow_class = project_workflows.AddMonitor
 
+    def get_initial(self):
+        initial = super(AddMonitorView, self).get_initial()
+        return initial
+
+class AddSSLpolicyView(workflows.WorkflowView):
+    workflow_class = project_workflows.AddSSLpolicy
+
+    def get_initial(self):
+        initial = super(AddSSLpolicyView, self).get_initial()
+        return initial
+
+class AddSSLcertificateView(workflows.WorkflowView):
+    workflow_class = project_workflows.AddSSLcertificate
+
+    def get_initial(self):
+        initial = super(AddSSLcertificateView, self).get_initial()
+        return initial
 
 class PoolDetailsView(tabs.TabView):
     tab_group_class = (project_tabs.PoolDetailsTabs)
@@ -134,6 +178,15 @@ class MemberDetailsView(tabs.TabView):
 class MonitorDetailsView(tabs.TabView):
     tab_group_class = (project_tabs.MonitorDetailsTabs)
     template_name = 'project/loadbalancers/details_tabs.html'
+    
+    
+class SSLpolicyDetailsView(tabs.TabView):
+    tab_group_class = (project_tabs.SSLPolicyDetailsTabs)
+    template_name = 'project/loadbalancers/details_tabs.html'
+    
+class SSLcertificateDetailsView(tabs.TabView):
+    tab_group_class = (project_tabs.SSLcertificateDetailsTabs)
+    template_name = 'project/loadbalancers/details_tabs.html'
 
 
 class UpdatePoolView(forms.ModalFormView):
@@ -147,15 +200,16 @@ class UpdatePoolView(forms.ModalFormView):
         context["pool_id"] = self.kwargs['pool_id']
         return context
 
-    @memoized.memoized_method
     def _get_object(self, *args, **kwargs):
-        pool_id = self.kwargs['pool_id']
-        try:
-            return api.lbaas.pool_get(self.request, pool_id)
-        except Exception as e:
-            redirect = self.success_url
-            msg = _('Unable to retrieve pool details. %s') % e
-            exceptions.handle(self.request, msg, redirect=redirect)
+        if not hasattr(self, "_object"):
+            pool_id = self.kwargs['pool_id']
+            try:
+                self._object = api.lbaas.pool_get(self.request, pool_id)
+            except Exception as e:
+                redirect = self.success_url
+                msg = _('Unable to retrieve pool details. %s') % e
+                exceptions.handle(self.request, msg, redirect=redirect)
+        return self._object
 
     def get_initial(self):
         pool = self._get_object()
@@ -177,15 +231,16 @@ class UpdateVipView(forms.ModalFormView):
         context["vip_id"] = self.kwargs['vip_id']
         return context
 
-    @memoized.memoized_method
     def _get_object(self, *args, **kwargs):
-        vip_id = self.kwargs['vip_id']
-        try:
-            return api.lbaas.vip_get(self.request, vip_id)
-        except Exception as e:
-            redirect = self.success_url
-            msg = _('Unable to retrieve VIP details. %s') % e
-            exceptions.handle(self.request, msg, redirect=redirect)
+        if not hasattr(self, "_object"):
+            vip_id = self.kwargs['vip_id']
+            try:
+                self._object = api.lbaas.vip_get(self.request, vip_id)
+            except Exception as e:
+                redirect = self.success_url
+                msg = _('Unable to retrieve VIP details. %s') % e
+                exceptions.handle(self.request, msg, redirect=redirect)
+        return self._object
 
     def get_initial(self):
         vip = self._get_object()
@@ -221,15 +276,16 @@ class UpdateMemberView(forms.ModalFormView):
         context["member_id"] = self.kwargs['member_id']
         return context
 
-    @memoized.memoized_method
     def _get_object(self, *args, **kwargs):
-        member_id = self.kwargs['member_id']
-        try:
-            return api.lbaas.member_get(self.request, member_id)
-        except Exception as e:
-            redirect = self.success_url
-            msg = _('Unable to retrieve member details. %s') % e
-            exceptions.handle(self.request, msg, redirect=redirect)
+        if not hasattr(self, "_object"):
+            member_id = self.kwargs['member_id']
+            try:
+                self._object = api.lbaas.member_get(self.request, member_id)
+            except Exception as e:
+                redirect = self.success_url
+                msg = _('Unable to retrieve member details. %s') % e
+                exceptions.handle(self.request, msg, redirect=redirect)
+        return self._object
 
     def get_initial(self):
         member = self._get_object()
@@ -250,15 +306,17 @@ class UpdateMonitorView(forms.ModalFormView):
         context["monitor_id"] = self.kwargs['monitor_id']
         return context
 
-    @memoized.memoized_method
     def _get_object(self, *args, **kwargs):
-        monitor_id = self.kwargs['monitor_id']
-        try:
-            return api.lbaas.pool_health_monitor_get(self.request, monitor_id)
-        except Exception as e:
-            redirect = self.success_url
-            msg = _('Unable to retrieve health monitor details. %s') % e
-            exceptions.handle(self.request, msg, redirect=redirect)
+        if not hasattr(self, "_object"):
+            monitor_id = self.kwargs['monitor_id']
+            try:
+                self._object = api.lbaas.pool_health_monitor_get(
+                    self.request, monitor_id)
+            except Exception as e:
+                redirect = self.success_url
+                msg = _('Unable to retrieve health monitor details. %s') % e
+                exceptions.handle(self.request, msg, redirect=redirect)
+        return self._object
 
     def get_initial(self):
         monitor = self._get_object()
@@ -267,6 +325,114 @@ class UpdateMonitorView(forms.ModalFormView):
                 'timeout': monitor['timeout'],
                 'max_retries': monitor['max_retries'],
                 'admin_state_up': monitor['admin_state_up']}
+
+
+class UpdateSSLpolicyView(forms.ModalFormView):
+    form_class = project_forms.UpdateSSLpolicy
+    template_name = "project/loadbalancers/updatesslpolicy.html"
+    context_object_name = 'sslpolicy'
+    success_url = reverse_lazy("horizon:project:loadbalancers:index")
+
+    def get_context_data(self, **kwargs):
+        context = super(UpdateSSLpolicyView, self).get_context_data(**kwargs)
+        context["sslpolicy_id"] = self.kwargs['sslpolicy_id']
+        return context
+
+    def _get_object(self, *args, **kwargs):
+        if not hasattr(self, "_object"):
+            sslpolicy_id = self.kwargs['sslpolicy_id']
+            try:
+                self._object = api.lbaas.ssl_policy_get(
+                    self.request, sslpolicy_id)
+            except Exception as e:
+                redirect = self.success_url
+                msg = _('Unable to retrieve SSL policy details. %s') % e
+                exceptions.handle(self.request, msg, redirect=redirect)
+        return self._object
+
+    def get_initial(self):
+        sslpolicy = self._get_object()
+        return {'sslpolicy_id': sslpolicy['id'],
+                'name': sslpolicy['name'],
+                'description': sslpolicy['description'],
+                'front_end_enabled': sslpolicy['front_end_enabled'],
+                'front_end_protocols': sslpolicy['front_end_protocols'].split(','),
+                'front_end_cipher_suites': sslpolicy['front_end_cipher_suites']}
+                #'back_end_enabled': sslpolicy['back_end_enabled'],
+                #'back_end_cipher_suites': sslpolicy['back_end_cipher_suites']}
+
+
+class UpdateSSLcertificateView(forms.ModalFormView):
+    form_class = project_forms.UpdateSSLcertificate
+    template_name = "project/loadbalancers/updatesslcertificate.html"
+    context_object_name = 'sslcertificate'
+    success_url = reverse_lazy("horizon:project:loadbalancers:index")
+
+    def get_context_data(self, **kwargs):
+        context = super(UpdateSSLcertificateView, self).get_context_data(**kwargs)
+        context["sslcertificate_id"] = self.kwargs['sslcertificate_id']
+        return context
+
+    def _get_object(self, *args, **kwargs):
+        if not hasattr(self, "_object"):
+            sslcertificate_id = self.kwargs['sslcertificate_id']
+            try:
+                self._object = api.lbaas.ssl_certificate_get(
+                    self.request, sslcertificate_id)
+            except Exception as e:
+                redirect = self.success_url
+                msg = _('Unable to retrieve SSL certificate details. %s') % e
+                exceptions.handle(self.request, msg, redirect=redirect)
+        return self._object
+
+    def get_initial(self):
+        sslcertificate = self._get_object()
+        return {'sslcertificate_id': sslcertificate['id'],
+                'name': sslcertificate['name'],
+                'passphrase': sslcertificate['passphrase'],
+                'certificate_chain': sslcertificate['certificate_chain'],
+                'certificate': sslcertificate['certificate']}
+
+class AssociateSSLPolicyView(workflows.WorkflowView):
+    workflow_class = project_workflows.AssociateSSLPolicy
+
+    def get_context_data(self, **kwargs):
+        context = super(AssociateSSLPolicyView, self).get_context_data(**kwargs)
+        context['vip_id'] = self.kwargs['vip_id']
+        return context
+
+    def get_initial(self):
+        initial = super(AssociateSSLPolicyView, self).get_initial()
+        initial['vip_id'] = self.kwargs['vip_id']
+        return initial
+
+
+class DisassociateSSLPolicyView(workflows.WorkflowView):
+    workflow_class = project_workflows.DisassociateSSLPolicy
+
+    def get_context_data(self, **kwargs):
+        context = super(DisassociateSSLPolicyView, self).get_context_data(**kwargs)
+        context['vip_id'] = self.kwargs['vip_id']
+        return context
+
+    def _get_object(self, *args, **kwargs):
+        if not hasattr(self, "_object"):
+            vip_id = self.kwargs['vip_id']
+            try:
+                self._object = api.lbaas.vip_get(self.request, vip_id)
+            except Exception as e:
+                redirect = self.success_url
+                msg = _('Unable to retrieve VIP details. %s') % e
+                exceptions.handle(self.request, msg, redirect=redirect)
+        return self._object
+
+    def get_initial(self):
+        vip = self._get_object()
+        return {'vip_id':vip['id'],
+                'ssl_policy_id': vip['ssl_policy_id'] }
+
+
+
 
 
 class AddPMAssociationView(workflows.WorkflowView):
