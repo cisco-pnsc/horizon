@@ -62,6 +62,17 @@ class AddMonitorLink(tables.LinkAction):
     url = "horizon:project:loadbalancers:addmonitor"
     classes = ("ajax-modal", "btn-create",)
 
+class AddSSLpolicyLink(tables.LinkAction):
+    name = "addsslpolicy"
+    verbose_name = _("Add SSL Policy")
+    url = "horizon:project:loadbalancers:addsslpolicy"
+    classes = ("ajax-modal", "btn-create",)
+    
+class AddSSLcertificateLink(tables.LinkAction):
+    name = "addcertificate"
+    verbose_name = _("Add SSL Certificate")
+    url = "horizon:project:loadbalancers:addcertificate"
+    classes = ("ajax-modal", "btn-create",)
 
 class DeleteVipLink(tables.DeleteAction):
     name = "deletevip"
@@ -91,6 +102,22 @@ class DeleteMonitorLink(tables.DeleteAction):
     data_type_singular = _("Monitor")
     data_type_plural = _("Monitors")
 
+
+class DeleteSSLpolicyLink(tables.DeleteAction):
+    name = "deletesslpolicy"
+    action_present = _("Delete")
+    action_past = _("Scheduled deletion of")
+    data_type_singular = _("SSL Policy")
+    data_type_plural = _("SSL Policies")
+    
+    
+class DeleteSSLcertificateLink(tables.DeleteAction):
+    name = "deletesslcertificate"
+    action_present = _("Delete")
+    action_past = _("Scheduled deletion of")
+    data_type_singular = _("SSL Certificate")
+    data_type_plural = _("SSL Certificates")
+    
 
 class DeleteMemberLink(tables.DeleteAction):
     name = "deletemember"
@@ -144,6 +171,25 @@ class UpdateMonitorLink(tables.LinkAction):
         base_url = reverse("horizon:project:loadbalancers:updatemonitor",
                            kwargs={'monitor_id': monitor.id})
         return base_url
+    
+    
+class UpdateSSLpolicyLink(tables.LinkAction):
+    name = "updatesslpolicy"
+    verbose_name = _("Edit SSL Policy")
+
+    def get_link_url(self, sslpolicy):
+        base_url = reverse("horizon:project:loadbalancers:updatesslpolicy",
+                           kwargs={'sslpolicy_id': sslpolicy.id})
+        return base_url
+    
+class UpdateSSLcertificateLink(tables.LinkAction):
+    name = "updatesslcertificate"
+    verbose_name = _("Edit SSL Certificate")
+
+    def get_link_url(self, sslcertificate):
+        base_url = reverse("horizon:project:loadbalancers:updatesslcertificate",
+                           kwargs={'sslcertificate_id': sslcertificate.id})
+        return base_url
 
 
 def get_vip_link(pool):
@@ -186,6 +232,54 @@ class DeletePMAssociationLink(tables.LinkAction):
         return True
 
 
+class AssociateSSLPolicyLink(tables.LinkAction):
+    name = "associatesslpolicy"
+    verbose_name = _("Associate SSL Policy")
+    classes = ("ajax-modal", "btn-create",)
+
+    def get_link_url(self, pool):
+        base_url = reverse("horizon:project:loadbalancers:associatesslpolicy",
+                           kwargs={'vip_id': pool.vip_id})
+        return base_url
+
+    def allowed(self, request, datum=None):
+        if datum and not datum.vip_id:
+            return False
+        else:
+            try:
+                vip = api.lbaas.vip_get(request, datum.vip_id)
+                if vip['ssl_policy_id'] != None:
+                    return False
+            except Exception:
+                exceptions.handle(request, _('Failed to retrieve VIP'))
+
+        return True
+
+
+class DisassociateSSLPolicyLink(tables.LinkAction):
+    name = "disassociatesslpolicy"
+    verbose_name = _("Disassociate SSL Policy")
+    classes = ("ajax-modal", "btn-create",)
+
+    def get_link_url(self, pool):
+        base_url = reverse("horizon:project:loadbalancers:disassociatesslpolicy",
+                           kwargs={'vip_id': pool.vip_id})
+        return base_url
+
+    def allowed(self, request, datum=None):
+        if datum and datum.vip_id:
+            try:
+                vip = api.lbaas.vip_get(request, datum.vip_id)
+                if vip['ssl_policy_id'] != None:
+                    return True
+
+            except Exception:
+                exceptions.handle(request, _('Failed to retrieve VIP'))
+
+        return False
+
+
+
 class PoolsTable(tables.DataTable):
     name = tables.Column("name",
                        verbose_name=_("Name"),
@@ -204,7 +298,8 @@ class PoolsTable(tables.DataTable):
         table_actions = (AddPoolLink, DeletePoolLink)
         row_actions = (UpdatePoolLink, AddVipLink, UpdateVipLink,
                        DeleteVipLink, AddPMAssociationLink,
-                       DeletePMAssociationLink, DeletePoolLink)
+                       DeletePMAssociationLink, DeletePoolLink,
+                       AssociateSSLPolicyLink, DisassociateSSLPolicyLink)
 
 
 def get_pool_link(member):
@@ -245,3 +340,37 @@ class MonitorsTable(tables.DataTable):
         verbose_name = _("Monitors")
         table_actions = (AddMonitorLink, DeleteMonitorLink)
         row_actions = (UpdateMonitorLink, DeleteMonitorLink)
+        
+class SSLpoliciesTable(tables.DataTable):
+    name = tables.Column("name",
+                       verbose_name=_("Name"),
+                       link="horizon:project:loadbalancers:sslpolicydetails")
+    description = tables.Column('description', verbose_name=_("Description"))
+    front_end_enabled = tables.Column('front_end_enabled', verbose_name=_("Front End Enabled"))
+    front_end_cipher_suites = tables.Column('front_end_cipher_suites', verbose_name=_("Front End Cipher Suites"))
+    front_end_protocols = tables.Column('front_end_protocols', verbose_name=_("Front End Protocols"))
+    #back_end_enabled = tables.Column('back_end_enabled', verbose_name=_("Back End Enabled"))
+    #back_end_cipher_suites = tables.Column('back_end_cipher_suites', verbose_name=_("Back End Cipher Suites"))
+    
+
+    class Meta:
+        name = "sslpoliciestable"
+        verbose_name = _("SSL Policies")
+        table_actions = (AddSSLpolicyLink, DeleteSSLpolicyLink)
+        row_actions = (UpdateSSLpolicyLink, DeleteSSLpolicyLink)
+        
+        
+class SSLcertificatesTable(tables.DataTable):
+    name = tables.Column("name",
+                       verbose_name=_("Name"),
+                       link="horizon:project:loadbalancers:sslcertificatedetails")
+    #certificate = tables.Column('certificate', verbose_name=_("Certificate"))
+    passphrase = tables.Column('passphrase', verbose_name=_("Passphrase"))
+    certificate_chain = tables.Column('certificate_chain', verbose_name=_("Certificate Chain"))
+    
+
+    class Meta:
+        name = "sslcertificatestable"
+        verbose_name = _("SSL Certificates")
+        table_actions = (AddSSLcertificateLink, DeleteSSLcertificateLink)
+        row_actions = (UpdateSSLcertificateLink, DeleteSSLcertificateLink)

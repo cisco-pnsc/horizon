@@ -1,0 +1,37 @@
+{% load i18n sizeformat parse_date %}
+
+<div class="info row-fluid detail">
+  <hr class="header_rule">
+  <dl>
+    <dt>{% trans "ID" %}</dt>
+    <dd>{{ sslpolicy.id }}</dd>
+    
+    <dt>{% trans "Name" %}</dt>
+    <dd>{{ sslpolicy.name }}</dd>
+    
+    <dt>{% trans "Description" %}</dt>
+    <dd>{{ sslpolicy.description }}</dd>
+
+    <dt>{% trans "Project ID" %}</dt>
+    <dd>{{ sslpolicy.tenant_id }}</dd>
+
+    <dt>{% trans "Front End Enabled" %}</dt>
+    <dd>{{ sslpolicy.front_end_enabled }}</dd>
+
+    <dt>{% trans "Front End Cipher Suites" %}</dt>
+    <dd>{{ sslpolicy.front_end_cipher_suites }}</dd>
+
+    <dt>{% trans "Front End Protocols" %}</dt>
+    <dd>{{ sslpolicy.front_end_protocols }}</dd>
+    <!--  
+    <dt>{% trans "Back End Enabled" %}</dt>
+    <dd>{{ sslpolicy.back_end_enabled }}</dd>
+	
+	<dt>{% trans "Back End Cipher Suites" %}</dt>
+    <dd>{{ sslpolicy.back_end_cipher_suites }}</dd>
+    
+    <dt>{% trans "Back End Protocols" %}</dt>
+    <dd>{{ sslpolicy.back_end_protocols }}</dd>
+    -->
+  </dl>
+</div>

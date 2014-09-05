@@ -115,6 +115,21 @@ class PoolMonitor(neutron.NeutronAPIDictWrapper):
         super(PoolMonitor, self).__init__(apiresource)
 
 
+class SSLPolicy(neutron.NeutronAPIDictWrapper):
+    """Wrapper for neutron load balancer ssl policy"""
+
+    def __init__(self, apiresource):
+        super(SSLPolicy, self).__init__(apiresource)
+        
+class SSLCertificate(neutron.NeutronAPIDictWrapper):
+    """Wrapper for neutron load balancer ssl certificate"""
+
+    def __init__(self, apiresource):
+        super(SSLCertificate, self).__init__(apiresource)
+
+
+        
+
 def vip_create(request, **kwargs):
     """Create a vip for a specified pool.
 
@@ -262,6 +277,104 @@ def pool_health_monitor_update(request, monitor_id, **kwargs):
 
 def pool_health_monitor_delete(request, mon_id):
     neutronclient(request).delete_health_monitor(mon_id)
+
+
+def ssl_policy_create(request, **kwargs):
+    """Create a SSL Policy
+
+    :param request: request context
+    :param name: name of ssl policy
+    :param description: description of ssl policy
+    :param front_end_enabled: front_end_enabled
+    :param front_end_cipher_suites: front_end_cipher_suites
+    :param back_end_enabled: back_end_enabled
+    :param back_end_cipher_suites: back_end_cipher_suites
+    """
+    body = {'ssl_policy': {'name': kwargs['name'],
+                           'description': kwargs['description'],
+                           'front_end_enabled': kwargs['front_end_enabled'],
+                           'front_end_cipher_suites': kwargs['front_end_cipher_suites'],
+                           'front_end_protocols': kwargs['front_end_protocols'],
+                           'back_end_enabled': 'False',
+                           'back_end_cipher_suites': '',
+                           'back_end_protocols':''
+                           }}
+    
+    ssl = neutronclient(request).create_ssl_policy(body).get('ssl_policy')
+
+    return SSLPolicy(ssl)
+
+
+def ssl_policies_get(request, **kwargs):
+    sslpolicies = neutronclient(request).list_ssl_policies().get('ssl_policies')
+    return [SSLPolicy(m) for m in sslpolicies]
+
+def ssl_policy_get(request, sslpolicy_id):
+    sslpolicy = neutronclient(request).show_ssl_policy(sslpolicy_id).get('ssl_policy')
+    return SSLPolicy(sslpolicy)
+
+def ssl_policy_update(request, sslpolicy_id, **kwargs):
+    sslpolicy = neutronclient(request).update_ssl_policy(sslpolicy_id, kwargs)
+    return SSLPolicy(sslpolicy)
+
+def ssl_policy_delete(request, sslpolicy_id):
+    neutronclient(request).delete_ssl_policy(sslpolicy_id)
+
+def ssl_certificate_create(request, **kwargs):
+    """Create a SSL Certificate
+
+    :param request: request context
+    :param name: name of ssl certificate
+    :param certificate: certificate
+    :param passphrase: passphrase
+    :param certificate_chain: certificate_chain
+    """
+    body = {'ssl_certificate': {'name': kwargs['name'],
+                           'certificate': kwargs['certificate'],
+                           'passphrase': kwargs['passphrase'],
+                           'certificate_chain': kwargs['certificate_chain']}}
+    
+    sslcertificate = neutronclient(request).create_ssl_certificate(body).get('ssl_certificate')
+
+    return SSLCertificate(sslcertificate)
+
+def ssl_certificates_get(request, **kwargs):
+    sslcertificates = neutronclient(request).list_ssl_certificates().get('ssl_certificates')
+    return [SSLCertificate(m) for m in sslcertificates]
+
+def ssl_certificate_get(request, sslcertificate_id):
+    sslcertificate = neutronclient(request).show_ssl_certificate(sslcertificate_id).get('ssl_certificate')
+    return SSLCertificate(sslcertificate)
+
+def ssl_certificate_update(request, sslcertificate_id, **kwargs):
+    sslpolicy = neutronclient(request).update_ssl_certificate(sslcertificate_id, kwargs)
+    return SSLCertificate(sslpolicy)
+
+def ssl_certificate_delete(request, sslcertificate_id):
+    neutronclient(request).delete_ssl_certificate(sslcertificate_id)
+
+def ssl_policy_associate(request, **kwargs):
+
+    body = {'ssl_association': {
+                'id': kwargs['vip_id'],
+                'ssl_policy':{
+                    'id':kwargs['ssl_policy_id']},
+                'ssl_certificates': [
+                     { 'id':kwargs['ssl_certificate_id'],
+                       'private_key':kwargs['private_key']}
+                     ],
+                'ssl_trusted_certificates':[],
+           }}
+    neutronclient(request).create_ssl_policy_association(kwargs['vip_id'], body)
+
+def ssl_policy_disassociate(request, **kwargs):
+
+    neutronclient(request).delete_ssl_policy_association(
+        kwargs['vip_id'],
+        kwargs['ssl_policy_id'])
+
+
+
 
 
 def member_create(request, **kwargs):

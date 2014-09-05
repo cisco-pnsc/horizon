@@ -493,6 +493,202 @@ class AddMonitorAction(workflows.Action):
                       "HTTP codes upon success.")
 
 
+FRONT_END_PROTOCOL_CHOICES = (
+         ('SSLv2','SSLv2'),
+         ('SSLv3','SSLv3'),
+         ('TLSv1','TLSv1'),
+    )
+
+class AddSSLpolicyAction(workflows.Action):
+    name = forms.CharField(max_length=80, label=_("Name"))
+    description = forms.CharField(
+        initial="", required=False,
+        max_length=80, label=_("Description"))
+    
+    front_end_enabled = forms.BooleanField(label=_("Front End Enabled"),
+                                        initial=True, required=False)
+    
+    front_end_cipher_suites = forms.ChoiceField(
+        label=_("Front End Cipher Suite"),
+        choices=[('ALL', _('ALL')),
+                 ('HIGH', _('HIGH')),
+                 ('MEDIUM', _('MEDIUM')),
+                 ('LOW', _('LOW'))])
+    
+    front_end_protocols = forms.TypedMultipleChoiceField(required=False, 
+                                                         label=_("Front End Protocols"),
+                                                         empty_value='',
+                                                         widget=forms.CheckboxSelectMultiple,
+                                                         choices=FRONT_END_PROTOCOL_CHOICES)
+    
+    """
+    back_end_enabled = forms.BooleanField(label=_("Back End Enabled"),
+                                        initial=True, required=False)
+    
+    back_end_cipher_suites = forms.ChoiceField(
+        label=_("Back End Cipher Suite"),
+        choices=[('ALL', _('ALL')),
+                 ('HIGH', _('HIGH')),
+                 ('MEDIUM', _('MEDIUM')),
+                 ('LOW', _('LOW'))])
+    """
+    def __init__(self, request, *args, **kwargs):
+        super(AddSSLpolicyAction, self).__init__(request, *args, **kwargs)
+
+    class Meta:
+        name = _("Add New SSL Policy")
+        permissions = ('openstack.services.network',)
+        help_text = _("Create a SSL Policy.\n\n")
+        
+class AddSSLcertificateAction(workflows.Action):
+    name = forms.CharField(max_length=80, label=_("Name"))
+    passphrase = forms.CharField(
+        initial="", required=False,
+        label=_("Passphrase"))
+    certificate_chain = forms.CharField(
+        initial="", required=False,
+        label=_("Certificate Chain"))
+    certificate = forms.CharField(
+        initial="", required=False,
+        widget=forms.Textarea,
+        label=_("Certificate"))
+
+    def __init__(self, request, *args, **kwargs):
+        super(AddSSLcertificateAction, self).__init__(request, *args, **kwargs)
+
+    class Meta:
+        name = _("Add New SSL Certificate")
+        permissions = ('openstack.services.network',)
+        help_text = _("Create a SSL Certificate.\n\n")
+
+
+class AssociateSSLPolicyAction(workflows.Action):
+    ssl_policy_id = forms.ChoiceField(label=_("SSL Policy"), required=True)
+    ssl_certificate_id = forms.ChoiceField(label=_("SSL Certificate"), required=True)
+    private_key = forms.CharField(
+        widget=forms.widgets.Textarea(),
+        initial="", required=True,
+        max_length=2048, label=_("Certificate Private Key"))
+
+    def __init__(self, request, *args, **kwargs):
+        super(AssociateSSLPolicyAction, self).__init__(request, *args, **kwargs)
+
+        ssl_policy_id_choices = [('', _("Select a SSL Policy"))]
+        try:
+            tenant_id = self.request.user.tenant_id
+            ssl_policies = api.lbaas.ssl_policies_get(request, tenant_id=tenant_id)
+        except Exception:
+            ssl_policies = []
+            exceptions.handle(request,
+                              _('Unable to retrieve SSL Policy list.'))
+        ssl_policies = sorted(ssl_policies,
+                       key=lambda ssl_policy: ssl_policy.name)
+        for p in ssl_policies:
+            ssl_policy_id_choices.append((p.id, p.name))
+        self.fields['ssl_policy_id'].choices = ssl_policy_id_choices
+
+        ssl_certificate_id_choices = [('', _("Select SSL Certificate"))]
+        try:
+            tenant_id = self.request.user.tenant_id
+            ssl_certificates = api.lbaas.ssl_certificates_get(request, tenant_id=tenant_id)
+        except Exception:
+            ssl_certificates = []
+            exceptions.handle(request,
+                              _('Unable to retrieve SSL Certificate list.'))
+        ssl_policies = sorted(ssl_certificates,
+                       key=lambda ssl_certificate: ssl_certificate.name)
+        for p in ssl_certificates:
+            ssl_certificate_id_choices.append((p.id, p.name))
+        self.fields['ssl_certificate_id'].choices = ssl_certificate_id_choices
+
+    def clean(self):
+        cleaned_data = super(AssociateSSLPolicyAction, self).clean()
+        return cleaned_data
+
+    class Meta:
+        name = _("Associate SSL Policy with VIP")
+        permissions = ('openstack.services.network',)
+        help_text = _("Select an SSL Policy to associate with VIP. "
+                      "Select SSL Certificate to be used. "
+                      "Specify private key for chosen SSL certificate ")
+
+
+class AssociateSSLPolicyStep(workflows.Step):
+    action_class = AssociateSSLPolicyAction
+    depends_on = ("vip_id",)
+    contributes = ("ssl_policy_id", "ssl_certificate_id", "private_key")
+
+    def contribute(self, data, context):
+        context = super(AssociateSSLPolicyStep, self).contribute(data, context)
+        return context
+
+
+class AssociateSSLPolicy(workflows.Workflow):
+    slug = "associatesslpolicy"
+    name = _("Associate SSL Policy")
+    finalize_button_name = _("Associate")
+    success_message = _('Associated.')
+    failure_message = _('Unable to associate.')
+    success_url = "horizon:project:loadbalancers:index"
+    default_steps = (AssociateSSLPolicyStep,)
+
+    def format_status_message(self, message):
+         return message
+
+    def handle(self, request, context):
+        try:
+            api.lbaas.ssl_policy_associate(request, **context)
+            return True
+        except Exception:
+            raise
+            return False
+
+
+class DisassociateSSLPolicyAction(workflows.Action):
+
+    def __init__(self, request, *args, **kwargs):
+        super(DisassociateSSLPolicyAction, self).__init__(request, *args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super(DisassociateSSLPolicyAction, self).clean()
+        return cleaned_data
+
+    class Meta:
+        name = _("Disassociate SSL Policy with VIP")
+        permissions = ('openstack.services.network',)
+        help_text = _( "Dissociate SSL Policy from VIP")
+
+
+class DisassociateSSLPolicyStep(workflows.Step):
+    action_class = DisassociateSSLPolicyAction
+    depends_on = ("vip_id", "ssl_policy_id", )
+
+    def contribute(self, data, context):
+        context = super(DisassociateSSLPolicyStep, self).contribute(data, context)
+        return context
+
+
+class DisassociateSSLPolicy(workflows.Workflow):
+    slug = "disassociatesslpolicy"
+    name = _("Disassociate SSL Policy")
+    finalize_button_name = _("Disassociate")
+    success_message = _('Disassociate.')
+    failure_message = _('Failed to disassociate.')
+    success_url = "horizon:project:loadbalancers:index"
+    default_steps = (DisassociateSSLPolicyStep,)
+
+    def format_status_message(self, message):
+         return message
+
+    def handle(self, request, context):
+        try:
+            api.lbaas.ssl_policy_disassociate(request, **context)
+            return True
+        except Exception:
+            raise
+            return False
+
+
 class AddMonitorStep(workflows.Step):
     action_class = AddMonitorAction
     contributes = ("type", "delay", "timeout", "max_retries",
@@ -504,6 +700,25 @@ class AddMonitorStep(workflows.Step):
         if data:
             return context
 
+
+class AddSSLpolicyStep(workflows.Step):
+    action_class = AddSSLpolicyAction
+    contributes = ("name", "description", "front_end_enabled", "front_end_protocols", "front_end_cipher_suites")
+    #"back_end_enabled", "back_end_cipher_suites")
+
+    def contribute(self, data, context):
+        context = super(AddSSLpolicyStep, self).contribute(data, context)
+        if data:
+            return context
+
+class AddSSLcertificateStep(workflows.Step):
+    action_class = AddSSLcertificateAction
+    contributes = ("name", "certificate", "passphrase", "certificate_chain")
+
+    def contribute(self, data, context):
+        context = super(AddSSLcertificateStep, self).contribute(data, context)
+        if data:
+            return context     
 
 class AddMonitor(workflows.Workflow):
     slug = "addmonitor"
@@ -523,6 +738,44 @@ class AddMonitor(workflows.Workflow):
             exceptions.handle(request, _("Unable to add monitor."))
         return False
 
+
+class AddSSLpolicy(workflows.Workflow):
+    slug = "addsslpolicy"
+    name = _("Add SSL Policy")
+    finalize_button_name = _("Add")
+    success_message = _('Added SSL policy')
+    failure_message = _('Unable to add SSL policy')
+    success_url = "horizon:project:loadbalancers:index"
+    default_steps = (AddSSLpolicyStep,)
+
+    def handle(self, request, context):
+        try:
+            front_end_protocols = ','.join(context['front_end_protocols'])
+            context['front_end_protocols'] = front_end_protocols
+            context['ssl_policy_id'] = api.lbaas.ssl_policy_create(
+                request, **context).get('id')
+            return True
+        except Exception:
+            exceptions.handle(request, _("Unable to add SSL policy."))
+        return False
+
+class AddSSLcertificate(workflows.Workflow):
+    slug = "addsslcertificate"
+    name = _("Add SSL Certificate")
+    finalize_button_name = _("Add")
+    success_message = _('Added SSL certificate')
+    failure_message = _('Unable to add SSL certificate')
+    success_url = "horizon:project:loadbalancers:index"
+    default_steps = (AddSSLcertificateStep,)
+
+    def handle(self, request, context):
+        try:
+            context['ssl_certificate_id'] = api.lbaas.ssl_certificate_create(
+                request, **context).get('id')
+            return True
+        except Exception:
+            exceptions.handle(request, _("Unable to add SSL certificate."))
+        return False
 
 class MonitorMixin():
 

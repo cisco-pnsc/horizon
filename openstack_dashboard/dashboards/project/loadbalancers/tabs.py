@@ -82,10 +82,43 @@ class MonitorsTab(tabs.TableTab):
                               _('Unable to retrieve monitor list.'))
         return monitors
 
+class SSLpoliciesTab(tabs.TableTab):
+    table_classes = (tables.SSLpoliciesTable,)
+    name = _("SSL Policies")
+    slug = "sslpolicies"
+    template_name = "horizon/common/_detail_table.html"
+
+    def get_sslpoliciestable_data(self):
+        try:
+            tenant_id = self.request.user.tenant_id
+            sslpolicies = api.lbaas.ssl_policies_get(
+                self.tab_group.request, tenant_id=tenant_id)
+        except Exception:
+            sslpolicies = []
+            exceptions.handle(self.tab_group.request,
+                              _('Unable to retrieve SSL policy list.'))
+        return sslpolicies
+    
+class SSLcertificateTab(tabs.TableTab):
+    table_classes = (tables.SSLcertificatesTable,)
+    name = _("SSL Certificates")
+    slug = "sslcertificates"
+    template_name = "horizon/common/_detail_table.html"
+
+    def get_sslcertificatestable_data(self):
+        try:
+            tenant_id = self.request.user.tenant_id
+            sslcertificates = api.lbaas.ssl_certificates_get(
+                self.tab_group.request, tenant_id=tenant_id)
+        except Exception:
+            sslcertificates = []
+            exceptions.handle(self.tab_group.request,
+                              _('Unable to retrieve SSL Certificate list.'))
+        return sslcertificates
 
 class LoadBalancerTabs(tabs.TabGroup):
     slug = "lbtabs"
-    tabs = (PoolsTab, MembersTab, MonitorsTab)
+    tabs = (PoolsTab, MembersTab, MonitorsTab, SSLpoliciesTab, SSLcertificateTab)
     sticky = True
 
 
@@ -153,6 +186,36 @@ class MonitorDetailsTab(tabs.Tab):
         return {'monitor': monitor}
 
 
+class SSLpolicyDetailsTab(tabs.Tab):
+    name = _("SSL Policy Details")
+    slug = "sslpolicydetails"
+    template_name = "project/loadbalancers/_sslpolicy_details.html"
+
+    def get_context_data(self, request):
+        sslpolicyid = self.tab_group.kwargs['sslpolicy_id']
+        try:
+            sslpolicy = api.lbaas.ssl_policy_get(request, sslpolicyid)
+        except Exception:
+            sslpolicy = []
+            exceptions.handle(self.tab_group.request,
+                              _('Unable to retrieve SSL policy details.'))
+        return {'sslpolicy': sslpolicy}
+    
+class SSLcertificateDetailsTab(tabs.Tab):
+    name = _("SSL Certificate Details")
+    slug = "sslcertificatedetails"
+    template_name = "project/loadbalancers/_sslcertificate_details.html"
+
+    def get_context_data(self, request):
+        sslcertificateid = self.tab_group.kwargs['sslcertificate_id']
+        try:
+            sslcertificate = api.lbaas.ssl_certificate_get(request, sslcertificateid)
+        except Exception:
+            sslcertificate = []
+            exceptions.handle(self.tab_group.request,
+                              _('Unable to retrieve SSL certificate details.'))
+        return {'sslcertificate': sslcertificate}
+
 class PoolDetailsTabs(tabs.TabGroup):
     slug = "pooltabs"
     tabs = (PoolDetailsTab,)
@@ -171,3 +234,12 @@ class MemberDetailsTabs(tabs.TabGroup):
 class MonitorDetailsTabs(tabs.TabGroup):
     slug = "monitortabs"
     tabs = (MonitorDetailsTab,)
+
+
+class SSLPolicyDetailsTabs(tabs.TabGroup):
+    slug = "sslpolicytabs"
+    tabs = (SSLpolicyDetailsTab,)
+    
+class SSLcertificateDetailsTabs(tabs.TabGroup):
+    slug = "sslcertificatetabs"
+    tabs = (SSLcertificateDetailsTab,)
