@@ -14,11 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from django.utils.translation import ugettext_lazy as _  # noqa
+from django.utils.translation import ugettext_lazy as _
 
 from horizon import exceptions
 from horizon import forms
-from horizon.utils import fields
 from horizon.utils import validators
 from horizon import workflows
 
@@ -95,9 +94,9 @@ class AddPoolAction(workflows.Action):
                         _("%s (default)") % default_provider))
         else:
             if providers is None:
-                msg = _("Provider for Load Balancer is not supported.")
+                msg = _("Provider for Load Balancer is not supported")
             else:
-                msg = _("No provider is available.")
+                msg = _("No provider is available")
             provider_choices = [('', msg)]
             self.fields['provider'].widget.attrs['readonly'] = True
         self.fields['provider'].choices = provider_choices
@@ -155,9 +154,9 @@ class AddVipAction(workflows.Action):
         label=_("VIP Address from Floating IPs"),
         widget=forms.Select(attrs={'disabled': 'disabled'}),
         required=False)
-    other_address = fields.IPField(required=False,
+    other_address = forms.IPField(required=False,
                                    initial="",
-                                   version=fields.IPv4,
+                                   version=forms.IPv4,
                                    mask=False)
     protocol_port = forms.IntegerField(label=_("Protocol Port"), min_value=1,
                               help_text=_("Enter an integer value "
@@ -165,12 +164,21 @@ class AddVipAction(workflows.Action):
                               validators=[validators.validate_port_range])
     protocol = forms.ChoiceField(label=_("Protocol"))
     session_persistence = forms.ChoiceField(
-        required=False, initial={}, label=_("Session Persistence"))
+        required=False, initial={}, label=_("Session Persistence"),
+        widget=forms.Select(attrs={
+            'class': 'switchable',
+            'data-slug': 'persistence'
+        }))
     cookie_name = forms.CharField(
         initial="", required=False,
         max_length=80, label=_("Cookie Name"),
         help_text=_("Required for APP_COOKIE persistence;"
-                    " Ignored otherwise."))
+                    " Ignored otherwise."),
+        widget=forms.TextInput(attrs={
+            'class': 'switched',
+            'data-switch-on': 'persistence',
+            'data-persistence-app_cookie': 'APP_COOKIE',
+        }))
     connection_limit = forms.IntegerField(
         required=False, min_value=-1, label=_("Connection Limit"),
         help_text=_("Maximum number of connections allowed "
@@ -182,8 +190,7 @@ class AddVipAction(workflows.Action):
         super(AddVipAction, self).__init__(request, *args, **kwargs)
 
         self.fields['other_address'].label = _("Specify a free IP address"
-                                               " from %s" %
-                                               args[0]['subnet'])
+                                               " from %s") % args[0]['subnet']
 
         protocol_choices = [('', _("Select a Protocol"))]
         [protocol_choices.append((p, p)) for p in AVAILABLE_PROTOCOLS]
@@ -191,7 +198,7 @@ class AddVipAction(workflows.Action):
 
         session_persistence_choices = [('', _("No Session Persistence"))]
         for mode in ('SOURCE_IP', 'HTTP_COOKIE', 'APP_COOKIE'):
-            session_persistence_choices.append((mode, mode))
+            session_persistence_choices.append((mode.lower(), mode))
         self.fields[
             'session_persistence'].choices = session_persistence_choices
 
@@ -200,6 +207,9 @@ class AddVipAction(workflows.Action):
 
     def clean(self):
         cleaned_data = super(AddVipAction, self).clean()
+        persistence = cleaned_data.get('session_persistence')
+        if persistence:
+            cleaned_data['session_persistence'] = persistence.upper()
         if (cleaned_data.get('session_persistence') == 'APP_COOKIE' and
                 not cleaned_data.get('cookie_name')):
             msg = _('Cookie name is required for APP_COOKIE persistence.')
@@ -308,7 +318,7 @@ class AddMemberAction(workflows.Action):
         pool_id_choices = [('', _("Select a Pool"))]
         try:
             tenant_id = self.request.user.tenant_id
-            pools = api.lbaas.pools_get(request, tenant_id=tenant_id)
+            pools = api.lbaas.pool_list(request, tenant_id=tenant_id)
         except Exception:
             pools = []
             exceptions.handle(request,
@@ -328,13 +338,15 @@ class AddMemberAction(workflows.Action):
                               _('Unable to retrieve instances list.'))
 
         if len(servers) == 0:
-            self.fields['members'].label = _("No servers available. "
-                                             "Click Add to cancel.")
-            self.fields['members'].required = False
+            self.fields['members'].label = _(
+                "No servers available. To add a member, you "
+                "need at least one running instance.")
+            self.fields['members'].required = True
             self.fields['members'].help_text = _("Select members "
                                                  "for this pool ")
             self.fields['pool_id'].required = False
             self.fields['protocol_port'].required = False
+
             return
 
         for m in servers:
@@ -493,202 +505,6 @@ class AddMonitorAction(workflows.Action):
                       "HTTP codes upon success.")
 
 
-FRONT_END_PROTOCOL_CHOICES = (
-         ('SSLv2','SSLv2'),
-         ('SSLv3','SSLv3'),
-         ('TLSv1','TLSv1'),
-    )
-
-class AddSSLpolicyAction(workflows.Action):
-    name = forms.CharField(max_length=80, label=_("Name"))
-    description = forms.CharField(
-        initial="", required=False,
-        max_length=80, label=_("Description"))
-    
-    front_end_enabled = forms.BooleanField(label=_("Front End Enabled"),
-                                        initial=True, required=False)
-    
-    front_end_cipher_suites = forms.ChoiceField(
-        label=_("Front End Cipher Suite"),
-        choices=[('ALL', _('ALL')),
-                 ('HIGH', _('HIGH')),
-                 ('MEDIUM', _('MEDIUM')),
-                 ('LOW', _('LOW'))])
-    
-    front_end_protocols = forms.TypedMultipleChoiceField(required=False, 
-                                                         label=_("Front End Protocols"),
-                                                         empty_value='',
-                                                         widget=forms.CheckboxSelectMultiple,
-                                                         choices=FRONT_END_PROTOCOL_CHOICES)
-    
-    """
-    back_end_enabled = forms.BooleanField(label=_("Back End Enabled"),
-                                        initial=True, required=False)
-    
-    back_end_cipher_suites = forms.ChoiceField(
-        label=_("Back End Cipher Suite"),
-        choices=[('ALL', _('ALL')),
-                 ('HIGH', _('HIGH')),
-                 ('MEDIUM', _('MEDIUM')),
-                 ('LOW', _('LOW'))])
-    """
-    def __init__(self, request, *args, **kwargs):
-        super(AddSSLpolicyAction, self).__init__(request, *args, **kwargs)
-
-    class Meta:
-        name = _("Add New SSL Policy")
-        permissions = ('openstack.services.network',)
-        help_text = _("Create a SSL Policy.\n\n")
-        
-class AddSSLcertificateAction(workflows.Action):
-    name = forms.CharField(max_length=80, label=_("Name"))
-    passphrase = forms.CharField(
-        initial="", required=False,
-        label=_("Passphrase"))
-    certificate_chain = forms.CharField(
-        initial="", required=False,
-        label=_("Certificate Chain"))
-    certificate = forms.CharField(
-        initial="", required=False,
-        widget=forms.Textarea,
-        label=_("Certificate"))
-
-    def __init__(self, request, *args, **kwargs):
-        super(AddSSLcertificateAction, self).__init__(request, *args, **kwargs)
-
-    class Meta:
-        name = _("Add New SSL Certificate")
-        permissions = ('openstack.services.network',)
-        help_text = _("Create a SSL Certificate.\n\n")
-
-
-class AssociateSSLPolicyAction(workflows.Action):
-    ssl_policy_id = forms.ChoiceField(label=_("SSL Policy"), required=True)
-    ssl_certificate_id = forms.ChoiceField(label=_("SSL Certificate"), required=True)
-    private_key = forms.CharField(
-        widget=forms.widgets.Textarea(),
-        initial="", required=True,
-        max_length=2048, label=_("Certificate Private Key"))
-
-    def __init__(self, request, *args, **kwargs):
-        super(AssociateSSLPolicyAction, self).__init__(request, *args, **kwargs)
-
-        ssl_policy_id_choices = [('', _("Select a SSL Policy"))]
-        try:
-            tenant_id = self.request.user.tenant_id
-            ssl_policies = api.lbaas.ssl_policies_get(request, tenant_id=tenant_id)
-        except Exception:
-            ssl_policies = []
-            exceptions.handle(request,
-                              _('Unable to retrieve SSL Policy list.'))
-        ssl_policies = sorted(ssl_policies,
-                       key=lambda ssl_policy: ssl_policy.name)
-        for p in ssl_policies:
-            ssl_policy_id_choices.append((p.id, p.name))
-        self.fields['ssl_policy_id'].choices = ssl_policy_id_choices
-
-        ssl_certificate_id_choices = [('', _("Select SSL Certificate"))]
-        try:
-            tenant_id = self.request.user.tenant_id
-            ssl_certificates = api.lbaas.ssl_certificates_get(request, tenant_id=tenant_id)
-        except Exception:
-            ssl_certificates = []
-            exceptions.handle(request,
-                              _('Unable to retrieve SSL Certificate list.'))
-        ssl_policies = sorted(ssl_certificates,
-                       key=lambda ssl_certificate: ssl_certificate.name)
-        for p in ssl_certificates:
-            ssl_certificate_id_choices.append((p.id, p.name))
-        self.fields['ssl_certificate_id'].choices = ssl_certificate_id_choices
-
-    def clean(self):
-        cleaned_data = super(AssociateSSLPolicyAction, self).clean()
-        return cleaned_data
-
-    class Meta:
-        name = _("Associate SSL Policy with VIP")
-        permissions = ('openstack.services.network',)
-        help_text = _("Select an SSL Policy to associate with VIP. "
-                      "Select SSL Certificate to be used. "
-                      "Specify private key for chosen SSL certificate ")
-
-
-class AssociateSSLPolicyStep(workflows.Step):
-    action_class = AssociateSSLPolicyAction
-    depends_on = ("vip_id",)
-    contributes = ("ssl_policy_id", "ssl_certificate_id", "private_key")
-
-    def contribute(self, data, context):
-        context = super(AssociateSSLPolicyStep, self).contribute(data, context)
-        return context
-
-
-class AssociateSSLPolicy(workflows.Workflow):
-    slug = "associatesslpolicy"
-    name = _("Associate SSL Policy")
-    finalize_button_name = _("Associate")
-    success_message = _('Associated.')
-    failure_message = _('Unable to associate.')
-    success_url = "horizon:project:loadbalancers:index"
-    default_steps = (AssociateSSLPolicyStep,)
-
-    def format_status_message(self, message):
-         return message
-
-    def handle(self, request, context):
-        try:
-            api.lbaas.ssl_policy_associate(request, **context)
-            return True
-        except Exception:
-            raise
-            return False
-
-
-class DisassociateSSLPolicyAction(workflows.Action):
-
-    def __init__(self, request, *args, **kwargs):
-        super(DisassociateSSLPolicyAction, self).__init__(request, *args, **kwargs)
-
-    def clean(self):
-        cleaned_data = super(DisassociateSSLPolicyAction, self).clean()
-        return cleaned_data
-
-    class Meta:
-        name = _("Disassociate SSL Policy with VIP")
-        permissions = ('openstack.services.network',)
-        help_text = _( "Dissociate SSL Policy from VIP")
-
-
-class DisassociateSSLPolicyStep(workflows.Step):
-    action_class = DisassociateSSLPolicyAction
-    depends_on = ("vip_id", "ssl_policy_id", )
-
-    def contribute(self, data, context):
-        context = super(DisassociateSSLPolicyStep, self).contribute(data, context)
-        return context
-
-
-class DisassociateSSLPolicy(workflows.Workflow):
-    slug = "disassociatesslpolicy"
-    name = _("Disassociate SSL Policy")
-    finalize_button_name = _("Disassociate")
-    success_message = _('Disassociate.')
-    failure_message = _('Failed to disassociate.')
-    success_url = "horizon:project:loadbalancers:index"
-    default_steps = (DisassociateSSLPolicyStep,)
-
-    def format_status_message(self, message):
-         return message
-
-    def handle(self, request, context):
-        try:
-            api.lbaas.ssl_policy_disassociate(request, **context)
-            return True
-        except Exception:
-            raise
-            return False
-
-
 class AddMonitorStep(workflows.Step):
     action_class = AddMonitorAction
     contributes = ("type", "delay", "timeout", "max_retries",
@@ -700,25 +516,6 @@ class AddMonitorStep(workflows.Step):
         if data:
             return context
 
-
-class AddSSLpolicyStep(workflows.Step):
-    action_class = AddSSLpolicyAction
-    contributes = ("name", "description", "front_end_enabled", "front_end_protocols", "front_end_cipher_suites")
-    #"back_end_enabled", "back_end_cipher_suites")
-
-    def contribute(self, data, context):
-        context = super(AddSSLpolicyStep, self).contribute(data, context)
-        if data:
-            return context
-
-class AddSSLcertificateStep(workflows.Step):
-    action_class = AddSSLcertificateAction
-    contributes = ("name", "certificate", "passphrase", "certificate_chain")
-
-    def contribute(self, data, context):
-        context = super(AddSSLcertificateStep, self).contribute(data, context)
-        if data:
-            return context     
 
 class AddMonitor(workflows.Workflow):
     slug = "addmonitor"
@@ -738,44 +535,6 @@ class AddMonitor(workflows.Workflow):
             exceptions.handle(request, _("Unable to add monitor."))
         return False
 
-
-class AddSSLpolicy(workflows.Workflow):
-    slug = "addsslpolicy"
-    name = _("Add SSL Policy")
-    finalize_button_name = _("Add")
-    success_message = _('Added SSL policy')
-    failure_message = _('Unable to add SSL policy')
-    success_url = "horizon:project:loadbalancers:index"
-    default_steps = (AddSSLpolicyStep,)
-
-    def handle(self, request, context):
-        try:
-            front_end_protocols = ','.join(context['front_end_protocols'])
-            context['front_end_protocols'] = front_end_protocols
-            context['ssl_policy_id'] = api.lbaas.ssl_policy_create(
-                request, **context).get('id')
-            return True
-        except Exception:
-            exceptions.handle(request, _("Unable to add SSL policy."))
-        return False
-
-class AddSSLcertificate(workflows.Workflow):
-    slug = "addsslcertificate"
-    name = _("Add SSL Certificate")
-    finalize_button_name = _("Add")
-    success_message = _('Added SSL certificate')
-    failure_message = _('Unable to add SSL certificate')
-    success_url = "horizon:project:loadbalancers:index"
-    default_steps = (AddSSLcertificateStep,)
-
-    def handle(self, request, context):
-        try:
-            context['ssl_certificate_id'] = api.lbaas.ssl_certificate_create(
-                request, **context).get('id')
-            return True
-        except Exception:
-            exceptions.handle(request, _("Unable to add SSL certificate."))
-        return False
 
 class MonitorMixin():
 
@@ -803,12 +562,12 @@ class AddPMAssociationAction(workflows.Action, MonitorMixin):
 
     def populate_monitor_id_choices(self, request, context):
         self.fields['monitor_id'].label = _("Select a monitor template "
-                                            "for %s" % context['pool_name'])
+                                            "for %s") % context['pool_name']
 
         monitor_id_choices = [('', _("Select a Monitor"))]
         try:
             tenant_id = self.request.user.tenant_id
-            monitors = api.lbaas.pool_health_monitors_get(request,
+            monitors = api.lbaas.pool_health_monitor_list(request,
                                                           tenant_id=tenant_id)
             for m in monitors:
                 if m.id not in context['pool_monitors']:
@@ -840,10 +599,10 @@ class AddPMAssociationStep(workflows.Step):
 
 class AddPMAssociation(workflows.Workflow):
     slug = "addassociation"
-    name = _("Add Association")
-    finalize_button_name = _("Add")
-    success_message = _('Added association.')
-    failure_message = _('Unable to add association.')
+    name = _("Associate Monitor")
+    finalize_button_name = _("Associate")
+    success_message = _('Associated monitor.')
+    failure_message = _('Unable to associate monitor.')
     success_url = "horizon:project:loadbalancers:index"
     default_steps = (AddPMAssociationStep,)
 
@@ -853,8 +612,8 @@ class AddPMAssociation(workflows.Workflow):
                 request, **context)
             return True
         except Exception:
-            exceptions.handle(request, _("Unable to add association."))
-        return False
+            exceptions.handle(request, _("Unable to associate monitor."))
+            return False
 
 
 class DeletePMAssociationAction(workflows.Action, MonitorMixin):
@@ -870,7 +629,7 @@ class DeletePMAssociationAction(workflows.Action, MonitorMixin):
 
         monitor_id_choices = [('', _("Select a Monitor"))]
         try:
-            monitors = api.lbaas.pool_health_monitors_get(request)
+            monitors = api.lbaas.pool_health_monitor_list(request)
             for m in monitors:
                 if m.id in context['pool_monitors']:
                     display_name = self._get_monitor_display_name(m)
@@ -902,10 +661,10 @@ class DeletePMAssociationStep(workflows.Step):
 
 class DeletePMAssociation(workflows.Workflow):
     slug = "deleteassociation"
-    name = _("Delete Association")
-    finalize_button_name = _("Delete")
-    success_message = _('Deleted association.')
-    failure_message = _('Unable to delete association.')
+    name = _("Disassociate Monitor")
+    finalize_button_name = _("Disassociate")
+    success_message = _('Disassociated monitor.')
+    failure_message = _('Unable to disassociate monitor.')
     success_url = "horizon:project:loadbalancers:index"
     default_steps = (DeletePMAssociationStep,)
 
@@ -915,5 +674,5 @@ class DeletePMAssociation(workflows.Workflow):
                 request, **context)
             return True
         except Exception:
-            exceptions.handle(request, _("Unable to delete association."))
+            exceptions.handle(request, _("Unable to disassociate monitor."))
         return False
