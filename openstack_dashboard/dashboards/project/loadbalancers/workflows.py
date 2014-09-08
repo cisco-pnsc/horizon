@@ -670,7 +670,7 @@ class DisassociateSSLPolicyStep(workflows.Step):
 
 class DisassociateSSLPolicy(workflows.Workflow):
     slug = "disassociatesslpolicy"
-    name = _("Disassociate SSL Policy")
+    name = _("Confirm Disassociate SSL Policy")
     finalize_button_name = _("Disassociate")
     success_message = _('Disassociate.')
     failure_message = _('Failed to disassociate.')

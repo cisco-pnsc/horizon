@@ -1,0 +1,28 @@
+{% load i18n %}
+{% with workflow.get_entry_point as entry_point %}
+<div class="workflow {% if modal %}modal hide{% else %}static_page{% endif %}">
+  <form {{ workflow.attr_string|safe }} action="{{ workflow.get_absolute_url }}" {% if add_to_field %}data-add-to-field="{{ add_to_field }}"{% endif %} method="POST"{% if workflow.multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
+    {% if REDIRECT_URL %}<input type="hidden" name="{{ workflow.redirect_param_name }}" value="{{ REDIRECT_URL }}"/>{% endif %}
+    <div class="modal-header">
+    {% block modal-header %}
+      {% if modal %}<a href="#" class="close" data-dismiss="modal">&times;</a>{% endif %}
+      <h3>{{ workflow.name }}</h3>
+    {% endblock %}
+    </div>
+
+    <div class="modal-body clearfix">
+     {% block modal-body %}
+    <p>{% trans "Please confirm your selection. This action cannot be undone." %}</p>
+     {% endblock %}
+    </div>
+    <div class="modal-footer">
+    {% block modal-footer %}
+      <input class="btn btn-primary pull-right" type="submit" value="{{ workflow.finalize_button_name }}" />
+      {% if modal %}<a class="btn secondary cancel close">{% trans "Cancel" %}</a>{% endif %}
+    {% endblock %}
+    </div>
+  </form>
+</div>
+{% endwith %}
+{% block modal-js %}
+{% endblock %}

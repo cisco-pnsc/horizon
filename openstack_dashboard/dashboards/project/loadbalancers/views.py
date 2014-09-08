@@ -409,6 +409,7 @@ class AssociateSSLPolicyView(workflows.WorkflowView):
 
 class DisassociateSSLPolicyView(workflows.WorkflowView):
     workflow_class = project_workflows.DisassociateSSLPolicy
+    ajax_template_name = "project/loadbalancers/disassociateSsl.html"
 
     def get_context_data(self, **kwargs):
         context = super(DisassociateSSLPolicyView, self).get_context_data(**kwargs)
