@@ -248,7 +248,7 @@ class AssociateSSLPolicyLink(tables.LinkAction):
         else:
             try:
                 vip = api.lbaas.vip_get(request, datum.vip_id)
-                if vip['ssl_policy_id'] != None:
+                if vip['ssl_policy_id'] != None or vip['protocol'] != 'HTTPS':
                     return False
             except Exception:
                 exceptions.handle(request, _('Failed to retrieve VIP'))
