@@ -54,8 +54,10 @@ class LoadBalancerTests(test.TestCase):
             IsA(http.HttpRequest), tenant_id=self.tenant.id) \
             .AndReturn(self.pools.list())
 
-        api.lbaas.vip_get(IsA(http.HttpRequest), vip1.id).AndReturn(vip1)
-        api.lbaas.vip_get(IsA(http.HttpRequest), vip2.id).AndReturn(vip2)
+        api.lbaas.vip_get(IsA(http.HttpRequest), vip1.id).MultipleTimes() \
+		.AndReturn(vip1)
+        api.lbaas.vip_get(IsA(http.HttpRequest), vip2.id).MultipleTimes() \
+		.AndReturn(vip2)
 
         # retrieves members
         api.lbaas.members_get(

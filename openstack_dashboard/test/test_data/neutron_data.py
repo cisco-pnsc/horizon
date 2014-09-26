@@ -432,6 +432,7 @@ def data(TEST):
                 'session_persistence': {'type': 'APP_COOKIE',
                                         'cookie_name': 'jssessionid'},
                 'connection_limit': 10,
+		'ssl_policy_id':'b1909408-7d70-4fc8-80c2-5a149eceb369',
                 'admin_state_up': True}
     TEST.api_vips.add(vip_dict)
     TEST.vips.add(lbaas.Vip(vip_dict))
@@ -451,6 +452,7 @@ def data(TEST):
                 'session_persistence': {'type': 'APP_COOKIE',
                                         'cookie_name': 'jssessionid'},
                 'connection_limit': 10,
+		'ssl_policy_id':'b1909408-7d70-4fc8-80c2-5a149eceb379',
                 'admin_state_up': True}
     TEST.api_vips.add(vip_dict)
     TEST.vips.add(lbaas.Vip(vip_dict))
